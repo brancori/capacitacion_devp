@@ -379,7 +379,7 @@ main {
     align-items: center;
     padding: 2rem 0;
     /* Fondo con la imagen de red (sustituye la URL por una tuya) */
-    background-image: url(./assets/img/fondo_.png); /* Sustituye con tu imagen de fondo */
+    background-image: url(../assets/img/fondo_.png); /* Sustituye con tu imagen de fondo */
     background-size: cover;
     background-position: center;
 }
