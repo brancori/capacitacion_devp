@@ -332,7 +332,7 @@ loginButtonFront.addEventListener('click', function(event) {
     // (Aquí iría tu validación)
     if (usuarioVal === 'admin' && passwordVal === '123') {
         showModal('¡Éxito!', 'Inicio de sesión (Trabajador) correcto.', 'success');
-        setTimeout(() => { window.location.href = './profile.html'; }, 2000);
+        setTimeout(() => { window.location.href = '../profile.html'; }, 2000);
     } else {
         showModal('Error', 'Usuario o contraseña incorrectos.', 'error');
     }
