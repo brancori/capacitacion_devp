@@ -175,24 +175,9 @@
     <header>
         <section id="Container1">
             <!-- Ruta corregida: Se añade ./ para ser explícito -->
-            <img id="logo" src="../assets/img/trox_epf.jpg" >
+            <img id="logo" src="./assets/johnson-johnson-logo.svg"  alt="Logo de Johnson & Johnson">
         </section>
         
-        <section id="Container2">
-            <div id="SubContainer1">
-                <p>CONTACTITO</p>
-                <p>INICIO</p>
-                <p>TROX EN EL MUNDO</p>
-            </div>
-            
-            <div id="subcontainer2">
-                <p>PRODUCTOS</p>
-                <p>ESPECIALIZACIÓN</p>
-                <p>SERVICIOS</p>
-                <p>COMPAÑIA</p>
-                <p>CONTRATISTAS</p>
-            </div>
-        </section>
     </header>
 
     <!-- Sección principal con el formulario de login --><main>
@@ -249,38 +234,6 @@
             <button id="modalClose" class="ir_Examen login-button">Aceptar</button>
         </div>
     </div>
-    <footer class="footer">
-        <div class="formatos"> 
-            <h3>Formatos</h3>
-            <article class="info_footer">
-                <!-- Ruta corregida: Se añade ./ para ser explícito -->
-                <ul><a href="./assets/formatos/ANALISIS-RIESGO-TROX_DEP-H&S.xlsx">Formato de Análisis de Riesgo</a></ul>
-                <ul><a href="">Check List Escalera</a></ul>
-            </article>
-        </div>
-
-        <div class="contactos">
-            <h3>Contacto</h3>
-            <article class="info_footer">
-                <p>Seguridad e Higiene <br>
-                222 222 2222 </p>
-            <p>Número Recepción <br>
-            222 222 2222</p>
-            <p id="email">Coreo electrónico <br>
-            seguridadindustrial@troxgroup.mx</p>
-            </article>
-        </div>
-
-        <div class="politicas">
-            <h3>Políticas</h3>
-            <article class="info_footer">
-                <ul><a href="">Políticas de Seguridad</a></ul>
-                <ul><a href="">Política Medio Ambietal</a></ul>
-                <ul><a href="">Política para Contratistas</a></ul>
-                <ul><a href="">Política de COVID-19</a></ul>
-            </article>
-        </div>
-    </footer>
    
     <!-- Script de JavaScript para la validación de login -->
      <script>
@@ -332,7 +285,7 @@ loginButtonFront.addEventListener('click', function(event) {
     // (Aquí iría tu validación)
     if (usuarioVal === 'admin' && passwordVal === '123') {
         showModal('¡Éxito!', 'Inicio de sesión (Trabajador) correcto.', 'success');
-        setTimeout(() => { window.location.href = '../profile.html'; }, 2000);
+        setTimeout(() => { window.location.href = './profile.html'; }, 2000);
     } else {
         showModal('Error', 'Usuario o contraseña incorrectos.', 'error');
     }
