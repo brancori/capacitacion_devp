@@ -305,13 +305,19 @@
                         // 4. Aplicar la personalización
                         applyTenantConfig(config);
                     })
+// ...
                     .catch(error => {
                         console.error("No se pudo cargar la configuración de tenants.json", error);
                         // Cargar el default si todo falla
-                        if(tenants && tenants['default']) {
-                            applyTenantConfig(tenants['default']);
-                        }
+                        // Creamos un 'default' manual para evitar el ReferenceError
+                        const defaultConfig = {
+                            companyName: "Aula Corporativa (Error)",
+                            logoUrl: "assets/img/logo.png",
+                            primaryColor: "#00375F"
+                        };
+                        applyTenantConfig(defaultConfig);
                     });
+// ...
             })();
             // --- FIN DEL DETECTOR ---
 
