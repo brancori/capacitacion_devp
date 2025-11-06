@@ -1042,7 +1042,7 @@ setStyle('--shadow-primary-hover', shadowPrimaryHover);
   const logoText = $('#logoText');
   
   if (config.logoUrl) {
-    logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+    logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain; border-radius: var(--radius-lg);" />`;
   } else {
     logoIcon.textContent = config.logoText;
   }
