@@ -25,7 +25,7 @@
       "conUser": "ID Externo",
       "conPass": "PIN"
     },
-    "successRedirect": "dashboard.html",
+    "successRedirect": "profile.html",
     "customCss": "tenant-custom.css"
   }
 }
