@@ -20,18 +20,7 @@
   --transition-smooth: 350ms cubic-bezier(0.4, 0, 0.2, 1);
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  --primary: #000;
-  --primary-light: #000;
-  --secondary: #000;
-  --accent: #000;
-  --bg-dark: #000;
-  --bg-card: #000;
-  --glass: #000;
-  --glass-hover: #000;
-  --text-light: #fff;
-  --text-muted: #fff;
-  --text-disabled: #fff;
-  --border: #fff;
+
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -166,7 +155,9 @@
     /* Left Column: Branding */
 .brand-section {
   padding: 3.5rem;
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);}
+  
+  .brand-section, .feature-icon {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -181,17 +172,17 @@
 .brand-section .brand-title,
 .brand-section .brand-description,
 .brand-section .feature-item {
-  color: #33374d; /* Color de texto oscuro */
+  color: var(--text-card-primary);
 }
 
 /* Arregla el icono de check (SVG) */
 .brand-section .feature-icon {
-  stroke: #33374d;
+  stroke: var(--text-card-primary);
 }
 
-/* Arregla el texto de copyright del footer */
-.brand-section .brand-footer p {
-  color: #5a6278; /* Gris más suave */
+.brand-section .brand-footer p,
+.brand-section .brand-footer small {
+  color: var(--text-card-secondary); 
 }
 
 .brand-section #brandTitle,
@@ -202,10 +193,6 @@
 
 .brand-section .feature-icon {
   stroke: #33374d; /* El icono de check */
-}
-
-.brand-section .brand-footer p {
-  color: #5a6278; /* Un gris más suave para el copyright */
 }
 
 .brand-section .logo-container,
@@ -222,11 +209,10 @@
   stroke: #33374d;
 }
 
-/* El texto de copyright del footer */
-.brand-section .brand-footer p {
-  color: #5a6278; /* Un gris más suave */
-}
 
+    .brand-footer small{
+        color: var(--text-card-secondary);
+    }
     .brand-section::before {
       content: '';
       position: absolute;
@@ -329,7 +315,7 @@
     /* Right Column: Forms */
     .form-section {
       padding: clamp(1.5rem, 4vw, 2.5rem);
-      background: rgba(0, 0, 0, 0.3);
+      background: var(--bg-form-section);
       display: flex;
       flex-direction: column;
       position: relative;
@@ -549,7 +535,7 @@
 
     /* Links */
     .form-link {
-      color: var(--primary-light);
+      color: var(--primary);
       text-decoration: none;
       font-size: 0.875rem;
       transition: color var(--transition-fast);
@@ -912,7 +898,7 @@
   (function() {
     'use strict';
 
-    // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
     // CONFIGURATION & DEFAULTS
     // ═══════════════════════════════════════════════════════════
     const DEFAULTS = {
@@ -923,14 +909,21 @@
       description: "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
       
       // Theme colors
-primaryColor: "#4a5568",     // (Mantenemos el gris sobrio)
-secondaryColor: "#4a5568",   // (Mantenemos el gris sobrio)
-bgDark: "#141E30",           // Color de fallback (el más oscuro del gradiente)
-textColor: "#ffffff",
+        primaryColor: "#234B95",     // (Mantenemos el gris sobrio)
+        secondaryColor: "#1F3F7A",   // (MantenMantenemos el gris sobrio)
+        bgDark: "#141E30",           // Color de fallback (el más oscuro del gradiente)
+        textColor: "#ffffff",
+        
+        // Colores de la tarjeta de branding (izquierda)
+        textCardPrimary: "#33374d",   // Color de texto principal (oscuro)
+        textCardSecondary: "#5a6278", // Color de texto secundario (gris)
+        
+        // Fondo del formulario (derecha)
+        bgFormSection: "rgba(0, 0, 0, 0.3)",
       
       // Background
-backgroundImage: `linear-gradient(to bottom, #141E30, #243B55)`, // El gradiente de tu imagen
-animatedBackground: false, // Desactiva las "orbes" flotantes
+        backgroundImage: `linear-gradient(to bottom, #141E30, #243B55)`, // El gradiente de tu imagen
+        animatedBackground: false, // Desactiva las "orbes" flotantes
       
       // Features list
       features: [
@@ -956,7 +949,6 @@ animatedBackground: false, // Desactiva las "orbes" flotantes
       // Custom CSS
       customCss: null
     };
-
     // ═══════════════════════════════════════════════════════════
     // UTILITY FUNCTIONS
     // ═══════════════════════════════════════════════════════════
@@ -1035,12 +1027,20 @@ function lightenHex(hex, percent = 10) {
     // ═══════════════════════════════════════════════════════════
     // APPLY CONFIGURATION
     // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+    // APPLY CONFIGURATION
+    // ═══════════════════════════════════════════════════════════
 function applyConfiguration(config) {
   // 1. Lee los colores base del config
   const primary = config.primaryColor;
   const secondary = config.secondaryColor;
   const bgDark = config.bgDark;
   const text = config.textColor;
+  
+  // Lee los nuevos colores
+  const textCardPrimary = config.textCardPrimary;
+  const textCardSecondary = config.textCardSecondary;
+  const bgFormSection = config.bgFormSection;
 
   // 2. Calcula las variaciones
   // (Si el tenant provee un valor específico, úsalo. Si no, calcúlalo.)
@@ -1073,8 +1073,13 @@ const shadowPrimaryHover = config.shadowPrimaryHover || hexToRGBA(primary, 0.4);
   setStyle('--border', border);
   setStyle('--glass', glass);
   setStyle('--glass-hover', glassHover);
-setStyle('--shadow-primary', shadowPrimary);
-setStyle('--shadow-primary-hover', shadowPrimaryHover);
+  setStyle('--shadow-primary', shadowPrimary);
+  setStyle('--shadow-primary-hover', shadowPrimaryHover);
+  
+  // Aplica las nuevas variables
+  setStyle('--text-card-primary', textCardPrimary);
+  setStyle('--text-card-secondary', textCardSecondary);
+  setStyle('--bg-form-section', bgFormSection);
 
   // 4. Aplica el resto de la configuración (logo, textos, etc.)
   const logoIcon = $('#logoIcon');

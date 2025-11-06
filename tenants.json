@@ -14,11 +14,6 @@
     "bgCard": "rgba(26, 32, 44, 0.75)",
     "backgroundImage": "./demo/assets/mountain-bg.jpg",
     "animatedBackground": false,
-    "features": [
-      "Acceso sin límites",
-      "Certificaciones reconocidas",
-      "Dashboard personalizado"
-    ],
     "labels": {
       "empUser": "Email Corporativo",
       "empPass": "Contraseña",
@@ -29,3 +24,4 @@
     "customCss": "tenant-custom.css"
   }
 }
+
