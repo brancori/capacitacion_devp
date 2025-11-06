@@ -70,18 +70,6 @@
   overflow: hidden;
 }
 
-    .bg-animated::before {
-      content: '';
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      background: 
-        radial-gradient(circle at 20% 50%, rgba(123, 44, 191, 0.4) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(0, 255, 94, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 20%, rgba(251, 86, 7, 0.2) 0%, transparent 50%);
-      animation: gradientShift 20s ease infinite;
-      will-change: transform;
-    }
 
     @keyframes gradientShift {
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
@@ -187,6 +175,25 @@
   overflow: hidden;
 }
 
+/* Arregla el texto del logo, el H1, descripción y features */
+.brand-section .logo-container,
+.brand-section .logo-text,
+.brand-section .brand-title,
+.brand-section .brand-description,
+.brand-section .feature-item {
+  color: #33374d; /* Color de texto oscuro */
+}
+
+/* Arregla el icono de check (SVG) */
+.brand-section .feature-icon {
+  stroke: #33374d;
+}
+
+/* Arregla el texto de copyright del footer */
+.brand-section .brand-footer p {
+  color: #5a6278; /* Gris más suave */
+}
+
 .brand-section #brandTitle,
 .brand-section #brandDescription,
 .brand-section .feature-item {
@@ -280,7 +287,6 @@
       letter-spacing: -0.03em;
       background: linear-gradient(135deg, var(--text-light), var(--text-muted));
       -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
@@ -917,14 +923,14 @@
       description: "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
       
       // Theme colors
-primaryColor: "#4a5568",     // Un azul-gris muy sobrio para botones
-secondaryColor: "#4a5568",   // Mismo color para un botón sólido (sin gradiente)
-bgDark: "#262f3d",           // Un fondo carbón-azul muy oscuro
+primaryColor: "#4a5568",     // (Mantenemos el gris sobrio)
+secondaryColor: "#4a5568",   // (Mantenemos el gris sobrio)
+bgDark: "#141E30",           // Color de fallback (el más oscuro del gradiente)
 textColor: "#ffffff",
       
       // Background
-backgroundImage: null,        // Sin imagen de fondo por defecto
-animatedBackground: false,
+backgroundImage: `linear-gradient(to bottom, #141E30, #243B55)`, // El gradiente de tu imagen
+animatedBackground: false, // Desactiva las "orbes" flotantes
       
       // Features list
       features: [
@@ -1178,15 +1184,24 @@ setStyle('--shadow-primary-hover', shadowPrimaryHover);
           btn.classList.remove('loading');
           btn.disabled = false;
           
-          // Success
-          showModal(
-            '¡Bienvenido!',
-            'Inicio de sesión exitoso. Redirigiendo...',
-            'success',
-            () => {
-              window.location.href = window.__loginRedirect || 'dashboard.html';
-            }
-          );
+if (username === 'admin' && password === '123') {
+            // ÉXITO: Si el usuario y pass son correctos
+            showModal(
+              '¡Bienvenido!',
+              'Inicio de sesión exitoso. Redirigiendo...',
+              'success',
+              () => {
+                window.location.href = window.__loginRedirect || 'dashboard.html';
+              }
+            );
+          } else {
+            // ERROR: Si son incorrectos
+            showModal(
+              'Error de Acceso',
+              'El usuario o la contraseña son incorrectos.',
+              'error'
+            );
+          }
         }, 1000);
       });
 
