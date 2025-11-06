@@ -18,6 +18,20 @@
     --color-sombra-input-focus: rgba(163,163,163, 0.4);
 }
 
+
+:root {
+  --primary-color: #4A90E2; 
+}
+
+.login-button {
+  background-color: var(--primary-color); /* <-- La variable se usa aquí */
+  color: white;
+  border: none;
+}
+
+h1 {
+  color: var(--primary-color); /* <-- Y aquí */
+}
 @font-face {
     font-family: Helvetica;
     src: url(/proyectos/TROX-Induction/assets/fuentes/HelveticaNeue_LT_67_MdCn_Heavy.ttf);

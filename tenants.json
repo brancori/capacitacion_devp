@@ -1,0 +1,17 @@
+{
+  "jnj": {
+    "companyName": "Johnson & Johnson",
+    "logoUrl": "jnj/assets/johnson-johnson-logo.svg",
+    "primaryColor": "#D00000"
+  },
+  "trox": {
+    "companyName": "Trox Technik",
+    "logoUrl": "assets/img/logo.png",
+    "primaryColor": "#005A9D"
+  },
+  "demo": {
+    "companyName": "Aula Corporativa (Default)",
+    "logoUrl": "assets/img/logo_default.png",
+    "primaryColor": "#333333"
+  }
+}

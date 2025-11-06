@@ -174,26 +174,7 @@
 <body>
     <!-- Copio el header de tu Index.html para mantener la consistencia -->
     <header>
-        <section id="Container1">
-            <!-- Ruta corregida: Se añade ./ para ser explícito -->
-            <img id="logo" src="./assets/img/trox logo.gif" >
-        </section>
-        
-        <section id="Container2">
-            <div id="SubContainer1">
-                <p>CONTACTito</p>
-                <p>INICIO</p>
-                <p>TROX EN EL MUNDO</p>
-            </div>
-            
-            <div id="subcontainer2">
-                <p>PRODUCTOS</p>
-                <p>ESPECIALIZACIÓN</p>
-                <p>SERVICIOS</p>
-                <p>COMPAÑIA</p>
-                <p>CONTRATISTAS</p>
-            </div>
-        </section>
+        <img id="tenant-logo" src="" alt="Logo de la empresa">
     </header>
 
     <!-- Sección principal con el formulario de login --><main>
@@ -284,99 +265,136 @@
     </footer>
    
     <!-- Script de JavaScript para la validación de login -->
-     <script>
+<script>
+        // --- FUNCIÓN DEL DETECTOR DE TENANTS ---
+        // (Esta función se ejecutará primero)
+        function applyTenantConfig(config) {
+            
+            // 1. Actualizar logo
+            const logoElement = document.getElementById('tenant-logo');
+            if (logoElement) {
+                logoElement.src = config.logoUrl;
+                logoElement.alt = `Logo de ${config.companyName}`;
+            }
+
+            // (Aquí puedes agregar más cosas, como el título de la página)
+            // document.title = config.companyName;
+
+            // 2. Actualizar colores (usando la variable CSS que definimos)
+            document.documentElement.style.setProperty('--primary-color', config.primaryColor);
+        }
+
+        // --- LÓGICA DE TU PÁGINA (Login, Modal, Flip-Card) ---
         // Esperamos a que todo el DOM (la página) esté cargado
-// Esperamos a que todo el DOM (la página) esté cargado
         document.addEventListener('DOMContentLoaded', function() {
             
-            // --- Elementos del DOM (Corregidos y unificados) ---
-            const loginButton = document.querySelector('.login-button'); // Apunta al botón
-            const usuarioInput = document.getElementById('username'); // Declarado una sola vez
-            const passwordInput = document.getElementById('password');
+            // --- ¡NUEVO! DETECTOR DE TENANTS ---
+            // Esto se ejecuta en cuanto carga la página
+            (function detectTenant() {
+                const hostname = window.location.hostname; // ej: "jnj.aulacorporativa.com"
+                const parts = hostname.split('.');
+                // Usamos 'default' si no hay subdominio (ej. 'localhost')
+                const tenantId = parts.length > 2 ? parts[0] : 'default'; 
+
+                fetch('/tenants.json')
+                    .then(response => response.json())
+                    .then(tenants => {
+                        // 3. Encontrar la config del tenant actual (o usar 'default')
+                        const config = tenants[tenantId] || tenants['default'];
+                        
+                        // 4. Aplicar la personalización
+                        applyTenantConfig(config);
+                    })
+                    .catch(error => {
+                        console.error("No se pudo cargar la configuración de tenants.json", error);
+                        // Cargar el default si todo falla
+                        if(tenants && tenants['default']) {
+                            applyTenantConfig(tenants['default']);
+                        }
+                    });
+            })();
+            // --- FIN DEL DETECTOR ---
+
+
+            // --- Elementos del DOM (Tu código original) ---
             const tabs = document.querySelectorAll('.tab-button');
 
-            // --- Elementos del Modal ---
+            // --- Elementos del Modal (Tu código original) ---
             const modal = document.getElementById('customModal');
             const modalTitle = document.getElementById('modalTitle');
             const modalMessage = document.getElementById('modalMessage');
             const modalIcon = document.getElementById('modalIcon');
             const modalClose = document.getElementById('modalClose');
 
-const flipCard = document.querySelector('.flip-card');
-const flipButtons = document.querySelectorAll('.tab-button');
+            // --- Lógica del Flip-Card (Tu código original) ---
+            const flipCard = document.querySelector('.flip-card');
+            const flipButtons = document.querySelectorAll('.tab-button');
 
-flipButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        const target = button.getAttribute('data-flip-target');
-        
-        if (target === 'back') {
-            flipCard.classList.add('is-flipped');
-        } else {
-            flipCard.classList.remove('is-flipped');
-        }
-    });
-});
+            flipButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const target = button.getAttribute('data-flip-target');
+                    
+                    if (target === 'back') {
+                        flipCard.classList.add('is-flipped');
+                    } else {
+                        flipCard.classList.remove('is-flipped');
+                    }
+                });
+            });
 
-// --- Event listener del Botón de Login (Corregido) ---
-// (Reemplaza tu listener de 'loginButton' por estos dos)
+            // --- Listeners de Botones de Login (Tu código original) ---
+            const loginButtonFront = document.getElementById('loginButtonFront');
+            const loginButtonBack = document.getElementById('loginButtonBack');
 
-const loginButtonFront = document.getElementById('loginButtonFront');
-const loginButtonBack = document.getElementById('loginButtonBack');
+            // Listener para el botón frontal (Trabajadores)
+            loginButtonFront.addEventListener('click', function(event) {
+                event.preventDefault();
+                const usuarioVal = document.getElementById('username').value;
+                const passwordVal = document.getElementById('password').value;
+                
+                if (usuarioVal === 'admin' && passwordVal === '123') {
+                    showModal('¡Éxito!', 'Inicio de sesión (Trabajador) correcto.', 'success');
+                    setTimeout(() => { window.location.href = './profile.html'; }, 2000);
+                } else {
+                    showModal('Error', 'Usuario o contraseña incorrectos.', 'error');
+                }
+            });
 
-// Listener para el botón frontal (Trabajadores)
-loginButtonFront.addEventListener('click', function(event) {
-    event.preventDefault();
-    // Reutiliza la lógica de validación que ya tenías
-    const usuarioVal = document.getElementById('username').value;
-    const passwordVal = document.getElementById('password').value;
-    
-    // (Aquí iría tu validación)
-    if (usuarioVal === 'admin' && passwordVal === '123') {
-        showModal('¡Éxito!', 'Inicio de sesión (Trabajador) correcto.', 'success');
-        setTimeout(() => { window.location.href = './profile.html'; }, 2000);
-    } else {
-        showModal('Error', 'Usuario o contraseña incorrectos.', 'error');
-    }
-});
+            // Listener para el botón trasero (Contratistas)
+            loginButtonBack.addEventListener('click', function(event) {
+                event.preventDefault();
+                const usuarioVal = document.getElementById('username_c').value;
+                const passwordVal = document.getElementById('password_c').value;
 
-// Listener para el botón trasero (Contratistas)
-loginButtonBack.addEventListener('click', function(event) {
-    event.preventDefault();
-    const usuarioVal = document.getElementById('username_c').value;
-    const passwordVal = document.getElementById('password_c').value;
-
-    // (Aquí puedes poner una validación diferente para contratistas)
-    if (usuarioVal === 'contra' && passwordVal === '123') {
-        showModal('¡Éxito!', 'Inicio de sesión (Contratista) correcto.', 'success');
-        setTimeout(() => { window.location.href = './profile.html'; }, 2000);
-    } else {
-        showModal('Error', 'ID o contraseña de Contratista incorrectos.', 'error');
-    }
-});
+                if (usuarioVal === 'contra' && passwordVal === '123') {
+                    showModal('¡Éxito!', 'Inicio de sesión (Contratista) correcto.', 'success');
+                    setTimeout(() => { window.location.href = './profile.html'; }, 2000);
+                } else {
+                    showModal('Error', 'ID o contraseña de Contratista incorrectos.', 'error');
+                }
+            });
             
-            // --- Función para mostrar el modal ---
+            // --- Función para mostrar el modal (Tu código original) ---
             function showModal(title, message, type) {
                 modalTitle.innerText = title;
                 modalMessage.innerText = message;
                 
                 modalIcon.className = 'fas'; // Resetea clases de icono
                 if (type === 'success') {
-                    // Icono de check (éxito)
                     modalIcon.classList.add('fa-check-circle', 'success');
                 } else if (type === 'error') {
-                    // Icono de exclamación (error)
                     modalIcon.classList.add('fa-exclamation-triangle', 'error');
                 }
                 
                 modal.classList.add('show');
             }
 
-            // --- Función para cerrar el modal ---
+            // --- Función para cerrar el modal (Tu código original) ---
             function closeModal() {
                 modal.classList.remove('show');
             }
 
-            // --- Event listeners del Modal ---
+            // --- Event listeners del Modal (Tu código original) ---
             modalClose.addEventListener('click', closeModal);
             modal.addEventListener('click', (event) => {
                 if (event.target === modal) {
@@ -384,33 +402,8 @@ loginButtonBack.addEventListener('click', function(event) {
                 }
             });
 
-            // --- Event listener del Botón de Login (Corregido) ---
-            // Ahora escucha el 'click' en el botón, no el 'submit' de un formulario
-            loginButton.addEventListener('click', function(event) {
-                event.preventDefault(); // Previene comportamiento por defecto (si lo tuviera)
-
-                const usuarioVal = usuarioInput.value;
-                const passwordVal = passwordInput.value;
-
-                // Credenciales fijas
-                const usuarioCorrecto = 'admin';
-                const passwordCorrecta = '123';
-
-                if (usuarioVal === usuarioCorrecto && passwordVal === passwordCorrecta) {
-                    // ¡ÉXITO! Muestra modal de éxito
-                    showModal('¡Éxito!', 'Inicio de sesión correcto. Serás redirigido.', 'success');
-                    
-                    // Redirige después de 2 segundos
-                    setTimeout(() => {
-                        window.location.href = './profile.html'; 
-                    }, 2000);
-
-                } else {
-                    // ¡ERROR! Muestra modal de error
-                    showModal('Error', 'Usuario o contraseña incorrectos. Inténtalo de nuevo.', 'error');
-                }
-            });
-
+            // (Tu listener de loginButton 'viejo' fue removido ya que fue reemplazado
+            // por loginButtonFront y loginButtonBack, lo cual está correcto)
         });
     </script>
     <script src="https://kit.fontawesome.com/2c36e9b7b1.js" crossorigin="anonymous"></script>
