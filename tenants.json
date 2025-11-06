@@ -1,6 +1,6 @@
 {
   "demo": {
-    "companyName": "Tech Corp",
+    "companyName": "Demo Academy",
     "logoText": "TC",
     "logoUrl": "./demo/assets/logo_demo.png",
     "tagline": "¡Hola de nuevo!",
@@ -13,7 +13,7 @@
     "bgDark": "#5f7a9d",
     "bgCard": "rgba(26, 32, 44, 0.75)",
 
-    "backgroundImage": "null",
+    "backgroundImage": "assets/bg.jpg",
     "animatedBackground": true,
     "features": [
       "Acceso sin límites",
