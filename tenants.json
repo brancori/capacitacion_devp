@@ -5,11 +5,15 @@
     "logoUrl": "./demo/assets/logo_demo.png",
     "tagline": "¡Hola de nuevo!",
     "description": "Tu plataforma de aprendizaje corporativo",
-    "primaryColor": "#7b2cbf",
-    "primaryLight": "#9d4edd",
-    "secondaryColor": "#ff006e",
-    "accentColor": "#fb5607",
-    "backgroundImage": "assets/bg.jpg",
+
+    "primaryColor": "#4267b2",
+    "primaryLight": "#5a80cf",
+    "secondaryColor": "#4267b2",
+    "accentColor": "#5a80cf",
+    "bgDark": "#5f7a9d",
+    "bgCard": "rgba(26, 32, 44, 0.75)",
+
+    "backgroundImage": "null",
     "animatedBackground": true,
     "features": [
       "Acceso sin límites",

@@ -11,12 +11,12 @@
        VARIABLES CSS - Tenant Override System
     ═══════════════════════════════════════════════════════════ */
     :root {
-      --primary: #7b2cbf;
-      --primary-light: #9d4edd;
-      --secondary: #ff006e;
+      --primary: #0077B6;       /* Un azul petróleo/corporativo */
+      --primary-light: #00B4D8;
+      --secondary: #3c00ff;
       --accent: #fb5607;
       --bg-dark: #0f0520;
-      --bg-card: rgba(30, 15, 50, 0.75);
+      --bg-card: rgba(10, 15, 20, 0.7);
       --glass: rgba(255, 255, 255, 0.08);
       --glass-hover: rgba(255, 255, 255, 0.12);
       --text-light: #ffffff;
@@ -61,13 +61,13 @@
     /* ═══════════════════════════════════════════════════════════
        ANIMATED BACKGROUND
     ═══════════════════════════════════════════════════════════ */
-    .bg-animated {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      background: linear-gradient(135deg, #1a0b2e 0%, #3d1e5f 50%, #1a0b2e 100%);
-      overflow: hidden;
-    }
+.bg-animated {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--bg-dark);
+  overflow: hidden;
+}
 
     .bg-animated::before {
       content: '';
@@ -76,7 +76,7 @@
       height: 200%;
       background: 
         radial-gradient(circle at 20% 50%, rgba(123, 44, 191, 0.4) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(255, 0, 110, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(0, 255, 94, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 40% 20%, rgba(251, 86, 7, 0.2) 0%, transparent 50%);
       animation: gradientShift 20s ease infinite;
       will-change: transform;
@@ -181,10 +181,10 @@
       flex-direction: column;
       gap: 2rem;
       position: relative;
-      background: linear-gradient(135deg, 
-        rgba(123, 44, 191, 0.1) 0%, 
-        rgba(255, 0, 110, 0.05) 100%
-      );
+    background: linear-gradient(135deg, 
+        var(--glass-hover) 0%, 
+        var(--glass) 100%
+    );
     }
 
     .brand-section::before {
@@ -208,18 +208,18 @@
       z-index: 1;
     }
 
-    .logo-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-size: 1.5rem;
-      box-shadow: 0 4px 12px rgba(123, 44, 191, 0.4);
-    }
+.logo-icon {
+  width: 250px; /* Tu ancho deseado */
+  height: auto; /* Para que la altura se ajuste a la imagen */
+  background: transparent; /* El fondo gradiente se verá mal con una imagen rectangular */
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;     /* (Estilos de fallback para el texto si no carga la img) */
+  font-size: 1.5rem;    /* (Estilos de fallback para el texto si no carga la img) */
+  box-shadow: none; /* La sombra probablemente se vea mal en un logo no circular */
+}
 
     .logo-text {
       font-size: clamp(1.25rem, 2vw, 1.5rem);
@@ -326,11 +326,11 @@
       color: var(--text-light);
     }
 
-    .tab-btn.active {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: var(--text-light);
-      box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3);
-    }
+.tab-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--text-light);
+  box-shadow: 0 4px 12px var(--shadow-primary); /* <--- Dinámico */
+}
 
     /* Form Container */
     .form-container {
@@ -442,13 +442,13 @@
       letter-spacing: 0.01em;
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: var(--text-light);
-      box-shadow: 0 8px 24px rgba(123, 44, 191, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--text-light);
+  box-shadow: 0 8px 24px var(--shadow-primary); /* <--- Dinámico */
+  position: relative;
+  overflow: hidden;
+}
 
     .btn-primary::before {
       content: '';
@@ -468,10 +468,10 @@
       z-index: 1;
     }
 
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(123, 44, 191, 0.4);
-    }
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px var(--shadow-primary-hover); /* <--- Dinámico */
+}
 
     .btn-primary:active {
       transform: translateY(0);
@@ -591,7 +591,7 @@
     }
 
     .modal-icon.error {
-      background: linear-gradient(135deg, #ef476f, #ff006e);
+      background: linear-gradient(135deg, #47efba, #0fb320);
     }
 
     .modal-icon.info {
@@ -879,11 +879,10 @@
       description: "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
       
       // Theme colors
-      primaryColor: "#7b2cbf",
-      primaryLight: "#9d4edd",
-      secondaryColor: "#ff006e",
-      accentColor: "#fb5607",
-      bgDark: "#0f0520",
+      primaryColor: "#7b2cbf",     // Color principal
+      secondaryColor: "#ff006e",   // Color secundario (para gradientes)
+      bgDark: "#0f0520",           // Fondo de la página
+      textColor: "#ffffff",        // Color del texto
       
       // Background
       backgroundImage: null,
@@ -923,6 +922,27 @@
     const setStyle = (prop, value) => {
       document.documentElement.style.setProperty(prop, value);
     };
+
+    // NUEVA FUNCIÓN: Convierte Hex a RGBA (para transparencias)
+function hexToRGBA(hex, alpha = 1) {
+  const [r, g, b] = (hex.match(/\w\w/g) || []).map(x => parseInt(x, 16));
+  if (r === undefined) return null; // Maneja mal input
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// NUEVA FUNCIÓN: Aclara u oscurece un color Hex
+function lightenHex(hex, percent = 10) {
+  const [r, g, b] = (hex.match(/\w\w/g) || []).map(x => parseInt(x, 16));
+  if (r === undefined) return null;
+  const t = percent < 0 ? 0 : 255;
+  const p = Math.abs(percent) / 100;
+  
+  const R = Math.round((t - r) * p) + r;
+  const G = Math.round((t - g) * p) + g;
+  const B = Math.round((t - b) * p) + b;
+  
+  return `#${(B | (G << 8) | (R << 16) | (1 << 24)).toString(16).slice(1)}`;
+}
 
     const detectTenant = () => {
       const host = location.hostname || 'localhost';
@@ -971,78 +991,102 @@
     // ═══════════════════════════════════════════════════════════
     // APPLY CONFIGURATION
     // ═══════════════════════════════════════════════════════════
-    function applyConfiguration(config) {
-      // Apply CSS variables
-      setStyle('--primary', config.primaryColor);
-      setStyle('--primary-light', config.primaryLight);
-      setStyle('--secondary', config.secondaryColor);
-      setStyle('--accent', config.accentColor);
-      setStyle('--bg-dark', config.bgDark);
+function applyConfiguration(config) {
+  // 1. Lee los colores base del config
+  const primary = config.primaryColor;
+  const secondary = config.secondaryColor;
+  const bgDark = config.bgDark;
+  const text = config.textColor;
 
-      // Logo
-      const logoIcon = $('#logoIcon');
-      const logoText = $('#logoText');
-      
-      if (config.logoUrl) {
-        logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain;">`;
-      } else {
-        logoIcon.textContent = config.logoText;
-      }
-      
-      logoText.textContent = config.companyName;
+  // 2. Calcula las variaciones
+  // (Si el tenant provee un valor específico, úsalo. Si no, calcúlalo.)
+  const primaryLight = config.primaryLight || lightenHex(primary, 15);
+  const accent = config.accentColor || primaryLight;
+  const bgCard = config.bgCard || hexToRGBA(bgDark, 0.75); // Fondo de tarjeta
+  const shadowPrimary = config.shadowPrimary || hexToRGBA(primary, 0.3);
+const shadowPrimaryHover = config.shadowPrimaryHover || hexToRGBA(primary, 0.4);
+  
+  const textLight = text;
+  const textMuted = config.textMuted || hexToRGBA(text, 0.65); // Texto grisado
+  const textDisabled = config.textDisabled || hexToRGBA(text, 0.4); // Texto deshabilitado
+  const border = config.border || hexToRGBA(text, 0.1); // Borde
+  const glass = config.glass || hexToRGBA(text, 0.08); // Efecto vidrio
+  const glassHover = config.glassHover || hexToRGBA(text, 0.12); // Vidrio hover
 
-      // Branding texts
-      $('#brandTitle').textContent = config.tagline;
-      $('#brandDescription').textContent = config.description;
+  // 3. Aplica TODAS las variables al CSS
+  setStyle('--primary', primary);
+  setStyle('--primary-light', primaryLight);
+  setStyle('--secondary', secondary);
+  setStyle('--accent', accent);
+  
+  setStyle('--bg-dark', bgDark);
+  setStyle('--bg-card', bgCard);
+  
+  setStyle('--text-light', textLight);
+  setStyle('--text-muted', textMuted);
+  setStyle('--text-disabled', textDisabled);
+  
+  setStyle('--border', border);
+  setStyle('--glass', glass);
+  setStyle('--glass-hover', glassHover);
+setStyle('--shadow-primary', shadowPrimary);
+setStyle('--shadow-primary-hover', shadowPrimaryHover);
 
-      // Features
-      const featuresContainer = $('#brandFeatures');
-      if (config.features && config.features.length > 0) {
-        featuresContainer.innerHTML = config.features.map(feature => `
-          <div class="feature-item">
-            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            <span>${feature}</span>
-          </div>
-        `).join('');
-      }
+  // 4. Aplica el resto de la configuración (logo, textos, etc.)
+  const logoIcon = $('#logoIcon');
+  const logoText = $('#logoText');
+  
+  if (config.logoUrl) {
+    logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+  } else {
+    logoIcon.textContent = config.logoText;
+  }
+  
+  logoText.textContent = config.companyName;
 
-      // Form labels
-      $('#labelEmpUser').textContent = config.labels.empUser;
-      $('#labelEmpPass').textContent = config.labels.empPass;
-      $('#labelConUser').textContent = config.labels.conUser;
-      $('#labelConPass').textContent = config.labels.conPass;
+  $('#brandTitle').textContent = config.tagline;
+  $('#brandDescription').textContent = config.description;
 
-      // Copyright year
-      $('#currentYear').textContent = new Date().getFullYear();
+  const featuresContainer = $('#brandFeatures');
+  if (config.features && config.features.length > 0) {
+    featuresContainer.innerHTML = config.features.map(feature => `
+      <div class="feature-item">
+        <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <span>${feature}</span>
+      </div>
+    `).join('');
+  }
 
-      // Background image
-      if (config.backgroundImage) {
-        $('.bg-animated').style.backgroundImage = `url('${config.backgroundImage}')`;
-        $('.bg-animated').style.backgroundSize = 'cover';
-        $('.bg-animated').style.backgroundPosition = 'center';
-      }
+  $('#labelEmpUser').textContent = config.labels.empUser;
+  $('#labelEmpPass').textContent = config.labels.empPass;
+  $('#labelConUser').textContent = config.labels.conUser;
+  $('#labelConPass').textContent = config.labels.conPass;
 
-      // Hide animated orbs if needed
-      if (!config.animatedBackground) {
-        $('.bg-orbs').style.display = 'none';
-      }
+  $('#currentYear').textContent = new Date().getFullYear();
 
-      // Custom CSS
-      if (config.customCss) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = config.customCss;
-        document.head.appendChild(link);
-      }
+  if (config.backgroundImage) {
+    $('.bg-animated').style.backgroundImage = `url('${config.backgroundImage}')`;
+    $('.bg-animated').style.backgroundSize = 'cover';
+    $('.bg-animated').style.backgroundPosition = 'center';
+  }
 
-      // Store redirect URL
-      window.__loginRedirect = config.successRedirect;
+  if (!config.animatedBackground) {
+    $('.bg-orbs').style.display = 'none';
+  }
 
-      // Initialize interactions after config is applied
-      initializeInteractions();
-    }
+  if (config.customCss) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = config.customCss;
+    document.head.appendChild(link);
+  }
+
+  window.__loginRedirect = config.successRedirect;
+
+  initializeInteractions();
+}
 
     // ═══════════════════════════════════════════════════════════
     // TAB SYSTEM
