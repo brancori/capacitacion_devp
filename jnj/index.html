@@ -28,7 +28,7 @@
         }
 
         #login_container h2 {
-            color: #00375F; /* Tu color azul principal */
+            color: #eb1700; /* Tu color azul principal */
             margin-bottom: 1.8rem; /* Margen un poco más pequeño */
             font-size: 1.8rem; /* Tamaño de fuente del título */
         }
@@ -58,7 +58,7 @@
         }
 
         .login-input-group input:focus {
-            border-color: #00375F;
+            border-color: #eb1700;
             box-shadow: 0 0 0 3px rgba(0, 55, 95, 0.2);
             outline: none;
         }
@@ -67,7 +67,7 @@
         .login-button {
             width: 100%;
             padding: 0.7rem; /* Padding del botón ligeramente reducido */
-            background-color: #00375F;
+            background-color: #eb1700;
             color: aliceblue;
             font-weight: bold;
             font-size: 1.05rem; /* Tamaño de fuente del botón */
@@ -91,7 +91,7 @@
         }
 
         .login-footer a {
-            color: #00375F;
+            color: #eb1700;
             text-decoration: none;
         }
 
@@ -152,7 +152,7 @@
         }
 
         #modalTitle {
-            color: #00375F; /* Color principal */
+            color: #eb1700; /* Color principal */
             margin-bottom: 0.5rem;
             font-size: 1.5rem;
         }
@@ -173,13 +173,23 @@
 <body>
     <!-- Copio el header de tu Index.html para mantener la consistencia -->
     <header>
+        <nav class="navbar">
+            <ul>
+            <li><a href="https://www.jnj.com/">Discover J&J</a></li>
+            <li><a href="https://www.jnj.com/innovativemedicine/">Medicines & therapies</a></li>
+            <li><a href="https://thenext.jnjmedtech.com/">Medical devices & technology</a></li>
+            </ul>
+            <ul class="nav-right">
+            <li><a href="https://www.jnj.com/contact-us">Contact</a></li>
+            <li><a href="#">US</a></li>
+            </ul>
+        </nav>
+        
+    </header>
         <section id="Container1">
             <!-- Ruta corregida: Se añade ./ para ser explícito -->
             <img id="logo" src="./assets/johnson-johnson-logo.svg"  alt="Logo de Johnson & Johnson">
         </section>
-        
-    </header>
-
     <!-- Sección principal con el formulario de login --><main>
         
 <div class="flip-card">
@@ -197,7 +207,7 @@
                         <label for="password">Contraseña</label>
                         <input type="password" id="password">
                         <button class="login-button" id="loginButtonFront">Ingresar</button>
-                        <a href="#" class="register-link">¿No tienes cuenta? Regístrate aquí</a>
+                        <a href="#" class="register-link">¿No tienes cuenta? Solicitala aquí</a>
                     </div>
                 </div>
             </div>
@@ -214,7 +224,7 @@
                         <label for="password_c">Contraseña</label>
                         <input type="password" id="password_c">
                         <button class="login-button" id="loginButtonBack">Ingresar</button>
-                        <a href="#" class="register-link">¿No tienes cuenta? Regístrate aquí</a>
+                        <a href="#" class="register-link">¿No tienes cuenta? Solicitala aquí</a>
                     </div>
                 </div>
             </div>
