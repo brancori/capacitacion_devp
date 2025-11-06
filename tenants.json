@@ -1,23 +1,32 @@
 {
-  "jnj": {
-    "companyName": "Johnson & Johnson",
-    "logoUrl": "jnj/assets/johnson-johnson-logo.svg",
-    "primaryColor": "#D00000",
-    "accentColor": "#F5F5F5",
-    "language": "es",
-    "login": {
-      "fields": {
-        "userLabel": "Usuario J&J",
-        "passLabel": "Clave de acceso"
-      },
-      "successRedirect": "profile.html"
-    },
-    "footer": {
-      "contactEmail": "soporte@jnj.com",
-      "contactPhone": "800-JNJ-HELP",
-      "showPolicies": true
-    }
+"jnj": {
+  "companyName": "Johnson & Johnson",
+  "logoUrl": "jnj/assets/johnson-johnson-logo.svg",
+  "primaryColor": "#D00000",
+  "secondaryColor": "#FF8A4D",
+  "textColor": "#111827",
+  "muted": "#6e7883",
+  "backgroundImage": "jnj/assets/bg.jpg",
+  "navbar": { "enabled": true, "items": ["Inicio","Capacitaciones","Certificados","Soporte","Salir"], "hrefs": ["/","#","/certs","/soporte","/logout"] },
+  "footer": {
+    "titles": ["Empresa","Recursos","Soporte"],
+    "links": [
+      {"text":"Acerca","href":"/acerca"},
+      {"text":"Equipo","href":"/equipo"},
+      {"text":"Blog","href":"/blog"},
+      {"text":"Cursos","href":"/cursos"},
+      {"text":"FAQ","href":"/faq"},
+      {"text":"Contacto","href":"/contacto"},
+      {"text":"Términos","href":"/terminos"},
+      {"text":"Privacidad","href":"/privacidad"},
+      {"text":"Ayuda","href":"/ayuda"}
+    ]
   },
+  "login": {
+    "fields": {"userLabel":"Usuario J&J","passLabel":"Clave","contractorUserLabel":"ID Contratista","contractorPassLabel":"Clave"},
+    "successRedirect": "profile.html"
+  }
+},
 
   "trox": {
     "companyName": "Trox Technik",

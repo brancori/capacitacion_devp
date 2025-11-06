@@ -5,552 +5,547 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Aula Corporativa - Login</title>
 
-  <!-- Variables CSS base (se sobreescriben por tenant) -->
+  <!-- CSS embebido: Variables (primary/secondary/text), estilos modernos y responsive -->
   <style>
     :root{
-      --primary-color: #00375F;
-      --primary-contrast: #ffffff;
-      --accent-color: #f4f6f8;
-      --muted: #6e7883;
+      --primary-color: #00375F; /* color principal (tenant override) */
+      --secondary-color: #D00000; /* color secundario */
+      --text-color: #0b2233; /* color de texto principal */
+      --muted: #6e7883; /* texto secundario */
+      --accent-color: #f4f6f8; /* fondo de secciones */
       --card-bg: #ffffff;
-      --radius: 12px;
+      --overlay-color: rgba(2,10,20,0.45); /* overlay oscuro */
       --glass: rgba(255,255,255,0.6);
-      --shadow: 0 10px 30px rgba(13,35,63,0.12);
-      --max-width: 980px;
-      --gap: 1rem;
-      --safe-padding: 1.25rem;
+      --radius: 14px;
+      --shadow-lg: 0 18px 60px rgba(2,12,30,0.14);
+      --shadow-sm: 0 8px 26px rgba(2,12,30,0.06);
+      --max-width: 1100px;
       --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
 
-    /* Reset & base */
+    /* Reset */
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
       font-family:var(--font-sans);
-      background: linear-gradient(180deg, #f7fafc 0%, #eef2f6 100%);
-      color:#0b2233;
+      color:var(--text-color);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
+      background: linear-gradient(180deg,#f7fafc 0%, #eef2f6 100%);
+      min-height:100vh;
       display:flex;
       align-items:center;
       justify-content:center;
       padding:clamp(1rem,3vw,2rem);
-      min-height:100vh;
     }
 
-    /* Layout container */
+    /* background image + overlay (aplicado vía JS) */
+    .bg {
+      position:fixed; inset:0; z-index:-2;
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      filter: none;
+    }
+    .bg::after{
+      content:""; position:absolute; inset:0;
+      background: var(--overlay-color);
+      backdrop-filter: blur(6px);
+      mix-blend-mode:multiply;
+    }
+
+    /* Main container */
     .page {
       width:100%;
       max-width:var(--max-width);
       display:grid;
-      grid-template-columns: 1fr 420px;
+      grid-template-columns: 1fr 460px;
       gap: clamp(1rem,2.5vw,2rem);
       align-items:center;
+      z-index:1;
     }
 
-    /* Left: Marketing / Info */
-    .brand {
-      background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
-      padding: clamp(1.25rem,2.5vw,2rem);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      min-height: 420px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      gap:1rem;
-    }
-    .brand-header{
-      display:flex;
-      align-items:center;
-      gap:1rem;
-    }
-    #tenant-logo {
-      height:56px;
-      width:auto;
-      display:block;
-      filter: drop-shadow(0 4px 20px rgba(3,55,95,0.06));
-    }
-    .brand-title{
-      font-weight:700;
-      font-size:clamp(1.25rem,2.5vw,1.6rem);
-      color:var(--primary-color);
-    }
-    .brand-sub{
-      color:var(--muted);
-      line-height:1.5;
-    }
-
-    /* Right: Card with flip */
-    .card-wrap{
-      perspective: 1400px;
-      width:100%;
-      max-width:420px;
-      margin-inline:auto;
-    }
-    .card{
-      width:100%;
-      border-radius:16px;
-      transform-style:preserve-3d;
-      transition: transform 700ms cubic-bezier(.2,.9,.2,1);
-    }
-    .card.is-flipped{ transform: rotateY(180deg); }
-
-    .card-face{
-      backface-visibility: hidden;
-      border-radius: inherit;
-      overflow: hidden;
-      background: linear-gradient(180deg, var(--card-bg), #fbfcfd);
-      box-shadow: var(--shadow);
-      padding: 1.25rem;
-      min-height:360px;
-      display:flex;
-      flex-direction:column;
-      gap:0.75rem;
-    }
-
-    .card-back{ transform: rotateY(180deg); position: absolute; left:0; top:0; width:100%; }
-
-    .card-top{
+    /* Navbar (optional) */
+    header.site-header {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 18px;
+      width: calc(100% - 2rem);
+      max-width: var(--max-width);
       display:flex;
       justify-content:space-between;
       align-items:center;
-      gap:0.75rem;
+      gap:1rem;
+      z-index: 50;
     }
-    .tabs{
-      display:flex;
-      gap:0.5rem;
-      background: transparent;
-      border-radius: 999px;
-      padding: 0.25rem;
-      align-items:center;
+    .nav-left { display:flex; align-items:center; gap:0.85rem; }
+    #tenant-logo {
+      max-width: 160px;
+      max-height: 48px;
+      height: auto;
+      width: auto;
+      object-fit: contain;
+      display:block;
     }
-    .tab-btn{
-      padding: 0.45rem 0.85rem;
-      cursor:pointer;
-      border-radius:999px;
-      border:1px solid transparent;
-      font-weight:600;
-      font-size:0.9rem;
-      color:var(--muted);
-      background:transparent;
-      transition: all .18s ease;
-    }
-    .tab-btn.active{
-      color:var(--primary-contrast);
-      background: var(--primary-color);
-      box-shadow: 0 6px 18px rgba(3,55,95,0.12);
-    }
-
-    /* form */
-    .login-form{ display:flex; flex-direction:column; gap:0.75rem; margin-top:0.6rem; }
-    label{ font-size:0.82rem; color:var(--muted); font-weight:600; display:block; margin-bottom:0.25rem; }
-    input[type="text"], input[type="password"]{
-      width:100%;
-      padding:0.9rem 1rem;
-      border-radius:10px;
-      border:1px solid #e6edf2;
-      background:linear-gradient(180deg,#fff,#fbfcfd);
-      outline:none;
+    nav.site-nav { display:flex; gap:0.5rem; align-items:center; }
+    nav.site-nav a {
+      text-decoration:none; color:var(--text-color);
+      font-weight:600; padding:0.45rem 0.7rem; border-radius:8px;
+      transition: all .12s ease;
       font-size:0.95rem;
-      transition: box-shadow .18s ease, border-color .18s ease;
+    }
+    nav.site-nav a:hover { background: rgba(0,0,0,0.04); }
+
+    /* Left branding panel */
+    .brand {
+      background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.35));
+      padding: clamp(1.25rem,2.5vw,2rem);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      min-height:420px;
+      display:flex;
+      flex-direction:column;
+      gap:1rem;
+    }
+    .brand-header { display:flex; gap:1rem; align-items:center; }
+    .brand-title {
+      font-size: clamp(1.6rem,3.4vw,2.4rem);
+      font-weight:800;
+      color:var(--primary-color);
+      line-height:1;
+    }
+    .brand-sub { color:var(--muted); font-size:1rem; }
+
+    /* Right card / login */
+    .card-wrap { perspective:1400px; width:100%; max-width:460px; margin-inline:auto; }
+    .card {
+      width:100%; border-radius:18px; transform-style:preserve-3d;
+      transition: transform 700ms cubic-bezier(.2,.9,.2,1);
+      position:relative;
+    }
+    .card.is-flipped { transform: rotateY(180deg); }
+    .card-face {
+      backface-visibility: hidden;
+      border-radius:inherit;
+      overflow:hidden;
+      background: linear-gradient(180deg, var(--card-bg), #fbfcfd);
+      box-shadow: var(--shadow-lg);
+      padding:1.25rem;
+      min-height:420px;
+      display:flex; flex-direction:column; gap:0.8rem;
+      position:relative;
+    }
+    .card-back { transform:rotateY(180deg); position:absolute; inset:0; }
+
+    .card-top { display:flex; justify-content:space-between; align-items:center; gap:0.6rem; }
+    .tabs { display:flex; gap:0.5rem; background:transparent; padding:0.25rem; border-radius:999px; }
+    .tab-btn {
+      padding:0.42rem 0.85rem; border-radius:999px; cursor:pointer; border:1px solid transparent;
+      font-weight:700; font-size:.9rem; color:var(--muted); background:transparent;
+    }
+    .tab-btn.active { color:var(--primary-color); background: rgba(3,55,95,0.06); }
+
+    form.login-form { display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem; }
+    label{ font-size:0.82rem; color:var(--muted); font-weight:700; margin-bottom:0.18rem; display:block; }
+    input[type="text"], input[type="password"]{
+      padding:0.85rem 1rem; border-radius:10px; border:1px solid #e6edf2; font-size:0.95rem;
+      outline:none; transition: box-shadow .14s ease, border-color .14s ease;
+      width:100%;
     }
     input:focus{
-      box-shadow: 0 6px 20px rgba(3,55,95,0.07);
+      box-shadow: 0 10px 30px rgba(3,55,95,0.07);
       border-color: rgba(3,55,95,0.12);
     }
 
-    .actions{
-      display:flex;
-      gap:0.5rem;
-      margin-top:0.35rem;
-      align-items:center;
-      justify-content:space-between;
+    .actions { display:flex; gap:0.6rem; align-items:center; margin-top:0.4rem; }
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:0.6rem;
+      padding:0.75rem 1rem; border-radius:10px; border:0; font-weight:800; cursor:pointer;
     }
+    .btn-primary {
+      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color) 75%);
+      color: #fff; flex:1; box-shadow: 0 10px 30px rgba(3,55,95,0.12);
+    }
+    .btn-ghost { background:transparent; color:var(--muted); border:1px solid #e9f0f6; }
 
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:0.55rem;
-      padding:0.78rem 1rem;
-      border-radius:10px;
-      font-weight:700;
-      cursor:pointer;
-      border:0;
-      font-size:0.95rem;
-    }
+    .small { font-size:0.86rem; color:var(--muted); }
 
-    .btn-primary{
-      background:var(--primary-color);
-      color:var(--primary-contrast);
-      box-shadow: 0 10px 28px rgba(3,55,95,0.12);
-      flex:1;
+    /* Footer flexible 3 columns (up to 9 links) */
+    footer.site-footer {
+      margin-top:1rem; display:flex; gap:1rem; justify-content:space-between; align-items:flex-start;
+      padding-top:0.8rem; border-top:1px solid rgba(2,12,30,0.04); color:var(--muted); font-size:0.9rem;
+      flex-wrap:wrap;
     }
-    .btn-ghost{
-      background:transparent;
-      color:var(--muted);
-      border:1px solid #e7eef5;
-      flex:0 0 auto;
-    }
+    .footer-col { flex:1 1 30%; min-width:140px; display:flex; flex-direction:column; gap:0.35rem; }
+    .footer-col h4 { margin:0 0 6px 0; font-size:0.92rem; color:var(--text-color); font-weight:700; }
+    .footer-col a { text-decoration:none; color:var(--muted); padding:4px 0; }
+    .footer-row { display:flex; gap:1rem; width:100%; }
 
-    .small{
-      font-size:0.85rem;
-      color:var(--muted);
-    }
-
-    /* footer */
-    footer.site-footer{
-      margin-top:0.9rem;
-      display:flex;
-      gap:0.8rem;
-      justify-content:space-between;
-      align-items:center;
-      font-size:0.85rem;
-      color:var(--muted);
-    }
-
-    /* modal */
-    .modal {
-      position:fixed;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:1200;
-    }
-    .modal-backdrop{
-      position:absolute; inset:0; background:rgba(6,18,28,0.45);
-      backdrop-filter: blur(2px);
-    }
-    .modal-card{
-      position:relative;
-      background:var(--card-bg);
-      border-radius:12px;
-      padding:1rem 1.25rem;
-      min-width:280px;
-      z-index:1;
-      box-shadow: 0 18px 60px rgba(2,12,30,0.18);
-      text-align:center;
-    }
-
-    /* responsive */
+    /* utils */
+    .hidden { display:none !important; }
     @media (max-width:980px){
-      .page { grid-template-columns:1fr; align-items:stretch; }
-      .brand{ order:2; min-height:140px; padding:1rem 0.9rem;}
-      .card-wrap{ order:1; }
-      .card-face{ min-height:320px; }
+      .page{grid-template-columns:1fr; align-items:stretch;}
+      header.site-header { top:10px; left:10px; right:10px; transform:none; width:auto; }
+      .brand { order:2; min-height:120px; padding:1rem;}
+      .card-wrap { order:1; }
+      .card-face{ min-height:360px; }
+      .footer-col { min-width:120px; }
     }
   </style>
 
-  <!-- Fuente opcional rápida (si ya la quieres) -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Optional font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
-  <div class="page" id="appRoot">
+  <!-- Background element (applied by JS if backgroundImage present) -->
+  <div id="bg" class="bg" aria-hidden="true"></div>
 
-    <!-- LEFT: Info / branding (personalizable) -->
-    <section class="brand" aria-hidden="false">
+  <!-- Navbar (rendered/hidden by JS based on tenant) -->
+  <header id="siteHeader" class="site-header" role="banner" style="display:none;">
+    <div class="nav-left">
+      <img id="tenant-logo" src="assets/img/logo_default.png" alt="Logo tenant" />
+    </div>
+    <nav id="siteNav" class="site-nav" aria-label="Navegación principal"></nav>
+  </header>
+
+  <!-- Main page -->
+  <main class="page" role="main" id="appRoot">
+    <!-- LEFT: Branding / Welcome -->
+    <section class="brand" aria-labelledby="brandTitle">
       <div class="brand-header">
-        <img id="tenant-logo" src="" alt="Logo tenant" />
         <div>
-          <div id="tenant-title" class="brand-title">Aula Corporativa</div>
-          <div id="tenant-sub" class="brand-sub">Plataforma de capacitación segura y multi-tenant.</div>
+          <div id="brandTitle" class="brand-title">Aula Corporativa</div>
+          <div id="brandSubtitle" class="brand-sub">Plataforma de capacitación multi-tenant.</div>
         </div>
       </div>
 
-      <div id="brand-copy" class="brand-sub small">
-        Accede con tu usuario para comenzar. Si eres contratista, alterna la tarjeta y usa la sección de contratistas.
-      </div>
+      <p id="brandCopy" class="brand-sub">Accede con tu usuario para iniciar. Alterna la tarjeta para acceso de contratistas.</p>
 
       <div style="flex:1"></div>
 
-      <div class="small" id="brand-footer">© <span id="brand-year"></span> Aula Corporativa</div>
+      <div id="brandFooter" class="small">© <span id="brandYear"></span> Aula Corporativa</div>
     </section>
 
-    <!-- RIGHT: Card Login (flip) -->
-    <aside class="card-wrap" aria-label="Login multi-tenant">
-      <div id="cardMain" class="card">
+    <!-- RIGHT: Card login (flip) -->
+    <aside class="card-wrap" aria-label="Acceso">
+      <div id="card" class="card" role="region" aria-live="polite">
 
-        <!-- FRONT: Trabajadores -->
-        <div class="card-face card-front" role="region" aria-label="Login trabajadores">
+        <!-- FRONT -->
+        <section class="card-face card-front" aria-label="Login trabajadores">
           <div class="card-top">
-            <div style="display:flex;flex-direction:column;">
-              <div style="font-weight:700">Iniciar sesión</div>
+            <div>
+              <div style="font-weight:800; font-size:1.05rem;">Iniciar sesión</div>
               <div class="small">Trabajadores</div>
             </div>
-
-            <div class="tabs" role="tablist" aria-hidden="false">
+            <div class="tabs" role="tablist">
               <button class="tab-btn active" data-target="front" aria-pressed="true">TRABAJADORES</button>
-              <button class="tab-btn" id="swapToBack" data-target="back" aria-pressed="false">CONTRATISTAS</button>
+              <button id="toBack" class="tab-btn" data-target="back" aria-pressed="false">CONTRATISTAS</button>
             </div>
           </div>
 
-          <form id="loginFormFront" class="login-form" onsubmit="return false;">
+          <form id="formFront" class="login-form" onsubmit="return false;">
             <div>
-              <label id="userLabel" for="username">Usuario</label>
-              <input id="username" type="text" autocomplete="username" inputmode="email" placeholder="usuario@empresa.com" />
+              <label id="labelUser" for="username">Usuario</label>
+              <input id="username" name="username" type="text" autocomplete="username" placeholder="usuario@empresa.com" />
             </div>
 
             <div>
-              <label id="passLabel" for="password">Contraseña</label>
-              <input id="password" type="password" autocomplete="current-password" placeholder="******" />
+              <label id="labelPass" for="password">Contraseña</label>
+              <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••" />
             </div>
 
             <div class="actions">
-              <button id="loginFrontBtn" class="btn btn-primary" type="submit">Ingresar</button>
-              <button id="helpBtnFront" class="btn btn-ghost" type="button">Ayuda</button>
+              <button id="btnLoginFront" class="btn btn-primary">Ingresar</button>
+              <button id="btnHelpFront" type="button" class="btn btn-ghost">Ayuda</button>
             </div>
 
-            <div class="small" style="margin-top:0.6rem;">
-              <a href="#" id="forgotLink">¿Olvidaste tu contraseña?</a>
+            <div style="margin-top:6px;" class="small">
+              <a href="#" id="forgot">¿Olvidaste tu contraseña?</a>
             </div>
 
-            <footer class="site-footer" aria-hidden="false">
-              <div class="small">¿No tienes cuenta? <a href="#" id="registerLink">Regístrate</a></div>
-              <div class="small" id="footerCopyright"></div>
+            <footer class="site-footer">
+              <div class="small">¿No tienes cuenta? <a href="#" id="register">Regístrate</a></div>
+              <div class="small" id="copyrightText"></div>
             </footer>
           </form>
-        </div>
+        </section>
 
-        <!-- BACK: Contratistas -->
-        <div class="card-face card-back" role="region" aria-label="Login contratistas">
+        <!-- BACK -->
+        <section class="card-face card-back" aria-label="Login contratistas">
           <div class="card-top">
-            <div style="display:flex;flex-direction:column;">
-              <div style="font-weight:700">Acceso Contratistas</div>
+            <div>
+              <div style="font-weight:800; font-size:1.05rem;">Acceso Contratistas</div>
               <div class="small">ID de contratista</div>
             </div>
-
-            <div class="tabs" role="tablist" aria-hidden="false">
-              <button class="tab-btn" id="swapToFront" data-target="front">TRABAJADORES</button>
+            <div class="tabs" role="tablist">
+              <button id="toFront" class="tab-btn" data-target="front">TRABAJADORES</button>
               <button class="tab-btn active" aria-pressed="true">CONTRATISTAS</button>
             </div>
           </div>
 
-          <form id="loginFormBack" class="login-form" onsubmit="return false;">
+          <form id="formBack" class="login-form" onsubmit="return false;">
             <div>
-              <label for="username_c" id="userLabelC">ID Contratista</label>
-              <input id="username_c" type="text" placeholder="ej: CONTRA-123" />
+              <label id="labelUserC" for="username_c">ID Contratista</label>
+              <input id="username_c" name="username_c" type="text" placeholder="ej: CONTRA-123" />
             </div>
 
             <div>
-              <label for="password_c" id="passLabelC">Contraseña</label>
-              <input id="password_c" type="password" placeholder="******" />
+              <label id="labelPassC" for="password_c">Contraseña</label>
+              <input id="password_c" name="password_c" type="password" placeholder="••••••" />
             </div>
 
             <div class="actions">
-              <button id="loginBackBtn" class="btn btn-primary">Ingresar</button>
-              <button id="helpBtnBack" class="btn btn-ghost" type="button">Ayuda</button>
+              <button id="btnLoginBack" class="btn btn-primary">Ingresar</button>
+              <button id="btnHelpBack" type="button" class="btn btn-ghost">Ayuda</button>
             </div>
 
-            <div class="small" style="margin-top:0.6rem;">
-              <a href="#">Soporte contratistas</a>
+            <div style="margin-top:6px;" class="small">
+              <a href="#" id="supportBack">Soporte contratistas</a>
             </div>
 
-            <footer class="site-footer" aria-hidden="false">
-              <div class="small">¿Eres proveedor? Contacta a tu administrador.</div>
-              <div class="small" id="footerContact"></div>
+            <footer class="site-footer">
+              <div class="footer-row" id="footerLinksRow"></div>
             </footer>
           </form>
-        </div>
+        </section>
 
       </div>
     </aside>
-  </div>
+  </main>
 
-  <!-- Modal container (hidden by default) -->
+  <!-- Modal root -->
   <div id="modalRoot" aria-live="polite"></div>
 
-  <!-- tenant-loader.js + main logic (embebido para facilidad) -->
+  <!-- JS embebido: carga tenants.json, aplica vars, navbar, footer, background, flip, logins -->
   <script>
-  /* =========================
-     Tenant loader / App core
-     ========================= */
-
   (function(){
-    // Defaults
     const DEFAULTS = {
       companyName: "Aula Corporativa",
       logoUrl: "assets/img/logo_default.png",
       primaryColor: "#00375F",
+      secondaryColor: "#D00000",
+      textColor: "#0b2233",
+      muted: "#6e7883",
       accentColor: "#f4f6f8",
-      language: "es",
+      overlayColor: "rgba(2,10,20,0.45)",
+      backgroundImage: null,
+      navbar: { enabled: false, items: [] },
+      footer: { links: [] }, // expected array of {text, href} up to 9 items
       login: {
         fields: {
           userLabel: "Usuario",
-          passLabel: "Contraseña"
+          passLabel: "Contraseña",
+          contractorUserLabel: "ID Contratista",
+          contractorPassLabel: "Contraseña"
         },
         successRedirect: "profile.html"
-      },
-      footer: {
-        contactEmail: "contacto@aulacorporativa.com",
-        contactPhone: "000 000 0000",
-        showPolicies: true
       },
       customCss: null
     };
 
-    // Helpers
-    const qs = sel => document.querySelector(sel);
-    const qsa = sel => Array.from(document.querySelectorAll(sel));
-    const applyCSSVar = (name, val) => document.documentElement.style.setProperty(name, val);
+    const qs = s => document.querySelector(s);
+    const qsa = s => Array.from(document.querySelectorAll(s));
+    const applyVar = (name, val) => document.documentElement.style.setProperty(name, val);
 
-    // Determine tenant
-    const hostname = location.hostname || "localhost";
-    const tenantId = hostname.split('.').length > 2 ? hostname.split('.')[0] : (hostname === 'localhost' ? 'demo' : 'default');
+    const host = location.hostname || 'localhost';
+    const tenantId = host.split('.').length>2 ? host.split('.')[0] : (host === 'localhost' ? 'demo' : 'default');
 
-    // Load tenants.json
-    fetch('/tenants.json', {cache: 'no-store'})
-      .then(r => {
-        if(!r.ok) throw new Error('no tenants.json');
-        return r.json();
-      })
-      .then(tenants => {
-        const config = Object.assign({}, DEFAULTS, tenants[tenantId] || tenants['default'] || {});
-        // nested merge for some objects (simple)
-        config.login = Object.assign({}, DEFAULTS.login, (tenants[tenantId] && tenants[tenantId].login) || {});
-        config.footer = Object.assign({}, DEFAULTS.footer, (tenants[tenantId] && tenants[tenantId].footer) || {});
-        initApp(config);
+    fetch('/tenants.json', { cache: 'no-store' })
+      .then(r => { if(!r.ok) throw new Error('no tenants'); return r.json(); })
+      .then(data => {
+        const tenantRaw = (data && (data[tenantId] || data['default'])) || {};
+        // deep-ish merge
+        const cfg = Object.assign({}, DEFAULTS, tenantRaw);
+        cfg.login = Object.assign({}, DEFAULTS.login, tenantRaw.login || {});
+        cfg.login.fields = Object.assign({}, DEFAULTS.login.fields, (tenantRaw.login && tenantRaw.login.fields) || {});
+        cfg.footer = Object.assign({}, DEFAULTS.footer, tenantRaw.footer || {});
+        cfg.navbar = Object.assign({}, DEFAULTS.navbar, tenantRaw.navbar || {});
+        applyConfig(cfg);
       })
       .catch(err => {
-        console.warn("No se pudo cargar tenants.json, usando defaults.", err);
-        initApp(DEFAULTS);
+        console.warn("No tenants.json — usando defaults", err);
+        applyConfig(DEFAULTS);
       });
 
-    // Initialize app with resolved config
-    function initApp(cfg){
-      // Apply core visuals
-      applyCSSVar('--primary-color', cfg.primaryColor || DEFAULTS.primaryColor);
-      applyCSSVar('--accent-color', cfg.accentColor || DEFAULTS.accentColor);
+    function applyConfig(cfg){
+      // CSS variables
+      applyVar('--primary-color', cfg.primaryColor);
+      applyVar('--secondary-color', cfg.secondaryColor);
+      applyVar('--text-color', cfg.textColor);
+      applyVar('--muted', cfg.muted);
+      applyVar('--accent-color', cfg.accentColor);
+      applyVar('--overlay-color', cfg.overlayColor);
 
-      // logo & texts
-      const logoEl = qs('#tenant-logo'); if(logoEl) logoEl.src = cfg.logoUrl || DEFAULTS.logoUrl;
-      qs('#tenant-title').textContent = cfg.companyName || DEFAULTS.companyName;
-      qs('#tenant-sub').textContent = cfg.tagline || 'Plataforma de capacitación multi-tenant.';
-      qs('#brand-year').textContent = new Date().getFullYear();
+      // Background image
+      const bg = qs('#bg');
+      if(cfg.backgroundImage){
+        bg.style.backgroundImage = `url('${cfg.backgroundImage}')`;
+        bg.style.filter = 'none';
+      } else {
+        bg.style.backgroundImage = 'none';
+        // keep default gradient from body
+      }
+
+      // Navbar
+      const header = qs('#siteHeader');
+      const nav = qs('#siteNav');
+      if(cfg.navbar && cfg.navbar.enabled){
+        header.style.display = 'flex';
+        // logo on left
+        const logo = qs('#tenant-logo'); if(logo) logo.src = cfg.logoUrl || DEFAULTS.logoUrl;
+        // nav items (limit 5)
+        nav.innerHTML = '';
+        (cfg.navbar.items || []).slice(0,5).forEach((txt, i) => {
+          if(!txt) return;
+          const a = document.createElement('a');
+          a.href = cfg.navbar.hrefs && cfg.navbar.hrefs[i] ? cfg.navbar.hrefs[i] : '#';
+          a.textContent = txt;
+          nav.appendChild(a);
+        });
+      } else {
+        header.style.display = 'none';
+      }
+
+      // Branding texts
+      qs('#brandTitle').textContent = cfg.companyName || DEFAULTS.companyName;
+      qs('#brandSubtitle').textContent = cfg.tagline || 'Plataforma de capacitación multi-tenant.';
+      qs('#brandCopy').textContent = cfg.description || 'Accede con tu usuario para iniciar. Alterna la tarjeta para acceso de contratistas.';
+      qs('#brandYear').textContent = new Date().getFullYear();
 
       // Labels
-      qs('#userLabel').textContent = cfg.login?.fields?.userLabel || DEFAULTS.login.fields.userLabel;
-      qs('#passLabel').textContent = cfg.login?.fields?.passLabel || DEFAULTS.login.fields.passLabel;
-      qs('#userLabelC').textContent = cfg.login?.fields?.contractorUserLabel || 'ID Contratista';
-      qs('#passLabelC').textContent = cfg.login?.fields?.contractorPassLabel || DEFAULTS.login.fields.passLabel;
+      qs('#labelUser').textContent = cfg.login.fields.userLabel;
+      qs('#labelPass').textContent = cfg.login.fields.passLabel;
+      qs('#labelUserC').textContent = cfg.login.fields.contractorUserLabel;
+      qs('#labelPassC').textContent = cfg.login.fields.contractorPassLabel;
 
-      // Footer contact
-      const fContact = `${cfg.footer.contactEmail || DEFAULTS.footer.contactEmail} · ${cfg.footer.contactPhone || DEFAULTS.footer.contactPhone}`;
-      const footerContactEl = qs('#footerContact'); if(footerContactEl) footerContactEl.textContent = fContact;
-      const footerCopyrightEl = qs('#footerCopyright');
-      if(footerCopyrightEl) footerCopyrightEl.textContent = `${cfg.companyName} • ${new Date().getFullYear()}`;
+      // Footer links: up to 9 links, split in 3 columns
+      const footerRow = qs('#footerLinksRow');
+      footerRow.innerHTML = '';
+      const links = (cfg.footer.links || []).slice(0,9);
 
-      // Save redirect target globally
-      window.loginRedirect = (cfg.login && cfg.login.successRedirect) ? cfg.login.successRedirect : DEFAULTS.login.successRedirect;
+      // create 3 cols
+      const cols = [[],[],[]];
+      links.forEach((lnk, idx) => {
+        if(!lnk || !lnk.text) return;
+        cols[idx % 3].push(lnk);
+      });
 
-      // Load optional custom CSS for tenant (if exists)
+      cols.forEach((colLinks, colIndex) => {
+        const col = document.createElement('div');
+        col.className = 'footer-col';
+        if(colLinks.length === 0) {
+          col.classList.add('hidden');
+        } else {
+          const h = document.createElement('h4');
+          h.textContent = cfg.footer.titles && cfg.footer.titles[colIndex] ? cfg.footer.titles[colIndex] : `Sección ${colIndex+1}`;
+          col.appendChild(h);
+          colLinks.forEach(linkObj => {
+            const a = document.createElement('a');
+            a.href = linkObj.href || '#';
+            a.textContent = linkObj.text;
+            if(linkObj.target) a.target = linkObj.target;
+            col.appendChild(a);
+          });
+        }
+        footerRow.appendChild(col);
+      });
+
+      // Logo on brand panel too (in case nav hidden)
+      const logoMain = qs('#tenant-logo'); if(logoMain) logoMain.src = cfg.logoUrl || DEFAULTS.logoUrl;
+
+      // Save redirect target
+      window.loginRedirect = cfg.login.successRedirect || DEFAULTS.login.successRedirect;
+
+      // Load optional custom CSS
       if(cfg.customCss){
         const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = cfg.customCss;
+        link.rel = 'stylesheet'; link.href = cfg.customCss;
         document.head.appendChild(link);
       }
 
-      // Init UI behavior
-      attachUIActions();
+      // Init interactions
+      initInteractions();
     }
 
-    /* --------------------------
-       UI: Flip card & buttons
-       -------------------------- */
-    function attachUIActions(){
-      const card = qs('#cardMain');
-      const tabButtons = qsa('.tab-btn');
+    function initInteractions(){
+      const card = qs('#card');
+      const setTab = (t) => {
+        if(t === 'back') card.classList.add('is-flipped');
+        else card.classList.remove('is-flipped');
 
-      // Tab toggles
-      tabButtons.forEach(btn => btn.addEventListener('click', (e) => {
-        const target = btn.getAttribute('data-target');
-        setActiveTab(target);
+        qsa('.tab-btn').forEach(b => {
+          const target = b.getAttribute('data-target');
+          if((t === 'back' && target === 'back') || (t==='front' && (!target || target==='front'))) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+      };
+
+      qs('#toBack')?.addEventListener('click', ()=> setTab('back'));
+      qs('#toFront')?.addEventListener('click', ()=> setTab('front'));
+      qsa('.tab-btn').forEach(btn => btn.addEventListener('click', (e) => {
+        const t = btn.getAttribute('data-target') || 'front';
+        setTab(t);
       }));
 
-      qs('#swapToBack')?.addEventListener('click', () => setActiveTab('back'));
-      qs('#swapToFront')?.addEventListener('click', () => setActiveTab('front'));
-
-      function setActiveTab(t){
-        if(t === 'back') {
-          card.classList.add('is-flipped');
-          qsa('.tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-target') === 'back'));
-        } else {
-          card.classList.remove('is-flipped');
-          qsa('.tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-target') !== 'back'));
-        }
-      }
-
-      // Shortcuts: Enter submits
-      ['username','password','username_c','password_c'].forEach(id=>{
+      // submit via Enter
+      ['username','password','username_c','password_c'].forEach(id => {
         const el = qs('#'+id);
         if(!el) return;
-        el.addEventListener('keyup', (e) => { if(e.key === 'Enter') qs('#loginFrontBtn').click(); });
+        el.addEventListener('keyup', (e) => {
+          if(e.key === 'Enter') {
+            if(id.includes('_c')) qs('#btnLoginBack')?.click();
+            else qs('#btnLoginFront')?.click();
+          }
+        });
       });
 
-      // Login handlers (demo behavior: only validates non-empty)
-      qs('#loginFrontBtn')?.addEventListener('click', () => {
+      // Demo login handlers (replace with API)
+      qs('#btnLoginFront')?.addEventListener('click', () => {
         const user = qs('#username').value.trim();
         const pass = qs('#password').value.trim();
-        if(!user || !pass) return showModal('Error', 'Ingresa usuario y contraseña.', 'error');
-        // Aquí pones tu validación real (fetch a API)
+        if(!user || !pass) return showModal('Error', 'Ingresa usuario y contraseña', 'error');
         showModal('Bienvenido', 'Inicio de sesión correcto. Redirigiendo...', 'success');
-        setTimeout(()=> { location.href = window.loginRedirect || 'profile.html'; }, 900);
+        setTimeout(()=> location.href = window.loginRedirect || 'profile.html', 900);
       });
 
-      qs('#loginBackBtn')?.addEventListener('click', () => {
+      qs('#btnLoginBack')?.addEventListener('click', () => {
         const user = qs('#username_c').value.trim();
         const pass = qs('#password_c').value.trim();
-        if(!user || !pass) return showModal('Error', 'Ingresa ID y contraseña.', 'error');
+        if(!user || !pass) return showModal('Error', 'Ingresa ID y contraseña', 'error');
         showModal('Acceso aprobado', 'Redirigiendo...', 'success');
-        setTimeout(()=> { location.href = window.loginRedirect || 'profile.html'; }, 900);
+        setTimeout(()=> location.href = window.loginRedirect || 'profile.html', 900);
       });
 
-      // Help / register links
-      qs('#helpBtnFront')?.addEventListener('click', () => showModal('Ayuda', 'Contacta a soporte de tu empresa o al administrador.', 'info'));
-      qs('#helpBtnBack')?.addEventListener('click', () => showModal('Ayuda', '¿Problemas con tu ID? Contacta a tu supervisor.', 'info'));
-      qs('#registerLink')?.addEventListener('click', (e) => { e.preventDefault(); showModal('Registro', 'Solicita creación de cuenta con RRHH.', 'info'); });
-      qs('#forgotLink')?.addEventListener('click', (e) => { e.preventDefault(); showModal('Recuperar', 'Usa la opción de recuperación de tu empresa.', 'info'); });
+      // help / register
+      qs('#btnHelpFront')?.addEventListener('click', ()=> showModal('Ayuda', 'Contacta a soporte de tu empresa.', 'info'));
+      qs('#btnHelpBack')?.addEventListener('click', ()=> showModal('Ayuda', 'Contacta a tu supervisor.', 'info'));
+      qs('#register')?.addEventListener('click', (e)=> { e.preventDefault(); showModal('Registro', 'Solicita creación de cuenta con RRHH.', 'info'); });
+      qs('#forgot')?.addEventListener('click', (e)=> { e.preventDefault(); showModal('Recuperar', 'Usa la opción de recuperación de tu empresa.', 'info'); });
     }
 
-    /* --------------------------
-       Modal (simple & reusable)
-       -------------------------- */
+    // Modal
     function showModal(title, text, type){
-      const root = qs('#modalRoot');
-      if(!root) return alert(title + '\n' + text);
-
-      // Clear old
+      const root = qs('#modalRoot'); if(!root) return alert(title + "\n" + text);
       root.innerHTML = '';
-
-      const modal = document.createElement('div');
-      modal.className = 'modal';
-      modal.innerHTML = `
-        <div class="modal-backdrop"></div>
-        <div class="modal-card" role="dialog" aria-modal="true" aria-label="${title}">
-          <div style="font-weight:700; margin-bottom:0.4rem">${title}</div>
-          <div style="color:var(--muted); margin-bottom:1rem">${text}</div>
-          <div style="display:flex; gap:0.5rem; justify-content:center;">
-            <button id="modalOk" class="btn btn-primary">Aceptar</button>
-          </div>
+      const wrap = document.createElement('div'); wrap.className = 'modal';
+      wrap.style.position = 'fixed'; wrap.style.inset = 0; wrap.style.display = 'flex'; wrap.style.alignItems = 'center'; wrap.style.justifyContent = 'center'; wrap.style.zIndex = 9999;
+      wrap.innerHTML = `
+        <div style="position:absolute; inset:0; background:rgba(2,10,20,0.45);" aria-hidden="true"></div>
+        <div style="background:var(--card-bg); padding:1rem 1.2rem; border-radius:12px; box-shadow:var(--shadow-lg); min-width:260px; text-align:center;">
+          <div style="font-weight:800; margin-bottom:0.35rem;">${title}</div>
+          <div style="color:var(--muted); margin-bottom:0.8rem;">${text}</div>
+          <div style="display:flex; justify-content:center;"><button id="okModal" class="btn btn-primary">Aceptar</button></div>
         </div>
       `;
-      root.appendChild(modal);
-
-      // color tweak for info vs success vs error
-      const okBtn = modal.querySelector('#modalOk');
-      okBtn.addEventListener('click', ()=> root.innerHTML = '');
-      modal.querySelector('.modal-backdrop').addEventListener('click', ()=> root.innerHTML = '');
+      root.appendChild(wrap);
+      wrap.querySelector('#okModal').addEventListener('click', ()=> root.innerHTML = '');
+      wrap.querySelector('div[aria-hidden="true"]').addEventListener('click', ()=> root.innerHTML = '');
     }
 
   })();
   </script>
-
-  <!-- FontAwesome kit (iconos si los quieres) -->
-  <script src="https://kit.fontawesome.com/2c36e9b7b1.js" crossorigin="anonymous" defer></script>
 </body>
 </html>
