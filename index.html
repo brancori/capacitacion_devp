@@ -1,258 +1,556 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capacitación App - Login</title>
-    <!-- Ruta corregida: Se añade ./ para ser explícito -->
-    <link rel="stylesheet" href="./indexs.css">
-    <!-- Ruta corregida: Se añade ./ para ser explícito -->
-    <link rel="shortcut icon" type="image/x-icon" href="./assets/img/logo.png">
-    <style>
-        /* Estilos simples para centrar el formulario */
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Aula Corporativa - Login</title>
 
-        /* Estilos para el contenedor del login, ahora un poco más pequeño */
-        #login_container {
-            width: 100%;
-            max-width: 380px; /* Ancho máximo más reducido para el formulario */
-            background: #e2e2e2; /* Mismo color gris de tu registro */
-            border-radius: 8px;
-            padding: 1.8rem; /* Padding ligeramente reducido */
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            text-align: center;
-        }
+  <!-- Variables CSS base (se sobreescriben por tenant) -->
+  <style>
+    :root{
+      --primary-color: #00375F;
+      --primary-contrast: #ffffff;
+      --accent-color: #f4f6f8;
+      --muted: #6e7883;
+      --card-bg: #ffffff;
+      --radius: 12px;
+      --glass: rgba(255,255,255,0.6);
+      --shadow: 0 10px 30px rgba(13,35,63,0.12);
+      --max-width: 980px;
+      --gap: 1rem;
+      --safe-padding: 1.25rem;
+      --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
 
-        #login_container h2 {
-            color: #00375F; /* Tu color azul principal */
-            margin-bottom: 1.8rem; /* Margen un poco más pequeño */
-            font-size: 1.8rem; /* Tamaño de fuente del título */
-        }
+    /* Reset & base */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--font-sans);
+      background: linear-gradient(180deg, #f7fafc 0%, #eef2f6 100%);
+      color:#0b2233;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:clamp(1rem,3vw,2rem);
+      min-height:100vh;
+    }
 
-        /* Estilos para los inputs, similares a .inputs_Container */
-        .login-input-group {
-            margin-bottom: 1.2rem; /* Margen inferior de inputs ligeramente reducido */
-            text-align: left;
-        }
+    /* Layout container */
+    .page {
+      width:100%;
+      max-width:var(--max-width);
+      display:grid;
+      grid-template-columns: 1fr 420px;
+      gap: clamp(1rem,2.5vw,2rem);
+      align-items:center;
+    }
 
-        .login-input-group label {
-            display: block;
-            margin-bottom: 0.4rem; /* Margen inferior de labels reducido */
-            font-weight: 500;
-            font-size: 0.95rem; /* Tamaño de fuente ligeramente más pequeño */
-        }
+    /* Left: Marketing / Info */
+    .brand {
+      background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
+      padding: clamp(1.25rem,2.5vw,2rem);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 420px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:1rem;
+    }
+    .brand-header{
+      display:flex;
+      align-items:center;
+      gap:1rem;
+    }
+    #tenant-logo {
+      height:56px;
+      width:auto;
+      display:block;
+      filter: drop-shadow(0 4px 20px rgba(3,55,95,0.06));
+    }
+    .brand-title{
+      font-weight:700;
+      font-size:clamp(1.25rem,2.5vw,1.6rem);
+      color:var(--primary-color);
+    }
+    .brand-sub{
+      color:var(--muted);
+      line-height:1.5;
+    }
 
-        .login-input-group input {
-            width: 100%;
-            padding: 0.7rem 1rem; /* Padding de inputs ligeramente reducido */
-            border: 1px solid #ccc;
-            border-radius: 5px; /* Mismos bordes redondeados */
-            box-sizing: border-box;
-            font-size: 0.95rem; /* Tamaño de fuente de input */
-            border-bottom: 2px solid #6e7883;
-            transition: all .5s ease;
-        }
+    /* Right: Card with flip */
+    .card-wrap{
+      perspective: 1400px;
+      width:100%;
+      max-width:420px;
+      margin-inline:auto;
+    }
+    .card{
+      width:100%;
+      border-radius:16px;
+      transform-style:preserve-3d;
+      transition: transform 700ms cubic-bezier(.2,.9,.2,1);
+    }
+    .card.is-flipped{ transform: rotateY(180deg); }
 
-        .login-input-group input:focus {
-            border-color: #00375F;
-            box-shadow: 0 0 0 3px rgba(0, 55, 95, 0.2);
-            outline: none;
-        }
+    .card-face{
+      backface-visibility: hidden;
+      border-radius: inherit;
+      overflow: hidden;
+      background: linear-gradient(180deg, var(--card-bg), #fbfcfd);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+      min-height:360px;
+      display:flex;
+      flex-direction:column;
+      gap:0.75rem;
+    }
 
-        /* Botón de Login, usando tu clase .ir_Examen */
-        .login-button {
-            width: 100%;
-            padding: 0.7rem; /* Padding del botón ligeramente reducido */
-            background-color: #00375F;
-            color: aliceblue;
-            font-weight: bold;
-            font-size: 1.05rem; /* Tamaño de fuente del botón */
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            box-sizing: border-box;
-            margin-top: 0.8rem; /* Margen superior para separarlo de los inputs */
-        }
+    .card-back{ transform: rotateY(180deg); position: absolute; left:0; top:0; width:100%; }
 
-        .login-button:hover {
-            background-color: #002a4a;
-        }
-        
-        .login-footer {
-            margin-top: 1.2rem; /* Margen superior del footer reducido */
-            font-size: 0.85rem; /* Tamaño de fuente del footer reducido */
-        }
+    .card-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:0.75rem;
+    }
+    .tabs{
+      display:flex;
+      gap:0.5rem;
+      background: transparent;
+      border-radius: 999px;
+      padding: 0.25rem;
+      align-items:center;
+    }
+    .tab-btn{
+      padding: 0.45rem 0.85rem;
+      cursor:pointer;
+      border-radius:999px;
+      border:1px solid transparent;
+      font-weight:600;
+      font-size:0.9rem;
+      color:var(--muted);
+      background:transparent;
+      transition: all .18s ease;
+    }
+    .tab-btn.active{
+      color:var(--primary-contrast);
+      background: var(--primary-color);
+      box-shadow: 0 6px 18px rgba(3,55,95,0.12);
+    }
 
-        .login-footer a {
-            color: #00375F;
-            text-decoration: none;
-        }
+    /* form */
+    .login-form{ display:flex; flex-direction:column; gap:0.75rem; margin-top:0.6rem; }
+    label{ font-size:0.82rem; color:var(--muted); font-weight:600; display:block; margin-bottom:0.25rem; }
+    input[type="text"], input[type="password"]{
+      width:100%;
+      padding:0.9rem 1rem;
+      border-radius:10px;
+      border:1px solid #e6edf2;
+      background:linear-gradient(180deg,#fff,#fbfcfd);
+      outline:none;
+      font-size:0.95rem;
+      transition: box-shadow .18s ease, border-color .18s ease;
+    }
+    input:focus{
+      box-shadow: 0 6px 20px rgba(3,55,95,0.07);
+      border-color: rgba(3,55,95,0.12);
+    }
 
-        .login-footer a:hover {
-            text-decoration: underline;
-        }
+    .actions{
+      display:flex;
+      gap:0.5rem;
+      margin-top:0.35rem;
+      align-items:center;
+      justify-content:space-between;
+    }
 
-        /* --- ESTILOS PARA EL MODAL (POP-UP) --- */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            /* Oculto por defecto y sin interceptar clics */
-            visibility: hidden; 
-            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
-        }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:0.55rem;
+      padding:0.78rem 1rem;
+      border-radius:10px;
+      font-weight:700;
+      cursor:pointer;
+      border:0;
+      font-size:0.95rem;
+    }
 
-        .modal-content {
-            background: #ffffff;
-            padding: 2.2rem;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            text-align: center;
-            width: 90%;
-            max-width: 360px;
-            transform: scale(0.9);
-            transition: transform 0.3s ease-in-out;
-        }
+    .btn-primary{
+      background:var(--primary-color);
+      color:var(--primary-contrast);
+      box-shadow: 0 10px 28px rgba(3,55,95,0.12);
+      flex:1;
+    }
+    .btn-ghost{
+      background:transparent;
+      color:var(--muted);
+      border:1px solid #e7eef5;
+      flex:0 0 auto;
+    }
 
-        /* Estilos para mostrar el modal */
-        .modal-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-        .modal-overlay.show .modal-content {
-            transform: scale(1);
-        }
+    .small{
+      font-size:0.85rem;
+      color:var(--muted);
+    }
 
-        #modalIcon {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-        }
-        /* Icono de éxito (verde) */
-        #modalIcon.success {
-            color: #28a745; 
-        }
-        /* Icono de error (rojo) */
-        #modalIcon.error {
-            color: #dc3545;
-        }
+    /* footer */
+    footer.site-footer{
+      margin-top:0.9rem;
+      display:flex;
+      gap:0.8rem;
+      justify-content:space-between;
+      align-items:center;
+      font-size:0.85rem;
+      color:var(--muted);
+    }
 
-        #modalTitle {
-            color: #00375F; /* Color principal */
-            margin-bottom: 0.5rem;
-            font-size: 1.5rem;
-        }
-        #modalMessage {
-            color: #6e7883; /* Color de texto secundario */
-            font-size: 1rem;
-            margin-bottom: 2rem;
-        }
-        /* Reutilizamos el estilo del botón de login */
-        #modalClose {
-            width: 100%;
-            padding: 0.7rem;
-        }
-        /* --- FIN DE ESTILOS PARA EL MODAL --- */
+    /* modal */
+    .modal {
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1200;
+    }
+    .modal-backdrop{
+      position:absolute; inset:0; background:rgba(6,18,28,0.45);
+      backdrop-filter: blur(2px);
+    }
+    .modal-card{
+      position:relative;
+      background:var(--card-bg);
+      border-radius:12px;
+      padding:1rem 1.25rem;
+      min-width:280px;
+      z-index:1;
+      box-shadow: 0 18px 60px rgba(2,12,30,0.18);
+      text-align:center;
+    }
 
-    </style>
+    /* responsive */
+    @media (max-width:980px){
+      .page { grid-template-columns:1fr; align-items:stretch; }
+      .brand{ order:2; min-height:140px; padding:1rem 0.9rem;}
+      .card-wrap{ order:1; }
+      .card-face{ min-height:320px; }
+    }
+  </style>
+
+  <!-- Fuente opcional rápida (si ya la quieres) -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
-    <!-- Header con logo dinámico -->
-    <header style="background-color: var(--primary-color); padding: 1rem; text-align: center;">
-        <img id="tenant-logo" src="" alt="Logo de la empresa" style="max-height: 60px;">
-    </header>
 
-    <!-- Sección principal con el formulario de login -->
-    <main style="display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 2rem; background-color: var(--accent-color); min-height: 80vh;">
-        <div id="login_container">
-            <h2 id="tenant-title"></h2>
+<body>
+  <div class="page" id="appRoot">
 
-            <div class="login-input-group">
-                <label id="userLabel" for="username"></label>
-                <input type="text" id="username" placeholder="">
+    <!-- LEFT: Info / branding (personalizable) -->
+    <section class="brand" aria-hidden="false">
+      <div class="brand-header">
+        <img id="tenant-logo" src="" alt="Logo tenant" />
+        <div>
+          <div id="tenant-title" class="brand-title">Aula Corporativa</div>
+          <div id="tenant-sub" class="brand-sub">Plataforma de capacitación segura y multi-tenant.</div>
+        </div>
+      </div>
+
+      <div id="brand-copy" class="brand-sub small">
+        Accede con tu usuario para comenzar. Si eres contratista, alterna la tarjeta y usa la sección de contratistas.
+      </div>
+
+      <div style="flex:1"></div>
+
+      <div class="small" id="brand-footer">© <span id="brand-year"></span> Aula Corporativa</div>
+    </section>
+
+    <!-- RIGHT: Card Login (flip) -->
+    <aside class="card-wrap" aria-label="Login multi-tenant">
+      <div id="cardMain" class="card">
+
+        <!-- FRONT: Trabajadores -->
+        <div class="card-face card-front" role="region" aria-label="Login trabajadores">
+          <div class="card-top">
+            <div style="display:flex;flex-direction:column;">
+              <div style="font-weight:700">Iniciar sesión</div>
+              <div class="small">Trabajadores</div>
             </div>
 
-            <div class="login-input-group">
-                <label id="passLabel" for="password"></label>
-                <input type="password" id="password" placeholder="">
+            <div class="tabs" role="tablist" aria-hidden="false">
+              <button class="tab-btn active" data-target="front" aria-pressed="true">TRABAJADORES</button>
+              <button class="tab-btn" id="swapToBack" data-target="back" aria-pressed="false">CONTRATISTAS</button>
+            </div>
+          </div>
+
+          <form id="loginFormFront" class="login-form" onsubmit="return false;">
+            <div>
+              <label id="userLabel" for="username">Usuario</label>
+              <input id="username" type="text" autocomplete="username" inputmode="email" placeholder="usuario@empresa.com" />
             </div>
 
-            <button class="login-button" id="loginButton">Ingresar</button>
+            <div>
+              <label id="passLabel" for="password">Contraseña</label>
+              <input id="password" type="password" autocomplete="current-password" placeholder="******" />
+            </div>
+
+            <div class="actions">
+              <button id="loginFrontBtn" class="btn btn-primary" type="submit">Ingresar</button>
+              <button id="helpBtnFront" class="btn btn-ghost" type="button">Ayuda</button>
+            </div>
+
+            <div class="small" style="margin-top:0.6rem;">
+              <a href="#" id="forgotLink">¿Olvidaste tu contraseña?</a>
+            </div>
+
+            <footer class="site-footer" aria-hidden="false">
+              <div class="small">¿No tienes cuenta? <a href="#" id="registerLink">Regístrate</a></div>
+              <div class="small" id="footerCopyright"></div>
+            </footer>
+          </form>
         </div>
-    </main>
 
-    <!-- Footer dinámico -->
-    <footer class="footer" style="background: #fff; padding: 1.5rem; border-top: 1px solid #ccc;">
-        <div class="footer-section contactos">
-            <h3>Contacto</h3>
-            <p id="footerEmail"></p>
-            <p id="footerPhone"></p>
+        <!-- BACK: Contratistas -->
+        <div class="card-face card-back" role="region" aria-label="Login contratistas">
+          <div class="card-top">
+            <div style="display:flex;flex-direction:column;">
+              <div style="font-weight:700">Acceso Contratistas</div>
+              <div class="small">ID de contratista</div>
+            </div>
+
+            <div class="tabs" role="tablist" aria-hidden="false">
+              <button class="tab-btn" id="swapToFront" data-target="front">TRABAJADORES</button>
+              <button class="tab-btn active" aria-pressed="true">CONTRATISTAS</button>
+            </div>
+          </div>
+
+          <form id="loginFormBack" class="login-form" onsubmit="return false;">
+            <div>
+              <label for="username_c" id="userLabelC">ID Contratista</label>
+              <input id="username_c" type="text" placeholder="ej: CONTRA-123" />
+            </div>
+
+            <div>
+              <label for="password_c" id="passLabelC">Contraseña</label>
+              <input id="password_c" type="password" placeholder="******" />
+            </div>
+
+            <div class="actions">
+              <button id="loginBackBtn" class="btn btn-primary">Ingresar</button>
+              <button id="helpBtnBack" class="btn btn-ghost" type="button">Ayuda</button>
+            </div>
+
+            <div class="small" style="margin-top:0.6rem;">
+              <a href="#">Soporte contratistas</a>
+            </div>
+
+            <footer class="site-footer" aria-hidden="false">
+              <div class="small">¿Eres proveedor? Contacta a tu administrador.</div>
+              <div class="small" id="footerContact"></div>
+            </footer>
+          </form>
         </div>
 
-        <div class="footer-section politicas" id="footerPolicies">
-            <h3>Políticas</h3>
-            <ul>
-                <li><a href="#">Políticas de Seguridad</a></li>
-                <li><a href="#">Política Medio Ambiental</a></li>
-                <li><a href="#">Política para Contratistas</a></li>
-                <li><a href="#">Política COVID-19</a></li>
-            </ul>
-        </div>
-    </footer>
+      </div>
+    </aside>
+  </div>
 
-    <!-- Script principal (ya modular) -->
-    <script src="./tenant-loader.js"></script>
+  <!-- Modal container (hidden by default) -->
+  <div id="modalRoot" aria-live="polite"></div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const loginBtn = document.getElementById('loginButton');
-        loginBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const user = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value.trim();
+  <!-- tenant-loader.js + main logic (embebido para facilidad) -->
+  <script>
+  /* =========================
+     Tenant loader / App core
+     ========================= */
 
-            // Aquí solo un ejemplo simple, tú puedes conectar validaciones reales
-            if (user && pass) {
-                showModal("¡Bienvenido!", "Inicio de sesión exitoso.", "success");
-                setTimeout(() => { window.location.href = window.loginRedirect; }, 2000);
-            } else {
-                showModal("Error", "Debes ingresar usuario y contraseña.", "error");
-            }
-        });
+  (function(){
+    // Defaults
+    const DEFAULTS = {
+      companyName: "Aula Corporativa",
+      logoUrl: "assets/img/logo_default.png",
+      primaryColor: "#00375F",
+      accentColor: "#f4f6f8",
+      language: "es",
+      login: {
+        fields: {
+          userLabel: "Usuario",
+          passLabel: "Contraseña"
+        },
+        successRedirect: "profile.html"
+      },
+      footer: {
+        contactEmail: "contacto@aulacorporativa.com",
+        contactPhone: "000 000 0000",
+        showPolicies: true
+      },
+      customCss: null
+    };
 
-        // Modal genérico (mismo estilo que antes)
-        function showModal(title, msg, type) {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay show';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <i id="modalIcon" class="fas fa-${type === 'success' ? 'check-circle success' : 'exclamation-triangle error'}"></i>
-                    <h3>${title}</h3>
-                    <p>${msg}</p>
-                    <button class="login-button" id="closeModal">Aceptar</button>
-                </div>`;
-            document.body.appendChild(modal);
-            document.getElementById('closeModal').addEventListener('click', () => modal.remove());
+    // Helpers
+    const qs = sel => document.querySelector(sel);
+    const qsa = sel => Array.from(document.querySelectorAll(sel));
+    const applyCSSVar = (name, val) => document.documentElement.style.setProperty(name, val);
+
+    // Determine tenant
+    const hostname = location.hostname || "localhost";
+    const tenantId = hostname.split('.').length > 2 ? hostname.split('.')[0] : (hostname === 'localhost' ? 'demo' : 'default');
+
+    // Load tenants.json
+    fetch('/tenants.json', {cache: 'no-store'})
+      .then(r => {
+        if(!r.ok) throw new Error('no tenants.json');
+        return r.json();
+      })
+      .then(tenants => {
+        const config = Object.assign({}, DEFAULTS, tenants[tenantId] || tenants['default'] || {});
+        // nested merge for some objects (simple)
+        config.login = Object.assign({}, DEFAULTS.login, (tenants[tenantId] && tenants[tenantId].login) || {});
+        config.footer = Object.assign({}, DEFAULTS.footer, (tenants[tenantId] && tenants[tenantId].footer) || {});
+        initApp(config);
+      })
+      .catch(err => {
+        console.warn("No se pudo cargar tenants.json, usando defaults.", err);
+        initApp(DEFAULTS);
+      });
+
+    // Initialize app with resolved config
+    function initApp(cfg){
+      // Apply core visuals
+      applyCSSVar('--primary-color', cfg.primaryColor || DEFAULTS.primaryColor);
+      applyCSSVar('--accent-color', cfg.accentColor || DEFAULTS.accentColor);
+
+      // logo & texts
+      const logoEl = qs('#tenant-logo'); if(logoEl) logoEl.src = cfg.logoUrl || DEFAULTS.logoUrl;
+      qs('#tenant-title').textContent = cfg.companyName || DEFAULTS.companyName;
+      qs('#tenant-sub').textContent = cfg.tagline || 'Plataforma de capacitación multi-tenant.';
+      qs('#brand-year').textContent = new Date().getFullYear();
+
+      // Labels
+      qs('#userLabel').textContent = cfg.login?.fields?.userLabel || DEFAULTS.login.fields.userLabel;
+      qs('#passLabel').textContent = cfg.login?.fields?.passLabel || DEFAULTS.login.fields.passLabel;
+      qs('#userLabelC').textContent = cfg.login?.fields?.contractorUserLabel || 'ID Contratista';
+      qs('#passLabelC').textContent = cfg.login?.fields?.contractorPassLabel || DEFAULTS.login.fields.passLabel;
+
+      // Footer contact
+      const fContact = `${cfg.footer.contactEmail || DEFAULTS.footer.contactEmail} · ${cfg.footer.contactPhone || DEFAULTS.footer.contactPhone}`;
+      const footerContactEl = qs('#footerContact'); if(footerContactEl) footerContactEl.textContent = fContact;
+      const footerCopyrightEl = qs('#footerCopyright');
+      if(footerCopyrightEl) footerCopyrightEl.textContent = `${cfg.companyName} • ${new Date().getFullYear()}`;
+
+      // Save redirect target globally
+      window.loginRedirect = (cfg.login && cfg.login.successRedirect) ? cfg.login.successRedirect : DEFAULTS.login.successRedirect;
+
+      // Load optional custom CSS for tenant (if exists)
+      if(cfg.customCss){
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = cfg.customCss;
+        document.head.appendChild(link);
+      }
+
+      // Init UI behavior
+      attachUIActions();
+    }
+
+    /* --------------------------
+       UI: Flip card & buttons
+       -------------------------- */
+    function attachUIActions(){
+      const card = qs('#cardMain');
+      const tabButtons = qsa('.tab-btn');
+
+      // Tab toggles
+      tabButtons.forEach(btn => btn.addEventListener('click', (e) => {
+        const target = btn.getAttribute('data-target');
+        setActiveTab(target);
+      }));
+
+      qs('#swapToBack')?.addEventListener('click', () => setActiveTab('back'));
+      qs('#swapToFront')?.addEventListener('click', () => setActiveTab('front'));
+
+      function setActiveTab(t){
+        if(t === 'back') {
+          card.classList.add('is-flipped');
+          qsa('.tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-target') === 'back'));
+        } else {
+          card.classList.remove('is-flipped');
+          qsa('.tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-target') !== 'back'));
         }
-    });
-    </script>
+      }
 
-    <script src="https://kit.fontawesome.com/2c36e9b7b1.js" crossorigin="anonymous"></script>
+      // Shortcuts: Enter submits
+      ['username','password','username_c','password_c'].forEach(id=>{
+        const el = qs('#'+id);
+        if(!el) return;
+        el.addEventListener('keyup', (e) => { if(e.key === 'Enter') qs('#loginFrontBtn').click(); });
+      });
 
+      // Login handlers (demo behavior: only validates non-empty)
+      qs('#loginFrontBtn')?.addEventListener('click', () => {
+        const user = qs('#username').value.trim();
+        const pass = qs('#password').value.trim();
+        if(!user || !pass) return showModal('Error', 'Ingresa usuario y contraseña.', 'error');
+        // Aquí pones tu validación real (fetch a API)
+        showModal('Bienvenido', 'Inicio de sesión correcto. Redirigiendo...', 'success');
+        setTimeout(()=> { location.href = window.loginRedirect || 'profile.html'; }, 900);
+      });
+
+      qs('#loginBackBtn')?.addEventListener('click', () => {
+        const user = qs('#username_c').value.trim();
+        const pass = qs('#password_c').value.trim();
+        if(!user || !pass) return showModal('Error', 'Ingresa ID y contraseña.', 'error');
+        showModal('Acceso aprobado', 'Redirigiendo...', 'success');
+        setTimeout(()=> { location.href = window.loginRedirect || 'profile.html'; }, 900);
+      });
+
+      // Help / register links
+      qs('#helpBtnFront')?.addEventListener('click', () => showModal('Ayuda', 'Contacta a soporte de tu empresa o al administrador.', 'info'));
+      qs('#helpBtnBack')?.addEventListener('click', () => showModal('Ayuda', '¿Problemas con tu ID? Contacta a tu supervisor.', 'info'));
+      qs('#registerLink')?.addEventListener('click', (e) => { e.preventDefault(); showModal('Registro', 'Solicita creación de cuenta con RRHH.', 'info'); });
+      qs('#forgotLink')?.addEventListener('click', (e) => { e.preventDefault(); showModal('Recuperar', 'Usa la opción de recuperación de tu empresa.', 'info'); });
+    }
+
+    /* --------------------------
+       Modal (simple & reusable)
+       -------------------------- */
+    function showModal(title, text, type){
+      const root = qs('#modalRoot');
+      if(!root) return alert(title + '\n' + text);
+
+      // Clear old
+      root.innerHTML = '';
+
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-label="${title}">
+          <div style="font-weight:700; margin-bottom:0.4rem">${title}</div>
+          <div style="color:var(--muted); margin-bottom:1rem">${text}</div>
+          <div style="display:flex; gap:0.5rem; justify-content:center;">
+            <button id="modalOk" class="btn btn-primary">Aceptar</button>
+          </div>
+        </div>
+      `;
+      root.appendChild(modal);
+
+      // color tweak for info vs success vs error
+      const okBtn = modal.querySelector('#modalOk');
+      okBtn.addEventListener('click', ()=> root.innerHTML = '');
+      modal.querySelector('.modal-backdrop').addEventListener('click', ()=> root.innerHTML = '');
+    }
+
+  })();
+  </script>
+
+  <!-- FontAwesome kit (iconos si los quieres) -->
+  <script src="https://kit.fontawesome.com/2c36e9b7b1.js" crossorigin="anonymous" defer></script>
 </body>
 </html>
-
