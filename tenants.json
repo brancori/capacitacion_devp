@@ -10,11 +10,10 @@
     "primaryLight": "#5a80cf",
     "secondaryColor": "#4267b2",
     "accentColor": "#5a80cf",
-    "bgDark": "#5f7a9d",
+    "bgDark": "#1a202c", 
     "bgCard": "rgba(26, 32, 44, 0.75)",
-
-    "backgroundImage": "assets/bg.jpg",
-    "animatedBackground": true,
+    "backgroundImage": "./demo/assets/mountain-bg.jpg",
+    "animatedBackground": false,
     "features": [
       "Acceso sin límites",
       "Certificaciones reconocidas",
