@@ -19,7 +19,7 @@
   --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 350ms cubic-bezier(0.4, 0, 0.2, 1);
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  
+
   --primary: #000;
   --primary-light: #000;
   --secondary: #000;
@@ -176,17 +176,49 @@
     }
 
     /* Left Column: Branding */
-    .brand-section {
-      padding: clamp(2.5rem, 1vw, 3rem);
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-      position: relative;
-    background: linear-gradient(135deg, 
-        var(--glass-hover) 0%, 
-        var(--glass) 100%
-    );
-    }
+.brand-section {
+  padding: 3.5rem;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #ffffff; /* <--- FONDO BLANCO */
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-section #brandTitle,
+.brand-section #brandDescription,
+.brand-section .feature-item {
+  color: #33374d; /* Un color oscuro para el texto */
+}
+
+.brand-section .feature-icon {
+  stroke: #33374d; /* El icono de check */
+}
+
+.brand-section .brand-footer p {
+  color: #5a6278; /* Un gris más suave para el copyright */
+}
+
+.brand-section .logo-container,
+.brand-section .logo-text,
+.brand-section .brand-title,
+.brand-section .brand-description,
+#brandTitle,
+.brand-section .feature-item {
+  color: #33374d; /* Un color oscuro para el texto */
+}
+
+/* El icono de check (SVG) de las 'features' */
+.brand-section .feature-icon {
+  stroke: #33374d;
+}
+
+/* El texto de copyright del footer */
+.brand-section .brand-footer p {
+  color: #5a6278; /* Un gris más suave */
+}
 
     .brand-section::before {
       content: '';
@@ -885,14 +917,14 @@
       description: "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
       
       // Theme colors
-      primaryColor: "#7b2cbf",     // Color principal
-      secondaryColor: "#ff006e",   // Color secundario (para gradientes)
-      bgDark: "#0f0520",           // Fondo de la página
-      textColor: "#ffffff",        // Color del texto
+primaryColor: "#4a5568",     // Un azul-gris muy sobrio para botones
+secondaryColor: "#4a5568",   // Mismo color para un botón sólido (sin gradiente)
+bgDark: "#262f3d",           // Un fondo carbón-azul muy oscuro
+textColor: "#ffffff",
       
       // Background
-      backgroundImage: null,
-      animatedBackground: true,
+backgroundImage: null,        // Sin imagen de fondo por defecto
+animatedBackground: false,
       
       // Features list
       features: [
