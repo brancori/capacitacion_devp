@@ -918,7 +918,7 @@
     // UTILITY FUNCTIONS
     // ═══════════════════════════════════════════════════════════
     const $ = (selector) => document.querySelector(selector);
-    const $ = (selector) => Array.from(document.querySelectorAll(selector));
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
     
     const setStyle = (prop, value) => {
       document.documentElement.style.setProperty(prop, value);
@@ -944,7 +944,7 @@
     
     async function loadTenantConfig() {
       try {
-        const response = await fetch('/tenants.json', { 
+        const response = await fetch('./tenants.json', {
           cache: 'no-store',
           headers: { 'Accept': 'application/json' }
         });
@@ -1048,8 +1048,8 @@
     // TAB SYSTEM
     // ═══════════════════════════════════════════════════════════
     function initializeInteractions() {
-      const tabButtons = $('.tab-btn');
-      const forms = $('.login-form');
+      const tabButtons = $$('.tab-btn');
+        const forms = $$('.login-form');
 
       tabButtons.forEach(button => {
         button.addEventListener('click', () => {
