@@ -9,7 +9,7 @@
     "logoUrl": "assets/img/logo.png",
     "primaryColor": "#005A9D"
   },
-  "demo": {
+  "default": {
     "companyName": "Aula Corporativa (Default)",
     "logoUrl": "assets/img/logo_default.png",
     "primaryColor": "#333333"
