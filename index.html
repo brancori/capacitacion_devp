@@ -171,118 +171,127 @@
 
     </style>
 </head>
-<body>
-    <!-- Copio el header de tu Index.html para mantener la consistencia -->
-    <header>
-        <img id="tenant-logo" src="" alt="Logo de la empresa">
+<>
+    <!-- Header con logo dinámico -->
+    <header style="background-color: var(--primary-color); padding: 1rem; text-align: center;">
+        <img id="tenant-logo" src="" alt="Logo de la empresa" style="max-height: 60px;">
     </header>
 
-    <!-- Sección principal con el formulario de login --><main>
-        
-<div class="flip-card">
-        <div class="flip-card-inner">
+    <!-- Sección principal con el formulario de login -->
+    <main style="display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 2rem; background-color: var(--accent-color); min-height: 80vh;">
+        <div id="login_container">
+            <h2 id="tenant-title"></h2>
 
-            <div class="flip-card-front">
-                <div class="login-container">
-                    <div class="login-tabs">
-                        <button class="tab-button active" data-flip-target="front">TRABAJADORES</button>
-                        <button class="tab-button" data-flip-target="back">CONTRATISTAS</button>
-                    </div>
-                    <div class="login-form">
-                        <label for="username">Usuario</label>
-                        <input type="text" id="username" placeholder="usuario@trox.com">
-                        <label for="password">Contraseña</label>
-                        <input type="password" id="password">
-                        <button class="login-button" id="loginButtonFront">Ingresar</button>
-                        <a href="#" class="register-link">¿No tienes cuenta? Regístrate aquí</a>
-                    </div>  
-                </div>
+            <div class="login-input-group">
+                <label id="userLabel" for="username"></label>
+                <input type="text" id="username" placeholder="">
             </div>
 
-            <div class="flip-card-back">
-                <div class="login-container">
-                     <div class="login-tabs">
-                        <button class="tab-button" data-flip-target="front">TRABAJADORES</button>
-                        <button class="tab-button active" data-flip-target="back">CONTRATISTAS</button>
-                    </div>
-                    <div class="login-form">
-                        <label for="username_c">ID Contratista</label>
-                        <input type="text" id="username_c" placeholder="ej: ID Contratista">
-                        <label for="password_c">Contraseña</label>
-                        <input type="password" id="password_c">
-                        <button class="login-button" id="loginButtonBack">Ingresar</button>
-                        <a href="#" class="register-link">¿No tienes cuenta? Regístrate aquí</a>
-                    </div>
-                </div>
+            <div class="login-input-group">
+                <label id="passLabel" for="password"></label>
+                <input type="password" id="password" placeholder="">
             </div>
 
+            <button class="login-button" id="loginButton">Ingresar</button>
         </div>
-    </div>
-
     </main>
 
-    <!-- HTML del Modal (Pop-up) -->
-    <div id="customModal" class="modal-overlay">
-        <div class="modal-content">
-            <!-- El icono se cargará desde Font Awesome (ya lo tenías incluido) -->
-            <i id="modalIcon" class="fas"></i> 
-            <h3 id="modalTitle"></h3>
-            <p id="modalMessage"></p>
-            <button id="modalClose" class="ir_Examen login-button">Aceptar</button>
-        </div>
-    </div>
-    <footer class="footer">
-        <div class="formatos"> 
-            <h3>Formatos</h3>
-            <article class="info_footer">
-                <!-- Ruta corregida: Se añade ./ para ser explícito -->
-                <ul><a href="./assets/formatos/ANALISIS-RIESGO-TROX_DEP-H&S.xlsx">Formato de Análisis de Riesgo</a></ul>
-                <ul><a href="">Check List Escalera</a></ul>
-            </article>
-        </div>
-
-        <div class="contactos">
+    <!-- Footer dinámico -->
+    <footer class="footer" style="background: #fff; padding: 1.5rem; border-top: 1px solid #ccc;">
+        <div class="footer-section contactos">
             <h3>Contacto</h3>
-            <article class="info_footer">
-                <p>Seguridad e Higiene <br>
-                222 222 2222 </p>
-            <p>Número Recepción <br>
-            222 222 2222</p>
-            <p id="email">Coreo electrónico <br>
-            seguridadindustrial@troxgroup.mx</p>
-            </article>
+            <p id="footerEmail"></p>
+            <p id="footerPhone"></p>
         </div>
 
-        <div class="politicas">
+        <div class="footer-section politicas" id="footerPolicies">
             <h3>Políticas</h3>
-            <article class="info_footer">
-                <ul><a href="">Políticas de Seguridad</a></ul>
-                <ul><a href="">Política Medio Ambietal</a></ul>
-                <ul><a href="">Política para Contratistas</a></ul>
-                <ul><a href="">Política de COVID-19</a></ul>
-            </article>
+            <ul>
+                <li><a href="#">Políticas de Seguridad</a></li>
+                <li><a href="#">Política Medio Ambiental</a></li>
+                <li><a href="#">Política para Contratistas</a></li>
+                <li><a href="#">Política COVID-19</a></li>
+            </ul>
         </div>
     </footer>
+
+    <!-- Script principal (ya modular) -->
+    <script src="./tenant-loader.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const loginBtn = document.getElementById('loginButton');
+        loginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            // Aquí solo un ejemplo simple, tú puedes conectar validaciones reales
+            if (user && pass) {
+                showModal("¡Bienvenido!", "Inicio de sesión exitoso.", "success");
+                setTimeout(() => { window.location.href = window.loginRedirect; }, 2000);
+            } else {
+                showModal("Error", "Debes ingresar usuario y contraseña.", "error");
+            }
+        });
+
+        // Modal genérico (mismo estilo que antes)
+        function showModal(title, msg, type) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <i id="modalIcon" class="fas fa-${type === 'success' ? 'check-circle success' : 'exclamation-triangle error'}"></i>
+                    <h3>${title}</h3>
+                    <p>${msg}</p>
+                    <button class="login-button" id="closeModal">Aceptar</button>
+                </div>`;
+            document.body.appendChild(modal);
+            document.getElementById('closeModal').addEventListener('click', () => modal.remove());
+        }
+    });
+    </script>
+
+    <script src="https://kit.fontawesome.com/2c36e9b7b1.js" crossorigin="anonymous"></script>
+
    
     <!-- Script de JavaScript para la validación de login -->
 <script>
         // --- FUNCIÓN DEL DETECTOR DE TENANTS ---
         // (Esta función se ejecutará primero)
-        function applyTenantConfig(config) {
-            
-            // 1. Actualizar logo
-            const logoElement = document.getElementById('tenant-logo');
-            if (logoElement) {
-                logoElement.src = config.logoUrl;
-                logoElement.alt = `Logo de ${config.companyName}`;
-            }
+function applyTenantConfig(config) {
+    // 1. Logo y color principal
+    const logoElement = document.getElementById('tenant-logo');
+    if (logoElement && config.logoUrl) {
+        logoElement.src = config.logoUrl;
+        logoElement.alt = `Logo de ${config.companyName}`;
+    }
+    document.documentElement.style.setProperty('--primary-color', config.primaryColor || '#00375F');
 
-            // (Aquí puedes agregar más cosas, como el título de la página)
-            // document.title = config.companyName;
+    // 2. Campos del login personalizados
+    if (config.login?.fields) {
+        const userLabel = document.querySelector('label[for="username"]');
+        const passLabel = document.querySelector('label[for="password"]');
+        if (userLabel) userLabel.textContent = config.login.fields.userLabel || 'Usuario';
+        if (passLabel) passLabel.textContent = config.login.fields.passLabel || 'Contraseña';
+    }
 
-            // 2. Actualizar colores (usando la variable CSS que definimos)
-            document.documentElement.style.setProperty('--primary-color', config.primaryColor);
-        }
+    // 3. Footer dinámico
+    const emailElement = document.getElementById('email');
+    if (emailElement && config.footer?.contactEmail) {
+        emailElement.innerHTML = `Correo electrónico <br>${config.footer.contactEmail}`;
+    }
+
+    // 4. Mostrar/Ocultar políticas
+    const politicasSection = document.querySelector('.politicas');
+    if (politicasSection && config.footer?.showPolicies === false) {
+        politicasSection.style.display = 'none';
+    }
+
+    // 5. Redirección personalizada post-login (opcional)
+    window.loginRedirect = config.login?.successRedirect || './profile.html';
+}
+
 
         // --- LÓGICA DE TU PÁGINA (Login, Modal, Flip-Card) ---
         // Esperamos a que todo el DOM (la página) esté cargado
@@ -360,7 +369,7 @@
                 
                 if (usuarioVal === 'admin' && passwordVal === '123') {
                     showModal('¡Éxito!', 'Inicio de sesión (Trabajador) correcto.', 'success');
-                    setTimeout(() => { window.location.href = './profile.html'; }, 2000);
+                    setTimeout(() => { window.location.href = window.loginRedirect; }, 2000);
                 } else {
                     showModal('Error', 'Usuario o contraseña incorrectos.', 'error');
                 }

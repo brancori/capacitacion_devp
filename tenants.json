@@ -2,21 +2,80 @@
   "jnj": {
     "companyName": "Johnson & Johnson",
     "logoUrl": "jnj/assets/johnson-johnson-logo.svg",
-    "primaryColor": "#D00000"
+    "primaryColor": "#D00000",
+    "accentColor": "#F5F5F5",
+    "language": "es",
+    "login": {
+      "fields": {
+        "userLabel": "Usuario J&J",
+        "passLabel": "Clave de acceso"
+      },
+      "successRedirect": "profile.html"
+    },
+    "footer": {
+      "contactEmail": "soporte@jnj.com",
+      "contactPhone": "800-JNJ-HELP",
+      "showPolicies": true
+    }
   },
+
   "trox": {
     "companyName": "Trox Technik",
     "logoUrl": "assets/img/logo.png",
-    "primaryColor": "#005A9D"
+    "primaryColor": "#005A9D",
+    "accentColor": "#E2E2E2",
+    "language": "es",
+    "login": {
+      "fields": {
+        "userLabel": "Usuario Trox",
+        "passLabel": "Contraseña"
+      },
+      "successRedirect": "profile.html"
+    },
+    "footer": {
+      "contactEmail": "seguridadindustrial@troxgroup.mx",
+      "contactPhone": "222 222 2222",
+      "showPolicies": true
+    }
   },
+
   "default": {
     "companyName": "Aula Corporativa (Default)",
     "logoUrl": "assets/img/logo_default.png",
-    "primaryColor": "#333333"
+    "primaryColor": "#333333",
+    "accentColor": "#F5F5F5",
+    "language": "es",
+    "login": {
+      "fields": {
+        "userLabel": "Usuario",
+        "passLabel": "Contraseña"
+      },
+      "successRedirect": "profile.html"
+    },
+    "footer": {
+      "contactEmail": "contacto@aulacorporativa.com",
+      "contactPhone": "000 000 0000",
+      "showPolicies": true
+    }
   },
+
   "demo": {
     "companyName": "Aula Corporativa (Demo)",
     "logoUrl": "demo/assets/logo_demo.png",
-    "primaryColor": "#333333"
+    "primaryColor": "#333333",
+    "accentColor": "#F5F5F5",
+    "language": "es",
+    "login": {
+      "fields": {
+        "userLabel": "Usuario Demo",
+        "passLabel": "Clave Demo"
+      },
+      "successRedirect": "profile.html"
+    },
+    "footer": {
+      "contactEmail": "demo@aulacorporativa.com",
+      "contactPhone": "000 000 0001",
+      "showPolicies": true
+    }
   }
 }
