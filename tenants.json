@@ -1,90 +1,28 @@
 {
-"jnj": {
-  "companyName": "Johnson & Johnson",
-  "logoUrl": "jnj/assets/johnson-johnson-logo.svg",
-  "primaryColor": "#D00000",
-  "secondaryColor": "#FF8A4D",
-  "textColor": "#111827",
-  "muted": "#6e7883",
-  "backgroundImage": "jnj/assets/bg.jpg",
-  "navbar": { "enabled": true, "items": ["Inicio","Capacitaciones","Certificados","Soporte","Salir"], "hrefs": ["/","#","/certs","/soporte","/logout"] },
-  "footer": {
-    "titles": ["Empresa","Recursos","Soporte"],
-    "links": [
-      {"text":"Acerca","href":"/acerca"},
-      {"text":"Equipo","href":"/equipo"},
-      {"text":"Blog","href":"/blog"},
-      {"text":"Cursos","href":"/cursos"},
-      {"text":"FAQ","href":"/faq"},
-      {"text":"Contacto","href":"/contacto"},
-      {"text":"Términos","href":"/terminos"},
-      {"text":"Privacidad","href":"/privacidad"},
-      {"text":"Ayuda","href":"/ayuda"}
-    ]
-  },
-  "login": {
-    "fields": {"userLabel":"Usuario J&J","passLabel":"Clave","contractorUserLabel":"ID Contratista","contractorPassLabel":"Clave"},
-    "successRedirect": "profile.html"
-  }
-},
-
-  "trox": {
-    "companyName": "Trox Technik",
-    "logoUrl": "assets/img/logo.png",
-    "primaryColor": "#005A9D",
-    "accentColor": "#E2E2E2",
-    "language": "es",
-    "login": {
-      "fields": {
-        "userLabel": "Usuario Trox",
-        "passLabel": "Contraseña"
-      },
-      "successRedirect": "profile.html"
-    },
-    "footer": {
-      "contactEmail": "seguridadindustrial@troxgroup.mx",
-      "contactPhone": "222 222 2222",
-      "showPolicies": true
-    }
-  },
-
-  "default": {
-    "companyName": "Aula Corporativa (Default)",
-    "logoUrl": "assets/img/logo_default.png",
-    "primaryColor": "#333333",
-    "accentColor": "#F5F5F5",
-    "language": "es",
-    "login": {
-      "fields": {
-        "userLabel": "Usuario",
-        "passLabel": "Contraseña"
-      },
-      "successRedirect": "profile.html"
-    },
-    "footer": {
-      "contactEmail": "contacto@aulacorporativa.com",
-      "contactPhone": "000 000 0000",
-      "showPolicies": true
-    }
-  },
-
   "demo": {
-    "companyName": "Aula Corporativa (Demo)",
-    "logoUrl": "demo/assets/logo_demo.png",
-    "primaryColor": "#333333",
-    "accentColor": "#F5F5F5",
-    "language": "es",
-    "login": {
-      "fields": {
-        "userLabel": "Usuario Demo",
-        "passLabel": "Clave Demo"
-      },
-      "successRedirect": "profile.html"
+    "companyName": "Tech Corp",
+    "logoText": "TC",
+    "logoUrl": "assets/logo.png",
+    "tagline": "¡Hola de nuevo!",
+    "description": "Tu plataforma de aprendizaje corporativo",
+    "primaryColor": "#7b2cbf",
+    "primaryLight": "#9d4edd",
+    "secondaryColor": "#ff006e",
+    "accentColor": "#fb5607",
+    "backgroundImage": "assets/bg.jpg",
+    "animatedBackground": true,
+    "features": [
+      "Acceso sin límites",
+      "Certificaciones reconocidas",
+      "Dashboard personalizado"
+    ],
+    "labels": {
+      "empUser": "Email Corporativo",
+      "empPass": "Contraseña",
+      "conUser": "ID Externo",
+      "conPass": "PIN"
     },
-    "footer": {
-      "contactEmail": "demo@aulacorporativa.com",
-      "contactPhone": "000 000 0001",
-      "showPolicies": true
-    }
+    "successRedirect": "dashboard.html",
+    "customCss": "tenant-custom.css"
   }
 }
