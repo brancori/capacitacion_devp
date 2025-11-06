@@ -2,7 +2,7 @@
   "demo": {
     "companyName": "Tech Corp",
     "logoText": "TC",
-    "logoUrl": "assets/logo.png",
+    "logoUrl": "./demo/assets/logo_demo.png",
     "tagline": "¡Hola de nuevo!",
     "description": "Tu plataforma de aprendizaje corporativo",
     "primaryColor": "#7b2cbf",
