@@ -13,5 +13,10 @@
     "companyName": "Aula Corporativa (Default)",
     "logoUrl": "assets/img/logo_default.png",
     "primaryColor": "#333333"
+  },
+  "demo": {
+    "companyName": "Aula Corporativa (Demo)",
+    "logoUrl": "demo/assets/logo_demo.png",
+    "primaryColor": "#333333"
   }
 }
