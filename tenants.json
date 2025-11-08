@@ -68,6 +68,10 @@
     
     "primaryColor": "#D71500",
     "secondaryColor": "#D71500",
+
+    "bgPage": "#FFFFFF",
+    "textPage": "#2D2E2D",
+
     "bgDark": "#2D2E2D",
     "textColor": "#F1F1F1",
     

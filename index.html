@@ -28,12 +28,15 @@
       --primary-light: #3e6ecb;
       --secondary: #1F3F7A;
       --accent: #3e6ecb;
+      --bg-page: var(--bg-dark);
+      --text-page: var(--text-light);
       
       --bg-dark: #141E30;
       --bg-card: rgba(19, 30, 48, 0.75);
       --bg-brand-section: #ffffff;
       --bg-form-section: rgba(0, 0, 0, 0.3);
       --bg-overlay: rgba(0, 0, 0, 0.7);
+      
 
       --text-light: #ffffff;
       --text-muted: rgba(255, 255, 255, 0.65);
@@ -80,8 +83,8 @@
     body {
       min-height: 100vh;
       font-family: var(--font-sans);
-      color: var(--text-light);
-      background: var(--bg-dark);
+      color: var(--text-page); /* <--- POR ESTO */
+      background: var(--bg-page);
       overflow-x: hidden;
       position: relative;
     }
@@ -93,7 +96,7 @@
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: var(--bg-dark);
+  background: var(--bg-page);
   overflow: hidden;
 }
 
@@ -997,6 +1000,10 @@ const DEFAULTS = {
       
       primaryColor: "#234B95",
       secondaryColor: "#1F3F7A",
+      
+      bgPage: "#141E30",
+      textPage: "#ffffff",
+      
       bgDark: "#141E30",
       textColor: "#ffffff",
       
@@ -1107,10 +1114,6 @@ function lightenHex(hex, percent = 10) {
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // APPLY CONFIGURATION
-    // ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
     // APPLY CONFIGURATION
     // ═══════════════════════════════════════════════════════════
 function applyConfiguration(config) {
@@ -1118,6 +1121,9 @@ function applyConfiguration(config) {
       const secondary = config.secondaryColor;
       const bgDark = config.bgDark;
       const text = config.textColor;
+      
+      const bgPage = config.bgPage;
+      const textPage = config.textPage;
       
       const bgBrandSection = config.bgBrandSection;
       const textCardPrimary = config.textCardPrimary;
@@ -1158,6 +1164,10 @@ function applyConfiguration(config) {
       setStyle('--primary-light', primaryLight);
       setStyle('--secondary', secondary);
       setStyle('--accent', accent);
+      
+      setStyle('--bg-page', bgPage);
+      setStyle('--text-page', textPage);
+      
       setStyle('--bg-dark', bgDark);
       setStyle('--bg-card', bgCard);
       setStyle('--bg-brand-section', bgBrandSection);
@@ -1189,7 +1199,8 @@ function applyConfiguration(config) {
       setStyle('--border-input-focus', borderInputFocus);
       setStyle('--placeholder-input', placeholderInput);
 
-      // Aplica el resto de la configuración (logo, textos, etc.)
+      // ... (El resto de la función, desde "Aplica el resto de la configuración", sigue igual)
+      // 4. Aplica el resto de la configuración (logo, textos, etc.)
       const logoIcon = $('#logoIcon');
       const logoText = $('#logoText');
       
@@ -1215,7 +1226,7 @@ function applyConfiguration(config) {
           </div>
         `).join('');
       } else if (featuresContainer) {
-        featuresContainer.innerHTML = '';
+        featuresContainer.innerHTML = ''; // Limpia las features si no hay
       }
 
       $('#labelEmpUser').textContent = config.labels.empUser;
