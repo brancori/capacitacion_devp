@@ -10,17 +10,47 @@
     /* ═══════════════════════════════════════════════════════════
        VARIABLES CSS - Tenant Override System
     ═══════════════════════════════════════════════════════════ */
-    :root {
---shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.4);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-smooth: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+:root {
+      /* Estilos estructurales (no cambian por tenant) */
+      --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.4);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-smooth: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
+      /* Variables dinámicas (controladas por tenants.json)
+        Estos son solo fallbacks en caso de que el JS falle.
+      */
+      --primary: #234B95;
+      --primary-light: #3e6ecb;
+      --secondary: #1F3F7A;
+      --accent: #3e6ecb;
+      
+      --bg-dark: #141E30;
+      --bg-card: rgba(19, 30, 48, 0.75);
+      --bg-brand-section: #ffffff;
+      --bg-form-section: rgba(0, 0, 0, 0.3);
+      --bg-overlay: rgba(0, 0, 0, 0.7);
 
+      --text-light: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.65);
+      --text-disabled: rgba(255, 255, 255, 0.4);
+      --text-card-primary: #33374d;
+      --text-card-secondary: #5a6278;
+
+      --border: rgba(255, 255, 255, 0.1);
+      --glass: rgba(255, 255, 255, 0.08);
+      --glass-hover: rgba(255, 255, 255, 0.12);
+
+      --shadow-primary: rgba(35, 75, 149, 0.3);
+      --shadow-primary-hover: rgba(35, 75, 149, 0.4);
+      --shadow-focus: rgba(35, 75, 149, 0.15);
+      
+      --bg-success: linear-gradient(135deg, #06d6a0, #1b9aaa);
+      --bg-error: linear-gradient(135deg, #ef476f, #b30f20);
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -132,7 +162,7 @@
     ═══════════════════════════════════════════════════════════ */
     .main-card {
       width: 100%;
-      max-width: 1100px;
+      max-width: 950px;
       background: var(--bg-card);
       backdrop-filter: blur(20px) saturate(180%);
       border: 1px solid var(--border);
@@ -188,11 +218,11 @@
 .brand-section #brandTitle,
 .brand-section #brandDescription,
 .brand-section .feature-item {
-  color: #33374d; /* Un color oscuro para el texto */
+  color: var(--text-card-primary);
 }
 
 .brand-section .feature-icon {
-  stroke: #33374d; /* El icono de check */
+  stroke: var(--text-card-primary); /* El icono de check */
 }
 
 .brand-section .logo-container,
@@ -220,7 +250,7 @@
       right: -30%;
       width: 400px;
       height: 400px;
-      background: radial-gradient(circle, rgba(123, 44, 191, 0.2) 0%, transparent 70%);
+      background: radial-gradient(circle, var(--shadow-primary) 0%, transparent 70%);
       border-radius: 50%;
       filter: blur(60px);
       pointer-events: none;
@@ -271,7 +301,7 @@
       font-weight: 900;
       line-height: 1.1;
       letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--text-light), var(--text-muted));
+      color: var(--text-card-primary);
       -webkit-background-clip: text;
       background-clip: text;
     }
@@ -279,7 +309,7 @@
     .brand-description {
       font-size: 1.125rem;
       line-height: 1.6;
-      color: var(--text-muted);
+      color: var(--text-card-primary);
       max-width: 480px;
     }
 
@@ -294,7 +324,7 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      color: var(--text-muted);
+      color: var(--text-card-primary);
       font-size: 0.95rem;
     }
 
@@ -302,12 +332,12 @@
       width: 20px;
       height: 20px;
       flex-shrink: 0;
-      color: var(--primary-light);
+      color: var(--primary);
     }
 
     .brand-footer {
       font-size: 0.875rem;
-      color: var(--text-disabled);
+      color: var(--text-card-secondary);
       position: relative;
       z-index: 1;
     }
@@ -366,6 +396,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      perspective: 1000px;
     }
 
     .login-form {
@@ -439,7 +470,7 @@
     .form-input:focus {
       background: var(--glass-hover);
       border-color: var(--primary-light);
-      box-shadow: 0 0 0 3px rgba(123, 44, 191, 0.15);
+      box-shadow: 0 0 0 3px var(--shadow-focus);
     }
 
     .input-icon {
@@ -615,11 +646,11 @@
     }
 
     .modal-icon.success {
-      background: linear-gradient(135deg, #06d6a0, #1b9aaa);
+      background: var(--bg-success);
     }
 
     .modal-icon.error {
-      background: linear-gradient(135deg, #47efba, #0fb320);
+      background: var(--bg-error);
     }
 
     .modal-icon.info {
@@ -656,8 +687,10 @@
       }
 
       .brand-section {
-        padding: 2rem;
-        gap: 1.5rem;
+        padding: 2.5rem; 
+        background: none; 
+        justify-content: center;
+        border-bottom: 1px solid var(--border);
       }
 
       .brand-section::before {
@@ -669,11 +702,52 @@
       }
 
       .brand-features {
+        display: flex; 
+  margin-top: 1.5rem;
+      }
+      .brand-content,
+      .brand-footer {
         display: none;
       }
 
-      .form-section {
-        border-top: 1px solid var(--border);
+      /* Ajusta los colores del logo para el fondo oscuro EN MÓVIL */
+      .brand-section .logo-container,
+      .brand-section .logo-text,
+      .brand-section .fas {
+        color: var(--text-light);
+      }
+
+      /* Ajusta el icono del logo EN MÓVIL (el original de 250px es muy grande) */
+      .logo-icon {
+        width: 40px; 
+        height: 40px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        background: var(--glass);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        box-shadow: none;
+        color: var(--text-light); /* Asegura el color del texto "AC" */
+      }
+      
+      /* Ajusta la imagen del logo si existe */
+      .logo-icon img {
+          max-width: 80% !important;
+          border-radius: var(--radius-sm) !important;
+      }
+      /* ▲▲▲ FIN DE REGLAS AÑADIDAS ▲▲▲ */
+
+
+      .brand-section::before {
+        display: none;
+      }
+
+      .brand-title {
+        font-size: 2rem;
+      }
+
+      .brand-features {
+        display: none;
       }
     }
 
@@ -695,9 +769,12 @@
       }
 
       .tab-btn {
-        font-size: 0.75rem;
-        padding: 0.625rem 0.75rem;
+        font-size: 0.875rem; /* <-- Un poco más grande que 0.75rem */
+        padding: 0.875rem 0.75rem; /* <-- Más padding vertical */
       }
+      .brand-features {
+   flex-direction: column; /* Apílalos si es necesario */
+}
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -750,6 +827,7 @@
           <p class="brand-description" id="brandDescription">
             Accede a tu plataforma de capacitación corporativa. Aprende, y mejorar tus habilidades profesionales.
           </p>
+          <div class="brand-features" id="brandFeatures"></div>
         </div>
 
         <div class="brand-footer">
@@ -776,7 +854,7 @@
           <form class="login-form active" id="formEmployees" role="tabpanel" aria-labelledby="tabEmployees">
             <div>
               <h2 class="form-title">Iniciar Sesión</h2>
-              <p class="form-subtitle">Ingresa tus credenciales corporativas</p>
+              <p class="form-subtitle">Ingresa tu correo o ID</p>
             </div>
 
             <div class="form-group">
@@ -832,7 +910,7 @@
           <form class="login-form" id="formContractors" role="tabpanel" aria-labelledby="tabContractors">
             <div>
               <h2 class="form-title">Acceso Contratistas</h2>
-              <p class="form-subtitle">Ingresa tu ID de contratista</p>
+              <p class="form-subtitle">Ingresa tu correo</p>
             </div>
 
             <div class="form-group">
@@ -845,7 +923,7 @@
                   type="text" 
                   id="conUsername" 
                   class="form-input" 
-                  placeholder="CONTR-12345"
+                  placeholder="contratista@empresa.com"
                   autocomplete="username"
                   required
                 />
@@ -901,37 +979,36 @@
 // ═══════════════════════════════════════════════════════════
     // CONFIGURATION & DEFAULTS
     // ═══════════════════════════════════════════════════════════
-    const DEFAULTS = {
+const DEFAULTS = {
       companyName: "Aula Corporativa",
       logoText: "AC",
       logoUrl: null,
       tagline: "¡Bienvenido!",
       description: "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
       
-      // Theme colors
-        primaryColor: "#234B95",     // (Mantenemos el gris sobrio)
-        secondaryColor: "#1F3F7A",   // (MantenMantenemos el gris sobrio)
-        bgDark: "#141E30",           // Color de fallback (el más oscuro del gradiente)
-        textColor: "#ffffff",
-        
-        // Colores de la tarjeta de branding (izquierda)
-        textCardPrimary: "#33374d",   // Color de texto principal (oscuro)
-        textCardSecondary: "#5a6278", // Color de texto secundario (gris)
-        
-        // Fondo del formulario (derecha)
-        bgFormSection: "rgba(0, 0, 0, 0.3)",
+      // Colores base (estos generan todo lo demás)
+      primaryColor: "#234B95",
+      secondaryColor: "#1F3F7A",
+      bgDark: "#141E30",
+      textColor: "#ffffff",
       
+      // Colores de la tarjeta de branding (izquierda)
+      bgBrandSection: "#ffffff",
+      textCardPrimary: "#33374d",
+      textCardSecondary: "#5a6278",
+      
+      // Fondo del formulario (derecha)
+      bgFormSection: "rgba(0, 0, 0, 0.3)",
+
+      // Colores de estado (pueden ser sobreescritos)
+      bgSuccess: "linear-gradient(135deg, #06d6a0, #1b9aaa)",
+      bgError: "linear-gradient(135deg, #ef476f, #b30f20)", // Corregido
+      bgOverlay: "rgba(0, 0, 0, 0.7)",
+
       // Background
-        backgroundImage: `linear-gradient(to bottom, #141E30, #243B55)`, // El gradiente de tu imagen
-        animatedBackground: false, // Desactiva las "orbes" flotantes
-      
-      // Features list
-      features: [
-        "Acceso 24/7 a cursos y materiales",
-        "Certificaciones profesionales",
-        "Seguimiento de progreso en tiempo real"
-      ],
-      
+      backgroundImage: `linear-gradient(to bottom, #141E30, #243B55)`,
+      animatedBackground: false,
+            
       // Form labels
       labels: {
         empUser: "Usuario",
@@ -1031,111 +1108,129 @@ function lightenHex(hex, percent = 10) {
     // APPLY CONFIGURATION
     // ═══════════════════════════════════════════════════════════
 function applyConfiguration(config) {
-  // 1. Lee los colores base del config
-  const primary = config.primaryColor;
-  const secondary = config.secondaryColor;
-  const bgDark = config.bgDark;
-  const text = config.textColor;
-  
-  // Lee los nuevos colores
-  const textCardPrimary = config.textCardPrimary;
-  const textCardSecondary = config.textCardSecondary;
-  const bgFormSection = config.bgFormSection;
+      // 1. Lee los colores base del config
+      const primary = config.primaryColor;
+      const secondary = config.secondaryColor;
+      const bgDark = config.bgDark;
+      const text = config.textColor;
+      
+      // Lee los colores de la tarjeta de marca
+      const bgBrandSection = config.bgBrandSection;
+      const textCardPrimary = config.textCardPrimary;
+      const textCardSecondary = config.textCardSecondary;
+      
+      // Lee el fondo del formulario
+      const bgFormSection = config.bgFormSection;
 
-  // 2. Calcula las variaciones
-  // (Si el tenant provee un valor específico, úsalo. Si no, calcúlalo.)
-  const primaryLight = config.primaryLight || lightenHex(primary, 15);
-  const accent = config.accentColor || primaryLight;
-  const bgCard = config.bgCard || hexToRGBA(bgDark, 0.75); // Fondo de tarjeta
-  const shadowPrimary = config.shadowPrimary || hexToRGBA(primary, 0.3);
-const shadowPrimaryHover = config.shadowPrimaryHover || hexToRGBA(primary, 0.4);
-  
-  const textLight = text;
-  const textMuted = config.textMuted || hexToRGBA(text, 0.65); // Texto grisado
-  const textDisabled = config.textDisabled || hexToRGBA(text, 0.4); // Texto deshabilitado
-  const border = config.border || hexToRGBA(text, 0.1); // Borde
-  const glass = config.glass || hexToRGBA(text, 0.08); // Efecto vidrio
-  const glassHover = config.glassHover || hexToRGBA(text, 0.12); // Vidrio hover
+      // 2. Calcula las variaciones (o usa el valor del tenant si existe)
+      const primaryLight = config.primaryLight || lightenHex(primary, 15);
+      const accent = config.accentColor || primaryLight;
+      const bgCard = config.bgCard || hexToRGBA(bgDark, 0.75);
+      
+      const shadowPrimary = config.shadowPrimary || hexToRGBA(primary, 0.3);
+      const shadowPrimaryHover = config.shadowPrimaryHover || hexToRGBA(primary, 0.4);
+      const shadowFocus = config.shadowFocus || hexToRGBA(primary, 0.15); // NUEVA
+      
+      const textLight = text;
+      const textMuted = config.textMuted || hexToRGBA(text, 0.65);
+      const textDisabled = config.textDisabled || hexToRGBA(text, 0.4);
+      
+      const border = config.border || hexToRGBA(text, 0.1);
+      const glass = config.glass || hexToRGBA(text, 0.08);
+      const glassHover = config.glassHover || hexToRGBA(text, 0.12);
 
-  // 3. Aplica TODAS las variables al CSS
-  setStyle('--primary', primary);
-  setStyle('--primary-light', primaryLight);
-  setStyle('--secondary', secondary);
-  setStyle('--accent', accent);
-  
-  setStyle('--bg-dark', bgDark);
-  setStyle('--bg-card', bgCard);
-  
-  setStyle('--text-light', textLight);
-  setStyle('--text-muted', textMuted);
-  setStyle('--text-disabled', textDisabled);
-  
-  setStyle('--border', border);
-  setStyle('--glass', glass);
-  setStyle('--glass-hover', glassHover);
-  setStyle('--shadow-primary', shadowPrimary);
-  setStyle('--shadow-primary-hover', shadowPrimaryHover);
-  
-  // Aplica las nuevas variables
-  setStyle('--text-card-primary', textCardPrimary);
-  setStyle('--text-card-secondary', textCardSecondary);
-  setStyle('--bg-form-section', bgFormSection);
+      // Lee los colores de estado (o usa el default)
+      const bgOverlay = config.bgOverlay; // NUEVA
+      const bgSuccess = config.bgSuccess; // NUEVA
+      const bgError = config.bgError;     // NUEVA
 
-  // 4. Aplica el resto de la configuración (logo, textos, etc.)
-  const logoIcon = $('#logoIcon');
-  const logoText = $('#logoText');
-  
-  if (config.logoUrl) {
-    logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain; border-radius: var(--radius-lg);" />`;
-  } else {
-    logoIcon.textContent = config.logoText;
-  }
-  
-  logoText.textContent = config.companyName;
+      // 3. Aplica TODAS las variables al CSS
+      setStyle('--primary', primary);
+      setStyle('--primary-light', primaryLight);
+      setStyle('--secondary', secondary);
+      setStyle('--accent', accent);
+      
+      setStyle('--bg-dark', bgDark);
+      setStyle('--bg-card', bgCard);
+      setStyle('--bg-brand-section', bgBrandSection); // NUEVA
+      setStyle('--bg-form-section', bgFormSection);
 
-  $('#brandTitle').textContent = config.tagline;
-  $('#brandDescription').textContent = config.description;
+      setStyle('--text-light', textLight);
+      setStyle('--text-muted', textMuted);
+      setStyle('--text-disabled', textDisabled);
+      setStyle('--text-card-primary', textCardPrimary); // NUEVA
+      setStyle('--text-card-secondary', textCardSecondary); // NUEVA
+      
+      setStyle('--border', border);
+      setStyle('--glass', glass);
+      setStyle('--glass-hover', glassHover);
 
-  const featuresContainer = $('#brandFeatures');
-  if (config.features && config.features.length > 0) {
-    featuresContainer.innerHTML = config.features.map(feature => `
-      <div class="feature-item">
-        <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-        </svg>
-        <span>${feature}</span>
-      </div>
-    `).join('');
-  }
+      setStyle('--shadow-primary', shadowPrimary);
+      setStyle('--shadow-primary-hover', shadowPrimaryHover);
+      setStyle('--shadow-focus', shadowFocus); // NUEVA
 
-  $('#labelEmpUser').textContent = config.labels.empUser;
-  $('#labelEmpPass').textContent = config.labels.empPass;
-  $('#labelConUser').textContent = config.labels.conUser;
-  $('#labelConPass').textContent = config.labels.conPass;
+      setStyle('--bg-overlay', bgOverlay); // NUEVA
+      setStyle('--bg-success', bgSuccess); // NUEVA
+      setStyle('--bg-error', bgError);     // NUEVA
 
-  $('#currentYear').textContent = new Date().getFullYear();
 
-  if (config.backgroundImage) {
-    $('.bg-animated').style.backgroundImage = `url('${config.backgroundImage}')`;
-    $('.bg-animated').style.backgroundSize = 'cover';
-    $('.bg-animated').style.backgroundPosition = 'center';
-  }
+      // 4. Aplica el resto de la configuración (logo, textos, etc.)
+      const logoIcon = $('#logoIcon');
+      const logoText = $('#logoText');
+      
+      if (config.logoUrl) {
+        logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain; border-radius: var(--radius-lg);" />`;
+      } else {
+        logoIcon.textContent = config.logoText;
+      }
+      
+      logoText.textContent = config.companyName;
 
-  if (!config.animatedBackground) {
-    $('.bg-orbs').style.display = 'none';
-  }
+      // ... (El resto de la función sigue igual) ...
+      $('#brandTitle').textContent = config.tagline;
+      $('#brandDescription').textContent = config.description;
 
-  if (config.customCss) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = config.customCss;
-    document.head.appendChild(link);
-  }
+      const featuresContainer = $('#brandFeatures');
+      if (featuresContainer && config.features && config.features.length > 0) {
+        featuresContainer.innerHTML = config.features.map(feature => `
+          <div class="feature-item">
+            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span>${feature}</span>
+          </div>
+        `).join('');
+      }
 
-  window.__loginRedirect = config.successRedirect;
+      $('#labelEmpUser').textContent = config.labels.empUser;
+      $('#labelEmpPass').textContent = config.labels.empPass;
+      $('#labelConUser').textContent = config.labels.conUser;
+      $('#labelConPass').textContent = config.labels.conPass;
 
-  initializeInteractions();
-}
+      $('#currentYear').textContent = new Date().getFullYear();
+
+      if (config.backgroundImage) {
+        // $('.bg-animated').style.backgroundImage = `url('${config.backgroundImage}')`; // <-- Causa error si es un gradiente
+        $('.bg-animated').style.background = config.backgroundImage; // <-- Usa 'background'
+        $('.bg-animated').style.backgroundSize = 'cover';
+        $('.bg-animated').style.backgroundPosition = 'center';
+      }
+
+      if (!config.animatedBackground) {
+        $('.bg-orbs').style.display = 'none';
+      }
+
+      if (config.customCss) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = config.customCss;
+        document.head.appendChild(link);
+      }
+
+      window.__loginRedirect = config.successRedirect;
+
+      initializeInteractions();
+    }
 
     // ═══════════════════════════════════════════════════════════
     // TAB SYSTEM

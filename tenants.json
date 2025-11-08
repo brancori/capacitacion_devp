@@ -1,27 +1,121 @@
 {
-  "demo": {
-    "companyName": "Demo Academy",
-    "logoText": "TC",
-    "logoUrl": "./demo/assets/logo_demo.png",
-    "tagline": "¡Hola de nuevo!",
-    "description": "Tu plataforma de aprendizaje corporativo",
-
-    "primaryColor": "#4267b2",
-    "primaryLight": "#5a80cf",
-    "secondaryColor": "#4267b2",
-    "accentColor": "#5a80cf",
-    "bgDark": "#1a202c", 
-    "bgCard": "rgba(26, 32, 44, 0.75)",
-    "backgroundImage": "./demo/assets/mountain-bg.jpg",
+  "default": {
+    "companyName": "Aula Corporativa",
+    "logoText": "AC",
+    "logoUrl": null,
+    "tagline": "¡Bienvenido!",
+    "description": "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
+    
+    "primaryColor": "#234B95",
+    "secondaryColor": "#1F3F7A",
+    "bgDark": "#141E30",
+    "textColor": "#ffffff",
+    
+    "bgBrandSection": "#ffffff",
+    "textCardPrimary": "#33374d",
+    "textCardSecondary": "#5a6278",
+    
+    "bgFormSection": "rgba(0, 0, 0, 0.3)",
+    "backgroundImage": "linear-gradient(to bottom, #141E30, #243B55)",
     "animatedBackground": false,
+    
     "labels": {
-      "empUser": "Email Corporativo",
+      "empUser": "Usuario",
       "empPass": "Contraseña",
-      "conUser": "ID Externo",
-      "conPass": "PIN"
+      "conUser": "ID Contratista",
+      "conPass": "Contraseña"
     },
-    "successRedirect": "./profile.html",
-    "customCss": "tenant-custom.css"
+    "successRedirect": "dashboard.html",
+    "customCss": null
+  },
+
+  "demo": {
+    "companyName": "Aula Corporativa (Demo)",
+    "logoText": "AC",
+    "logoUrl": null,
+    "tagline": "¡Bienvenido!",
+    "description": "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
+    
+    "primaryColor": "#234B95",
+    "secondaryColor": "#1F3F7A",
+    "bgDark": "#141E30",
+    "textColor": "#ffffff",
+    
+    "bgBrandSection": "#ffffff",
+    "textCardPrimary": "#33374d",
+    "textCardSecondary": "#5a6278",
+    
+    "bgFormSection": "rgba(0, 0, 0, 0.3)",
+    "backgroundImage": "linear-gradient(to bottom, #141E30, #243B55)",
+    "animatedBackground": false,
+    
+    "labels": {
+      "empUser": "Usuario",
+      "empPass": "Contraseña",
+      "conUser": "ID Contratista",
+      "conPass": "Contraseña"
+    },
+    "successRedirect": "dashboard.html",
+    "customCss": null
+  },
+
+  "jnj": {
+    "companyName": "Johnson & Johnson",
+    "logoText": "J&J",
+    "logoUrl": null,
+    "tagline": "Portal de Cumplimiento",
+    "description": "Plataforma de capacitación y cumplimiento de Johnson & Johnson.",
+    
+    "primaryColor": "#D71500",
+    "secondaryColor": "#2D2E2D",
+    "bgDark": "#2D2E2D",
+    "textColor": "#F1F1F1",
+    
+    "bgBrandSection": "#F1F1F1",
+    "textCardPrimary": "#2D2E2D",
+    "textCardSecondary": "#5a6278",
+    
+    "bgFormSection": "rgba(0, 0, 0, 0.2)",
+    "backgroundImage": "none",
+    "animatedBackground": false,
+    
+    "labels": {
+      "empUser": "ID de Colaborador (WWID)",
+      "empPass": "Contraseña Universal",
+      "conUser": "ID de Contratista",
+      "conPass": "PIN de Acceso"
+    },
+    "successRedirect": "jnj-dashboard.html",
+    "customCss": null
+  },
+
+  "trox": {
+    "companyName": "Trox Technik",
+    "logoText": "TROX",
+    "logoUrl": null,
+    "tagline": "Bienvenido a TROX",
+    "description": "Portal de acceso para empleados y socios de Trox Technik.",
+    
+    "primaryColor": "#005A9D",
+    "secondaryColor": "#0073B9",
+    "bgDark": "#002D4F",
+    "textColor": "#FFFFFF",
+    
+    "bgBrandSection": "#FFFFFF",
+    "textCardPrimary": "#002D4F",
+    "textCardSecondary": "#5a6278",
+    
+    "bgFormSection": "rgba(0, 0, 0, 0.25)",
+    "backgroundImage": "none",
+    "animatedBackground": false,
+    
+    "labels": {
+      "empUser": "Usuario (Email)",
+      "empPass": "Contraseña",
+      "conUser": "ID de Socio",
+      "conPass": "Clave de Acceso"
+    },
+    "successRedirect": "trox-dashboard.html",
+    "customCss": null
   }
 }
-
