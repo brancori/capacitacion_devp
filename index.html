@@ -11,7 +11,7 @@
        VARIABLES CSS - Tenant Override System
     ═══════════════════════════════════════════════════════════ */
 :root {
-      /* Estilos estructurales (no cambian por tenant) */
+      /* Estilos estructurales (no cambian) */
       --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.2);
       --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.4);
       --radius-sm: 8px;
@@ -21,47 +21,35 @@
       --transition-smooth: 350ms cubic-bezier(0.4, 0, 0.2, 1);
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-      /* Variables dinámicas (controladas por tenants.json)
-        Estos son solo fallbacks en caso de que el JS falle.
-      */
-      --primary: #234B95;
-      --primary-light: #3e6ecb;
-      --secondary: #1F3F7A;
-      --accent: #3e6ecb;
-      --bg-page: var(--bg-dark);
-      --text-page: var(--text-light);
+      /* Variables "Maestras" (controladas por tenants.json) */
+      --primaryColor: #234B95;
+      --secondaryColor: #1F3F7A;
       
-      --bg-dark: #141E30;
-      --bg-card: rgba(19, 30, 48, 0.75);
-      --bg-brand-section: #ffffff;
-      --bg-form-section: rgba(0, 0, 0, 0.3);
-      --bg-overlay: rgba(0, 0, 0, 0.7);
+      --bgPage: #141E30;
+      --textPage: #ffffff;
       
+      --bgBrand: #ffffff;
+      --textBrand: #33374d;
+      
+      --bgForm: rgba(0, 0, 0, 0.3);
+      --textForm: #ffffff;
+      
+      --bgSuccess: linear-gradient(135deg, #06d6a0, #1b9aaa);
+      --bgError: linear-gradient(135deg, #ef476f, #b30f20);
+      --bgOverlay: rgba(0, 0, 0, 0.7);
 
-      --text-light: #ffffff;
-      --text-muted: rgba(255, 255, 255, 0.65);
-      --text-disabled: rgba(255, 255, 255, 0.4);
-      --text-card-primary: #33374d;
-      --text-card-secondary: #5a6278;
-
-      --border: rgba(255, 255, 255, 0.1);
-      --glass: rgba(255, 255, 255, 0.08);
-      --glass-hover: rgba(255, 255, 255, 0.12);
-
-      --shadow-primary: rgba(35, 75, 149, 0.3);
-      --shadow-primary-hover: rgba(35, 75, 149, 0.4);
-      --shadow-focus: rgba(35, 75, 149, 0.15);
+      /* Variables Derivadas (El CSS las calcula automáticamente) */
+      --textBrandSecondary: color-mix(in srgb, var(--textBrand) 65%, transparent);
+      --textFormSecondary: color-mix(in srgb, var(--textForm) 65%, transparent);
+      --textFormDisabled: color-mix(in srgb, var(--textForm) 40%, transparent);
       
-      --bg-success: linear-gradient(135deg, #06d6a0, #1b9aaa);
-      --bg-error: linear-gradient(135deg, #ef476f, #b30f20);
-      --text-form-primary: var(--text-light);
-      --text-form-secondary: var(--text-muted);
+      --bgFormGlass: color-mix(in srgb, var(--textForm) 8%, transparent);
+      --bgFormGlassHover: color-mix(in srgb, var(--textForm) 12%, transparent);
+      --borderForm: color-mix(in srgb, var(--textForm) 10%, transparent);
       
-      --bg-input: var(--glass);
-      --text-input: var(--text-light);
-      --border-input: var(--border);
-      --border-input-focus: var(--primary-light);
-      --placeholder-input: var(--text-disabled);
+      --shadowPrimary: color-mix(in srgb, var(--primaryColor) 30%, transparent);
+      --shadowPrimaryHover: color-mix(in srgb, var(--primaryColor) 40%, transparent);
+      --shadowFocus: color-mix(in srgb, var(--primaryColor) 15%, transparent);
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -73,7 +61,7 @@
       padding: 0;
     }
 
-    html {
+html {
       height: 100%;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -83,8 +71,8 @@
     body {
       min-height: 100vh;
       font-family: var(--font-sans);
-      color: var(--text-page); /* <--- POR ESTO */
-      background: var(--bg-page);
+      color: var(--textPage);
+      background: var(--bgPage);
       overflow-x: hidden;
       position: relative;
     }
@@ -122,10 +110,10 @@
       will-change: transform;
     }
 
-    .orb:nth-child(1) {
+.orb:nth-child(1) {
       width: 500px;
       height: 500px;
-      background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+      background: radial-gradient(circle, var(--primaryColor) 0%, transparent 70%);
       top: -10%;
       left: -10%;
       animation-delay: 0s;
@@ -134,7 +122,7 @@
     .orb:nth-child(2) {
       width: 400px;
       height: 400px;
-      background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+      background: radial-gradient(circle, var(--secondaryColor) 0%, transparent 70%);
       bottom: -10%;
       right: -10%;
       animation-delay: 3s;
@@ -143,7 +131,7 @@
     .orb:nth-child(3) {
       width: 350px;
       height: 350px;
-      background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+      background: radial-gradient(circle, var(--primaryColor) 0%, transparent 70%);
       top: 50%;
       left: 50%;
       animation-delay: 6s;
@@ -174,9 +162,9 @@
     .main-card {
       width: 100%;
       max-width: 950px;
-      background: var(--bg-card);
+      background: var(--bgForm);
       backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid var(--border);
+      border: 1px solid var(--borderForm);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-lg);
       display: grid;
@@ -195,65 +183,37 @@
 
     /* Left Column: Branding */
 .brand-section {
-  padding: 3.5rem;
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);}
-  
-  .brand-section, .feature-icon {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: var(--bg-brand-section);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Arregla el texto del logo, el H1, descripción y features */
-.brand-section .logo-container,
-.brand-section .logo-text,
-.brand-section .brand-title,
-.brand-section .brand-description,
-.brand-section .feature-item {
-  color: var(--text-card-primary);
-}
-
-/* Arregla el icono de check (SVG) */
-.brand-section .feature-icon {
-  stroke: var(--text-card-primary);
-}
-
-.brand-section .brand-footer p,
-.brand-section .brand-footer small {
-  color: var(--text-card-secondary); 
-}
-
-.brand-section #brandTitle,
-.brand-section #brandDescription,
-.brand-section .feature-item {
-  color: var(--text-card-primary);
-}
-
-.brand-section .feature-icon {
-  stroke: var(--text-card-primary); /* El icono de check */
-}
-
-.brand-section .logo-container,
-.brand-section .logo-text,
-.brand-section .brand-title,
-.brand-section .brand-description,
-#brandTitle,
-.brand-section .feature-item {
-  color: var(--text-card-primary);
-}
-
-/* El icono de check (SVG) de las 'features' */
-.brand-section .feature-icon {
-  stroke: #33374d;
-}
-
-
-    .brand-footer small{
-        color: var(--text-card-secondary);
+      padding: 3.5rem;
+      border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: var(--bgBrand);
+      position: relative;
+      overflow: hidden;
     }
+
+
+    .brand-section .logo-container,
+    .brand-section .logo-text,
+    .brand-section .brand-title,
+    .brand-section .brand-description,
+    .brand-section #brandTitle,
+    .brand-section #brandDescription,
+    .brand-section .feature-item {
+      color: var(--textBrand);
+    }
+
+    .brand-section .feature-icon {
+      stroke: var(--textBrand);
+    }
+
+    .brand-section .brand-footer p,
+    .brand-section .brand-footer small{
+        color: var(--textBrandSecondary);
+    }
+
+
     .brand-section::before {
       content: '';
       position: absolute;
@@ -261,34 +221,34 @@
       right: -30%;
       width: 400px;
       height: 400px;
-      background: radial-gradient(circle, var(--shadow-primary) 0%, transparent 70%);
+      background: radial-gradient(circle, var(--shadowPrimary) 0%, transparent 70%);
       border-radius: 50%;
       filter: blur(60px);
       pointer-events: none;
     }
 
-    .logo-container {
+  .logo-container {
       display: flex;
       align-items: center;
       gap: 1rem;
       position: relative;
       z-index: 1;
     }
-.fas{
-    font-family: "Font Awesome 6 Free";
-}
-.logo-icon {
-  width: 250px; /* Tu ancho deseado */
-  height: auto; /* Para que la altura se ajuste a la imagen */
-  background: transparent; /* El fondo gradiente se verá mal con una imagen rectangular */
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;     /* (Estilos de fallback para el texto si no carga la img) */
-  font-size: 1.5rem;    /* (Estilos de fallback para el texto si no carga la img) */
-  box-shadow: none; /* La sombra probablemente se vea mal en un logo no circular */
-}
+    .fas{
+        font-family: "Font Awesome 6 Free";
+    }
+    .logo-icon {
+      width: 250px;
+      height: auto;
+      background: transparent;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.5rem;
+      box-shadow: none;
+    }
 
     .logo-text {
       font-size: clamp(1.25rem, 2vw, 1.5rem);
@@ -312,15 +272,15 @@
       font-weight: 900;
       line-height: 1.1;
       letter-spacing: -0.03em;
-      color: var(--text-card-primary);
+      color: var(--textBrand);
       -webkit-background-clip: text;
       background-clip: text;
     }
 
-    .brand-description {
+.brand-description {
       font-size: 1.125rem;
       line-height: 1.6;
-      color: var(--text-card-primary);
+      color: var(--textBrand);
       max-width: 480px;
     }
 
@@ -335,7 +295,7 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      color: var(--text-card-primary);
+      color: var(--textBrand);
       font-size: 0.95rem;
     }
 
@@ -343,12 +303,12 @@
       width: 20px;
       height: 20px;
       flex-shrink: 0;
-      color: var(--primary);
+      color: var(--primaryColor);
     }
 
-    .brand-footer {
+  .brand-footer {
       font-size: 0.875rem;
-      color: var(--text-card-secondary);
+      color: var(--textBrandSecondary);
       position: relative;
       z-index: 1;
     }
@@ -356,7 +316,7 @@
     /* Right Column: Forms */
     .form-section {
       padding: clamp(1.5rem, 4vw, 2.5rem);
-      background: var(--bg-form-section);
+      background: var(--bgForm);
       display: flex;
       flex-direction: column;
       position: relative;
@@ -367,18 +327,18 @@
       display: flex;
       gap: 0.5rem;
       padding: 0.5rem;
-      background: var(--glass);
+      background: var(--bgFormGlass);
       border-radius: var(--radius-md);
       margin-bottom: 2rem;
-      border: 1px solid var(--border);
+      border: 1px solid var(--borderForm);
     }
 
-    .tab-btn {
+  .tab-btn {
       flex: 1;
       padding: 0.75rem 1rem;
       border: none;
       background: transparent;
-      color: var(--text-muted);
+      color: var(--textFormSecondary);
       font-weight: 700;
       font-size: 0.875rem;
       letter-spacing: 0.03em;
@@ -391,18 +351,24 @@
     }
 
     .tab-btn:hover {
-      background: var(--glass-hover);
-      color: var(--text-light);
+      background: var(--bgFormGlassHover);
+      color: var(--textForm);
     }
 
-.tab-btn.active {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: var(--text-light);
-  box-shadow: 0 4px 12px var(--shadow-primary); /* <--- Dinámico */
-}
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--primaryColor), var(--secondaryColor));
+      color: #ffffff; /* Texto de botón activo/primario siempre blanco */
+      box-shadow: 0 4px 12px var(--shadowPrimary);
+    }
 
     /* Form Container */
-    .form-container {
+
+    @keyframes flipIn {
+      from { transform: rotateY(-70deg); opacity: 0; }
+      to { transform: rotateY(0deg); opacity: 1; }
+    }
+
+.form-container {
       position: relative;
       flex: 1;
       display: flex;
@@ -414,31 +380,28 @@
       display: none;
       flex-direction: column;
       gap: 1.25rem;
-      animation: formFadeIn 400ms var(--transition-smooth);
       flex: 1;
+      transform: rotateY(0deg);
+      opacity: 1;
+      backface-visibility: hidden;
     }
 
     .login-form.active {
       display: flex;
+      animation: flipIn 400ms var(--transition-smooth) forwards;
     }
 
-    @keyframes formFadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-    }
 
     .form-title {
       font-size: 1.75rem;
       font-weight: 800;
       margin-bottom: 0.5rem;
       letter-spacing: -0.02em;
-      color: var(--text-form-primary);
+      color: var(--textForm);
     }
 
     .form-subtitle {
-      color: var(--text-form-secondary);
+      color: var(--textFormSecondary);
       font-size: 0.95rem;
       margin-bottom: 1rem;
     }
@@ -450,10 +413,10 @@
       gap: 0.5rem;
     }
 
-    .form-label {
+.form-label {
       font-size: 0.875rem;
       font-weight: 600;
-      color: var(--text-form-secondary);
+      color: var(--textFormSecondary);
       letter-spacing: 0.01em;
     }
 
@@ -465,24 +428,11 @@
       width: 100%;
       padding: 0.875rem 1rem;
       padding-left: 2.75rem;
-      background: var(--bg-input);
-      border: 1px solid var(--border-input);
       border-radius: var(--radius-sm);
-      color: var(--text-input);
       font-size: 1rem;
       font-family: inherit;
       transition: all var(--transition-fast);
       outline: none;
-    }
-
-    .form-input::placeholder {
-      color: var(--text-disabled);
-    }
-
-    .form-input:focus {
-      background: var(--glass-hover);
-      border-color: var(--border-input-focus);
-      box-shadow: 0 0 0 3px var(--shadow-focus);
     }
 
     .input-icon {
@@ -492,12 +442,45 @@
       transform: translateY(-50%);
       width: 20px;
       height: 20px;
-      color: var(--text-form-secondary);
+      color: var(--textFormSecondary);
       pointer-events: none;
     }
 
+    /* ═══════════════════════════════════════════════════════════
+       INPUT THEME: DARK (Default)
+    ═══════════════════════════════════════════════════════════ */
+    body[data-input-theme="dark"] .form-input {
+      background: var(--bgFormGlass);
+      border: 1px solid var(--borderForm);
+      color: var(--textForm);
+    }
+    body[data-input-theme="dark"] .form-input::placeholder {
+      color: var(--textFormDisabled);
+    }
+    body[data-input-theme="dark"] .form-input:focus {
+      background: var(--bgFormGlassHover);
+      border-color: var(--primaryColor);
+      box-shadow: 0 0 0 3px var(--shadowFocus);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       INPUT THEME: LIGHT
+    ═══════════════════════════════════════════════════════════ */
+    body[data-input-theme="light"] .form-input {
+      background: #FFFFFF;
+      border: 1px solid color-mix(in srgb, var(--textForm) 20%, transparent);
+      color: var(--textForm);
+    }
+    body[data-input-theme="light"] .form-input::placeholder {
+      color: color-mix(in srgb, var(--textForm) 40%, transparent);
+    }
+    body[data-input-theme="light"] .form-input:focus {
+      background: #FFFFFF;
+      border-color: var(--primaryColor);
+      box-shadow: 0 0 0 3px var(--shadowFocus);
+    }
     /* Buttons */
-    .btn {
+.btn {
       padding: 0.875rem 1.5rem;
       border: none;
       border-radius: var(--radius-sm);
@@ -514,35 +497,35 @@
     }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: var(--text-light);
-  box-shadow: 0 8px 24px var(--shadow-primary); /* <--- Dinámico */
-  position: relative;
-  overflow: hidden;
-}
+      background: linear-gradient(135deg, var(--primaryColor), var(--secondaryColor));
+      color: #ffffff; /* Texto de botón activo/primario siempre blanco */
+      box-shadow: 0 8px 24px var(--shadowPrimary);
+      position: relative;
+      overflow: hidden;
+    }
 
     .btn-primary::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, var(--primary-light), var(--accent));
+      background: linear-gradient(135deg, var(--primaryColor), var(--secondaryColor));
       opacity: 0;
       transition: opacity var(--transition-fast);
+      filter: brightness(1.15);
     }
 
     .btn-primary:hover::before {
       opacity: 1;
     }
 
-    .btn-primary span {
+    .btn-primary span, .btn-primary svg {
       position: relative;
       z-index: 1;
     }
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px var(--shadow-primary-hover); /* <--- Dinámico */
-}
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px var(--shadowPrimaryHover);
+    }
 
     .btn-primary:active {
       transform: translateY(0);
@@ -554,19 +537,7 @@
       transform: none;
     }
 
-    .btn-ghost {
-      background: transparent;
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-    }
-
-    .btn-ghost:hover {
-      background: var(--glass);
-      color: var(--text-light);
-      border-color: var(--primary-light);
-    }
-
-    .form-actions {
+.form-actions {
       display: flex;
       gap: 0.75rem;
       margin-top: 0.5rem;
@@ -578,37 +549,37 @@
 
     /* Links */
     .form-link {
-      color: var(--primary);
+      color: var(--primaryColor);
       text-decoration: none;
       font-size: 0.875rem;
-      transition: color var(--transition-fast);
+      transition: all var(--transition-fast);
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
     }
 
     .form-link:hover {
-      color: var(--text-light);
+      text-decoration: underline;
     }
 
-    .form-footer {
+  .form-footer {
       margin-top: auto;
       padding-top: 1.5rem;
-      border-top: 1px solid var(--border-input);
+      border-top: 1px solid var(--borderForm);
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
       font-size: 0.875rem;
-      color: var(--text-form-secondary);
+      color: var(--textFormSecondary);
     }
 
     /* ═══════════════════════════════════════════════════════════
        MODAL
     ═══════════════════════════════════════════════════════════ */
-    .modal-overlay {
+.modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: var(--bgOverlay);
       backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
@@ -627,9 +598,9 @@
     }
 
     .modal-content {
-      background: var(--bg-card);
+      background: var(--bgForm); 
       backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
+      border: 1px solid var(--borderForm);
       border-radius: var(--radius-lg);
       padding: 2rem;
       max-width: 400px;
@@ -639,7 +610,7 @@
       text-align: center;
     }
 
-    @keyframes modalEnter {
+@keyframes modalEnter {
       from {
         opacity: 0;
         transform: scale(0.9) translateY(20px);
@@ -655,138 +626,100 @@
       align-items: center;
       justify-content: center;
       font-size: 1.5rem;
+      color: #FFF;
     }
 
     .modal-icon.success {
-      background: var(--bg-success);
+      background: var(--bgSuccess);
     }
 
     .modal-icon.error {
-      background: var(--bg-error);
+      background: var(--bgError);
     }
 
     .modal-icon.info {
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      background: linear-gradient(135deg, var(--primaryColor), var(--secondaryColor));
     }
 
     .modal-title {
       font-size: 1.5rem;
       font-weight: 800;
       margin-bottom: 0.5rem;
+      color: var(--textForm);
     }
 
     .modal-text {
-      color: var(--text-muted);
+      color: var(--textFormSecondary);
       margin-bottom: 1.5rem;
       line-height: 1.5;
     }
 
     /* ═══════════════════════════════════════════════════════════
-       LOADING STATE
-    ═══════════════════════════════════════════════════════════ */
-    .loading {
-      pointer-events: none;
-      opacity: 0.6;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
        RESPONSIVE
     ═══════════════════════════════════════════════════════════ */
-    @media (max-width: 968px) {
+@media (max-width: 968px) {
       .main-card {
         grid-template-columns: 1fr;
         max-width: 520px;
       }
 
       .brand-section {
-        padding: 2.5rem; 
-        background: none; 
+        padding: 2rem; 
+        background: none;
         justify-content: center;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid var(--borderForm);
       }
-
-      .brand-section::before {
-        display: none;
-      }
-
-      .brand-title {
-        font-size: 2rem;
-      }
-
-      .brand-features {
-        display: flex; 
-  margin-top: 1.5rem;
-      }
+      
       .brand-content,
       .brand-footer {
         display: none;
       }
-
-      /* Ajusta los colores del logo para el fondo oscuro EN MÓVIL */
-      .brand-section .logo-container,
-      .brand-section .logo-text,
-      .brand-section .fas {
-        color: var(--text-light);
+      .brand-section::before {
+        display: none;
       }
 
-      /* Ajusta el icono del logo EN MÓVIL (el original de 250px es muy grande) */
+      .brand-section .logo-container {
+        color: var(--textForm);
+      }
+      .brand-section .fas {
+        color: var(--textForm);
+      }
       .logo-icon {
         width: 40px; 
         height: 40px;
         font-size: 1.1rem;
         font-weight: 700;
-        background: var(--glass);
-        border: 1px solid var(--border);
+        background: var(--bgFormGlass);
+        border: 1px solid var(--borderForm);
         border-radius: var(--radius-sm);
         box-shadow: none;
-        color: var(--text-light); /* Asegura el color del texto "AC" */
+        color: var(--textForm);
       }
-      
-      /* Ajusta la imagen del logo si existe */
       .logo-icon img {
           max-width: 80% !important;
           border-radius: var(--radius-sm) !important;
       }
-      /* ▲▲▲ FIN DE REGLAS AÑADIDAS ▲▲▲ */
-
-
-      .brand-section::before {
-        display: none;
-      }
-
-      .brand-title {
-        font-size: 2rem;
-      }
-
-      .brand-features {
-        display: none;
-      }
     }
 
-    @media (max-width: 480px) {
+@media (max-width: 480px) {
       .container {
         padding: 1rem;
+        align-items: flex-start;
+        padding-top: 3rem;
       }
-
       .main-card {
         border-radius: var(--radius-md);
       }
-
       .form-actions {
         flex-direction: column;
       }
-
       .btn {
         width: 100%;
       }
-
       .tab-btn {
-        font-size: 0.875rem; /* <-- Un poco más grande que 0.75rem */
-        padding: 0.875rem 0.75rem; /* <-- Más padding vertical */
+        font-size: 0.875rem;
+        padding: 0.875rem 0.75rem;
       }
-      .brand-features {
-   flex-direction: column; /* Apílalos si es necesario */
-}
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -984,43 +917,32 @@
   <div id="modalRoot" role="dialog" aria-live="polite"></div>
 
   <!-- Main JavaScript -->
-  <script>
+<script>
   (function() {
     'use strict';
 
-// ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // CONFIGURATION & DEFAULTS
     // ═══════════════════════════════════════════════════════════
-const DEFAULTS = {
+    const DEFAULTS = {
       companyName: "Aula Corporativa",
       logoText: "AC",
       logoUrl: null,
       tagline: "¡Bienvenido!",
       description: "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
       
+      bgPage: "#141E30",
+      textPage: "#ffffff",
       primaryColor: "#234B95",
       secondaryColor: "#1F3F7A",
       
-      bgPage: "#141E30",
-      textPage: "#ffffff",
+      bgBrand: "#ffffff",
+      textBrand: "#33374d",
       
-      bgDark: "#141E30",
-      textColor: "#ffffff",
-      
-      bgBrandSection: "#ffffff",
-      textCardPrimary: "#33374d",
-      textCardSecondary: "#5a6278",
-      
-      bgFormSection: "rgba(0, 0, 0, 0.3)",
-      textFormPrimary: "#ffffff",
-      textFormSecondary: "rgba(255, 255, 255, 0.65)",
+      bgForm: "rgba(0, 0, 0, 0.3)",
+      textForm: "#ffffff",
+      inputTheme: "dark",
 
-      bgInput: "rgba(255, 255, 255, 0.08)",
-      textInput: "#ffffff",
-      borderInput: "rgba(255, 255, 255, 0.1)",
-      borderInputFocus: "#3e6ecb",
-      placeholderInput: "rgba(255, 255, 255, 0.4)",
-      
       bgSuccess: "linear-gradient(135deg, #06d6a0, #1b9aaa)",
       bgError: "linear-gradient(135deg, #ef476f, #b30f20)",
       bgOverlay: "rgba(0, 0, 0, 0.7)",
@@ -1039,6 +961,7 @@ const DEFAULTS = {
       copyrightText: null,
       customCss: null
     };
+
     // ═══════════════════════════════════════════════════════════
     // UTILITY FUNCTIONS
     // ═══════════════════════════════════════════════════════════
@@ -1046,40 +969,19 @@ const DEFAULTS = {
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
     
     const setStyle = (prop, value) => {
-      document.documentElement.style.setProperty(prop, value);
+      if (value) {
+        document.documentElement.style.setProperty(prop, value);
+      }
     };
-
-    // NUEVA FUNCIÓN: Convierte Hex a RGBA (para transparencias)
-function hexToRGBA(hex, alpha = 1) {
-  const [r, g, b] = (hex.match(/\w\w/g) || []).map(x => parseInt(x, 16));
-  if (r === undefined) return null; // Maneja mal input
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-// NUEVA FUNCIÓN: Aclara u oscurece un color Hex
-function lightenHex(hex, percent = 10) {
-  const [r, g, b] = (hex.match(/\w\w/g) || []).map(x => parseInt(x, 16));
-  if (r === undefined) return null;
-  const t = percent < 0 ? 0 : 255;
-  const p = Math.abs(percent) / 100;
-  
-  const R = Math.round((t - r) * p) + r;
-  const G = Math.round((t - g) * p) + g;
-  const B = Math.round((t - b) * p) + b;
-  
-  return `#${(B | (G << 8) | (R << 16) | (1 << 24)).toString(16).slice(1)}`;
-}
-
+    
     const detectTenant = () => {
       const host = location.hostname || 'localhost';
       const parts = host.split('.');
       
-      // subdomain.domain.com -> subdomain
       if (parts.length > 2 && parts[0] !== 'www') {
         return parts[0];
       }
       
-      // localhost or single domain
       return host === 'localhost' ? 'demo' : 'default';
     };
 
@@ -1114,93 +1016,32 @@ function lightenHex(hex, percent = 10) {
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
     // APPLY CONFIGURATION
     // ═══════════════════════════════════════════════════════════
-function applyConfiguration(config) {
-      const primary = config.primaryColor;
-      const secondary = config.secondaryColor;
-      const bgDark = config.bgDark;
-      const text = config.textColor;
+    function applyConfiguration(config) {
+
+      // 1. Aplicar las 10 variables "Maestras" al CSS
+      setStyle('--bgPage', config.bgPage);
+      setStyle('--textPage', config.textPage);
       
-      const bgPage = config.bgPage;
-      const textPage = config.textPage;
+      setStyle('--primaryColor', config.primaryColor);
+      setStyle('--secondaryColor', config.secondaryColor);
       
-      const bgBrandSection = config.bgBrandSection;
-      const textCardPrimary = config.textCardPrimary;
-      const textCardSecondary = config.textCardSecondary;
-      const bgFormSection = config.bgFormSection;
-
-      const primaryLight = config.primaryLight || lightenHex(primary, 15);
-      const accent = config.accentColor || primaryLight;
-      const bgCard = config.bgCard || hexToRGBA(bgDark, 0.75);
+      setStyle('--bgBrand', config.bgBrand);
+      setStyle('--textBrand', config.textBrand);
       
-      const shadowPrimary = config.shadowPrimary || hexToRGBA(primary, 0.3);
-      const shadowPrimaryHover = config.shadowPrimaryHover || hexToRGBA(primary, 0.4);
-      const shadowFocus = config.shadowFocus || hexToRGBA(primary, 0.15);
+      setStyle('--bgForm', config.bgForm);
+      setStyle('--textForm', config.textForm);
       
-      const textLight = text;
-      const textMuted = config.textMuted || hexToRGBA(text, 0.65);
-      const textDisabled = config.textDisabled || hexToRGBA(text, 0.4);
-      
-      const border = config.border || hexToRGBA(text, 0.1);
-      const glass = config.glass || hexToRGBA(text, 0.08);
-      const glassHover = config.glassHover || hexToRGBA(text, 0.12);
+      setStyle('--bgSuccess', config.bgSuccess);
+      setStyle('--bgError', config.bgError);
+      setStyle('--bgOverlay', config.bgOverlay);
 
-      const bgOverlay = config.bgOverlay;
-      const bgSuccess = config.bgSuccess;
-      const bgError = config.bgError;
+      // 2. Aplicar el "Interruptor" del Tema de Inputs
+      document.body.dataset.inputTheme = config.inputTheme || 'dark';
 
-      // Lee variables del form o usa defaults
-      const textFormPrimary = config.textFormPrimary || textLight;
-      const textFormSecondary = config.textFormSecondary || hexToRGBA(textFormPrimary, 0.65);
-      const bgInput = config.bgInput;
-      const textInput = config.textInput || textFormPrimary;
-      const borderInput = config.borderInput || hexToRGBA(textFormPrimary, 0.2);
-      const borderInputFocus = config.borderInputFocus || primaryLight;
-      const placeholderInput = config.placeholderInput || hexToRGBA(textFormPrimary, 0.4);
-
-      // Aplica TODAS las variables al CSS
-      setStyle('--primary', primary);
-      setStyle('--primary-light', primaryLight);
-      setStyle('--secondary', secondary);
-      setStyle('--accent', accent);
-      
-      setStyle('--bg-page', bgPage);
-      setStyle('--text-page', textPage);
-      
-      setStyle('--bg-dark', bgDark);
-      setStyle('--bg-card', bgCard);
-      setStyle('--bg-brand-section', bgBrandSection);
-      setStyle('--bg-form-section', bgFormSection);
-
-      setStyle('--text-light', textLight);
-      setStyle('--text-muted', textMuted);
-      setStyle('--text-disabled', textDisabled);
-      setStyle('--text-card-primary', textCardPrimary);
-      setStyle('--text-card-secondary', textCardSecondary);
-      
-      setStyle('--border', border);
-      setStyle('--glass', glass);
-      setStyle('--glass-hover', glassHover);
-
-      setStyle('--shadow-primary', shadowPrimary);
-      setStyle('--shadow-primary-hover', shadowPrimaryHover);
-      setStyle('--shadow-focus', shadowFocus);
-
-      setStyle('--bg-overlay', bgOverlay);
-      setStyle('--bg-success', bgSuccess);
-      setStyle('--bg-error', bgError);
-
-      setStyle('--text-form-primary', textFormPrimary);
-      setStyle('--text-form-secondary', textFormSecondary);
-      setStyle('--bg-input', bgInput);
-      setStyle('--text-input', textInput);
-      setStyle('--border-input', borderInput);
-      setStyle('--border-input-focus', borderInputFocus);
-      setStyle('--placeholder-input', placeholderInput);
-
-      // ... (El resto de la función, desde "Aplica el resto de la configuración", sigue igual)
-      // 4. Aplica el resto de la configuración (logo, textos, etc.)
+      // 3. Aplicar el resto de la configuración (logo, textos, etc.)
       const logoIcon = $('#logoIcon');
       const logoText = $('#logoText');
       
@@ -1226,7 +1067,7 @@ function applyConfiguration(config) {
           </div>
         `).join('');
       } else if (featuresContainer) {
-        featuresContainer.innerHTML = ''; // Limpia las features si no hay
+        featuresContainer.innerHTML = '';
       }
 
       $('#labelEmpUser').textContent = config.labels.empUser;
@@ -1246,6 +1087,7 @@ function applyConfiguration(config) {
         $('.bg-orbs').style.display = 'none';
       }
 
+      // 4. Aplicar CSS Personalizado (al final para que tenga más peso)
       if (config.customCss) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
@@ -1261,67 +1103,75 @@ function applyConfiguration(config) {
     // ═══════════════════════════════════════════════════════════
     // TAB SYSTEM
     // ═══════════════════════════════════════════════════════════
-    function initializeInteractions() {
+function initializeInteractions() {
       const tabButtons = $$('.tab-btn');
-        const forms = $$('.login-form');
+      const forms = $$('.login-form');
+      const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
       tabButtons.forEach(button => {
         button.addEventListener('click', () => {
           const targetTab = button.dataset.tab;
+          const targetFormId = `form${capitalize(targetTab)}`;
           
-          // Update tabs
+          if (button.classList.contains('active')) return;
+
+          // Actualizar botones
           tabButtons.forEach(btn => {
             const isActive = btn.dataset.tab === targetTab;
             btn.classList.toggle('active', isActive);
             btn.setAttribute('aria-selected', isActive);
           });
 
-          // Update forms
+          // Actualizar formularios con animación
+          let formToLeave = null;
           forms.forEach(form => {
-            const isActive = form.id === `form${capitalize(targetTab)}`;
-            form.classList.toggle('active', isActive);
+            if (form.classList.contains('active')) {
+              formToLeave = form;
+            }
+            form.classList.remove('is-leaving'); 
           });
+
+
+forms.forEach(form => {
+        form.classList.remove('active');
+      });
+
+      // Mostrar solo el formulario objetivo
+      const formToEnter = $(`#${targetFormId}`);
+      if (formToEnter) {
+        formToEnter.classList.add('active');
+      }
         });
       });
 
       // ═══════════════════════════════════════════════════════════
       // FORM SUBMISSIONS
+      // (El resto de la función sigue igual...)
       // ═══════════════════════════════════════════════════════════
       
-      // Employees login
       $('#formEmployees').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const username = $('#empUsername').value.trim();
         const password = $('#empPassword').value.trim();
-        
         if (!username || !password) {
           showModal('Error', 'Por favor completa todos los campos', 'error');
           return;
         }
-
-        // Show loading state
         const btn = $('#btnLoginEmp');
         btn.classList.add('loading');
         btn.disabled = true;
 
-        // Simulate API call (replace with real authentication)
         setTimeout(() => {
           btn.classList.remove('loading');
           btn.disabled = false;
-          
-if (username === 'admin' && password === '123') {
-            // ÉXITO: Si el usuario y pass son correctos
+          if (username === 'admin' && password === '123') {
             showModal(
               '¡Bienvenido!',
               'Inicio de sesión exitoso. Redirigiendo...',
               'success',
-              () => {
-                window.location.href = window.__loginRedirect || './profile.html';
-              }
+              () => { window.location.href = window.__loginRedirect || './profile.html'; }
             );
           } else {
-            // ERROR: Si son incorrectos
             showModal(
               'Error de Acceso',
               'El usuario o la contraseña son incorrectos.',
@@ -1331,18 +1181,14 @@ if (username === 'admin' && password === '123') {
         }, 1000);
       });
 
-      // Contractors login
       $('#formContractors').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const username = $('#conUsername').value.trim();
         const password = $('#conPassword').value.trim();
-        
         if (!username || !password) {
           showModal('Error', 'Por favor completa todos los campos', 'error');
           return;
         }
-
         const btn = $('#btnLoginCon');
         btn.classList.add('loading');
         btn.disabled = true;
@@ -1350,20 +1196,18 @@ if (username === 'admin' && password === '123') {
         setTimeout(() => {
           btn.classList.remove('loading');
           btn.disabled = false;
-          
           showModal(
             'Acceso Aprobado',
             'Redirigiendo a tu panel...',
             'success',
-            () => {
-              window.location.href = window.__loginRedirect || 'dashboard.html';
-            }
+            () => { window.location.href = window.__loginRedirect || 'dashboard.html'; }
           );
         }, 1000);
       });
 
       // ═══════════════════════════════════════════════════════════
       // LINK HANDLERS
+      // (El resto de la función sigue igual...)
       // ═══════════════════════════════════════════════════════════
       
       $('#forgotEmp')?.addEventListener('click', (e) => {
@@ -1456,7 +1300,6 @@ if (username === 'admin' && password === '123') {
         if (e.target === modal) closeModal();
       });
 
-      // Close on Escape
       const escapeHandler = (e) => {
         if (e.key === 'Escape') {
           closeModal();
@@ -1464,13 +1307,6 @@ if (username === 'admin' && password === '123') {
         }
       };
       document.addEventListener('keydown', escapeHandler);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // UTILITIES
-    // ═══════════════════════════════════════════════════════════
-    function capitalize(str) {
-      return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1485,7 +1321,6 @@ if (username === 'admin' && password === '123') {
       console.log('✅ Application ready');
     }
 
-    // Start when DOM is ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);
     } else {

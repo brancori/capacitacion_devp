@@ -5,17 +5,19 @@
     "logoUrl": null,
     "tagline": "¡Bienvenido!",
     "description": "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
-    
+
+    "bgPage": "#141E30",
+    "textPage": "#ffffff",
     "primaryColor": "#234B95",
     "secondaryColor": "#1F3F7A",
-    "bgDark": "#141E30",
-    "textColor": "#ffffff",
     
-    "bgBrandSection": "#ffffff",
-    "textCardPrimary": "#33374d",
-    "textCardSecondary": "#5a6278",
+    "bgBrand": "#ffffff",
+    "textBrand": "#33374d",
     
-    "bgFormSection": "rgba(0, 0, 0, 0.3)",
+    "bgForm": "rgba(0, 0, 0, 0.3)",
+    "textForm": "#ffffff",
+    "inputTheme": "dark",
+    
     "backgroundImage": "linear-gradient(to bottom, #141E30, #243B55)",
     "animatedBackground": false,
     
@@ -28,24 +30,25 @@
     "successRedirect": "dashboard.html",
     "customCss": null
   },
-
   "demo": {
     "companyName": "Aula Corporativa (Demo)",
     "logoText": "AC",
     "logoUrl": null,
     "tagline": "¡Bienvenido!",
     "description": "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
-    
+
+    "bgPage": "#141E30",
+    "textPage": "#ffffff",
     "primaryColor": "#234B95",
     "secondaryColor": "#1F3F7A",
-    "bgDark": "#141E30",
-    "textColor": "#ffffff",
     
-    "bgBrandSection": "#ffffff",
-    "textCardPrimary": "#33374d",
-    "textCardSecondary": "#5a6278",
+    "bgBrand": "#ffffff",
+    "textBrand": "#33374d",
     
-    "bgFormSection": "rgba(0, 0, 0, 0.3)",
+    "bgForm": "rgba(0, 0, 0, 0.3)",
+    "textForm": "#ffffff",
+    "inputTheme": "dark",
+    
     "backgroundImage": "linear-gradient(to bottom, #141E30, #243B55)",
     "animatedBackground": false,
     
@@ -58,33 +61,28 @@
     "successRedirect": "dashboard.html",
     "customCss": null
   },
-
-"jnj": {
+  "jnj": {
     "companyName": "Johnson & Johnson",
     "logoText": "J&J",
     "logoUrl": null,
     "tagline": "Portal de Cumplimiento",
     "description": "Plataforma de capacitación y cumplimiento de Johnson & Johnson.",
-    
-    "primaryColor": "#D71500",
-    "secondaryColor": "#D71500",
 
     "bgPage": "#FFFFFF",
     "textPage": "#2D2E2D",
+    "primaryColor": "#D71500",
+    "secondaryColor": "#D71500",
+    
+    "bgBrand": "#D71500",
+    "textBrand": "#F1F1F1",
+    
+    "bgForm": "#F1F1F1",
+    "textForm": "#2D2E2D",
+    "inputTheme": "light",
 
-    "bgDark": "#2D2E2D",
-    "textColor": "#F1F1F1",
-    
-    "bgBrandSection": "#D71500",
-    "textCardPrimary": "#F1F1F1",
-    "textCardSecondary": "#F1F1F1",
-    
-    "shadowPrimary": "transparent",
-    "shadowPrimaryHover": "transparent",
-    "shadowFocus": "rgba(215, 21, 0, 0.15)",
     "backgroundImage": "none",
     "animatedBackground": false,
-
+    
     "labels": {
       "empUser": "ID de Colaborador (WWID)",
       "empPass": "Contraseña Universal",
@@ -92,36 +90,27 @@
       "conPass": "PIN de Acceso"
     },
     "successRedirect": "jnj-dashboard.html",
-    "customCss": null,
-
-    "bgFormSection": "#F1F1F1",
-    "textFormPrimary": "#2D2E2D",
-    "textFormSecondary": "rgba(45, 46, 45, 0.65)",
-    
-    "bgInput": "#FFFFFF",
-    "textInput": "#2D2E2D",
-    "borderInput": "rgba(45, 46, 45, 0.2)",
-    "borderInputFocus": "#D71500",
-    "placeholderInput": "rgba(45, 46, 45, 0.4)"
+    "customCss": null
   },
-
   "trox": {
     "companyName": "Trox Technik",
     "logoText": "TROX",
     "logoUrl": null,
     "tagline": "Bienvenido a TROX",
     "description": "Portal de acceso para empleados y socios de Trox Technik.",
-    
+
+    "bgPage": "#002D4F",
+    "textPage": "#FFFFFF",
     "primaryColor": "#005A9D",
     "secondaryColor": "#0073B9",
-    "bgDark": "#002D4F",
-    "textColor": "#FFFFFF",
+
+    "bgBrand": "#FFFFFF",
+    "textBrand": "#002D4F",
     
-    "bgBrandSection": "#FFFFFF",
-    "textCardPrimary": "#002D4F",
-    "textCardSecondary": "#5a6278",
-    
-    "bgFormSection": "rgba(0, 0, 0, 0.25)",
+    "bgForm": "rgba(0, 0, 0, 0.25)",
+    "textForm": "#FFFFFF",
+    "inputTheme": "dark",
+
     "backgroundImage": "none",
     "animatedBackground": false,
     
