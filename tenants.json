@@ -67,13 +67,13 @@
     "description": "Plataforma de capacitación y cumplimiento de Johnson & Johnson.",
     
     "primaryColor": "#D71500",
-    "secondaryColor": "#2D2E2D",
+    "secondaryColor": "#D71500",
     "bgDark": "#2D2E2D",
     "textColor": "#F1F1F1",
     
-    "bgBrandSection": "#F1F1F1",
-    "textCardPrimary": "#2D2E2D",
-    "textCardSecondary": "#5a6278",
+    "bgBrandSection": "#D71500",
+    "textCardPrimary": "#F1F1F1",
+    "textCardSecondary": "#F1F1F1",
     
     "bgFormSection": "rgba(0, 0, 0, 0.2)",
     "backgroundImage": "none",
