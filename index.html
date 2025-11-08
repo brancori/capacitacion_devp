@@ -1114,28 +1114,23 @@ function lightenHex(hex, percent = 10) {
     // APPLY CONFIGURATION
     // ═══════════════════════════════════════════════════════════
 function applyConfiguration(config) {
-      // 1. Lee los colores base del config
       const primary = config.primaryColor;
       const secondary = config.secondaryColor;
       const bgDark = config.bgDark;
       const text = config.textColor;
       
-      // Lee los colores de la tarjeta de marca
       const bgBrandSection = config.bgBrandSection;
       const textCardPrimary = config.textCardPrimary;
       const textCardSecondary = config.textCardSecondary;
-      
-      // Lee el fondo del formulario
       const bgFormSection = config.bgFormSection;
 
-      // 2. Calcula las variaciones (o usa el valor del tenant si existe)
       const primaryLight = config.primaryLight || lightenHex(primary, 15);
       const accent = config.accentColor || primaryLight;
       const bgCard = config.bgCard || hexToRGBA(bgDark, 0.75);
       
       const shadowPrimary = config.shadowPrimary || hexToRGBA(primary, 0.3);
       const shadowPrimaryHover = config.shadowPrimaryHover || hexToRGBA(primary, 0.4);
-      const shadowFocus = config.shadowFocus || hexToRGBA(primary, 0.15); // NUEVA
+      const shadowFocus = config.shadowFocus || hexToRGBA(primary, 0.15);
       
       const textLight = text;
       const textMuted = config.textMuted || hexToRGBA(text, 0.65);
@@ -1145,27 +1140,34 @@ function applyConfiguration(config) {
       const glass = config.glass || hexToRGBA(text, 0.08);
       const glassHover = config.glassHover || hexToRGBA(text, 0.12);
 
-      // Lee los colores de estado (o usa el default)
-      const bgOverlay = config.bgOverlay; // NUEVA
-      const bgSuccess = config.bgSuccess; // NUEVA
-      const bgError = config.bgError;     // NUEVA
+      const bgOverlay = config.bgOverlay;
+      const bgSuccess = config.bgSuccess;
+      const bgError = config.bgError;
 
-      // 3. Aplica TODAS las variables al CSS
+      // Lee variables del form o usa defaults
+      const textFormPrimary = config.textFormPrimary || textLight;
+      const textFormSecondary = config.textFormSecondary || hexToRGBA(textFormPrimary, 0.65);
+      const bgInput = config.bgInput;
+      const textInput = config.textInput || textFormPrimary;
+      const borderInput = config.borderInput || hexToRGBA(textFormPrimary, 0.2);
+      const borderInputFocus = config.borderInputFocus || primaryLight;
+      const placeholderInput = config.placeholderInput || hexToRGBA(textFormPrimary, 0.4);
+
+      // Aplica TODAS las variables al CSS
       setStyle('--primary', primary);
       setStyle('--primary-light', primaryLight);
       setStyle('--secondary', secondary);
       setStyle('--accent', accent);
-      
       setStyle('--bg-dark', bgDark);
       setStyle('--bg-card', bgCard);
-      setStyle('--bg-brand-section', bgBrandSection); // NUEVA
+      setStyle('--bg-brand-section', bgBrandSection);
       setStyle('--bg-form-section', bgFormSection);
 
       setStyle('--text-light', textLight);
       setStyle('--text-muted', textMuted);
       setStyle('--text-disabled', textDisabled);
-      setStyle('--text-card-primary', textCardPrimary); // NUEVA
-      setStyle('--text-card-secondary', textCardSecondary); // NUEVA
+      setStyle('--text-card-primary', textCardPrimary);
+      setStyle('--text-card-secondary', textCardSecondary);
       
       setStyle('--border', border);
       setStyle('--glass', glass);
@@ -1173,14 +1175,21 @@ function applyConfiguration(config) {
 
       setStyle('--shadow-primary', shadowPrimary);
       setStyle('--shadow-primary-hover', shadowPrimaryHover);
-      setStyle('--shadow-focus', shadowFocus); // NUEVA
+      setStyle('--shadow-focus', shadowFocus);
 
-      setStyle('--bg-overlay', bgOverlay); // NUEVA
-      setStyle('--bg-success', bgSuccess); // NUEVA
-      setStyle('--bg-error', bgError);     // NUEVA
+      setStyle('--bg-overlay', bgOverlay);
+      setStyle('--bg-success', bgSuccess);
+      setStyle('--bg-error', bgError);
 
+      setStyle('--text-form-primary', textFormPrimary);
+      setStyle('--text-form-secondary', textFormSecondary);
+      setStyle('--bg-input', bgInput);
+      setStyle('--text-input', textInput);
+      setStyle('--border-input', borderInput);
+      setStyle('--border-input-focus', borderInputFocus);
+      setStyle('--placeholder-input', placeholderInput);
 
-      // 4. Aplica el resto de la configuración (logo, textos, etc.)
+      // Aplica el resto de la configuración (logo, textos, etc.)
       const logoIcon = $('#logoIcon');
       const logoText = $('#logoText');
       
@@ -1192,7 +1201,6 @@ function applyConfiguration(config) {
       
       logoText.textContent = config.companyName;
 
-      // ... (El resto de la función sigue igual) ...
       $('#brandTitle').textContent = config.tagline;
       $('#brandDescription').textContent = config.description;
 
@@ -1206,6 +1214,8 @@ function applyConfiguration(config) {
             <span>${feature}</span>
           </div>
         `).join('');
+      } else if (featuresContainer) {
+        featuresContainer.innerHTML = '';
       }
 
       $('#labelEmpUser').textContent = config.labels.empUser;
@@ -1216,8 +1226,7 @@ function applyConfiguration(config) {
       $('#currentYear').textContent = new Date().getFullYear();
 
       if (config.backgroundImage) {
-        // $('.bg-animated').style.backgroundImage = `url('${config.backgroundImage}')`; // <-- Causa error si es un gradiente
-        $('.bg-animated').style.background = config.backgroundImage; // <-- Usa 'background'
+        $('.bg-animated').style.background = config.backgroundImage;
         $('.bg-animated').style.backgroundSize = 'cover';
         $('.bg-animated').style.backgroundPosition = 'center';
       }
