@@ -78,11 +78,9 @@
     "shadowPrimary": "transparent",
     "shadowPrimaryHover": "transparent",
     "shadowFocus": "rgba(215, 21, 0, 0.15)",
-
-    "bgFormSection": "rgba(0, 0, 0, 0.2)",
     "backgroundImage": "none",
     "animatedBackground": false,
-    
+
     "labels": {
       "empUser": "ID de Colaborador (WWID)",
       "empPass": "Contraseña Universal",
@@ -90,7 +88,17 @@
       "conPass": "PIN de Acceso"
     },
     "successRedirect": "jnj-dashboard.html",
-    "customCss": null
+    "customCss": null,
+
+    "bgFormSection": "#F1F1F1",
+    "textFormPrimary": "#2D2E2D",
+    "textFormSecondary": "rgba(45, 46, 45, 0.65)",
+    
+    "bgInput": "#FFFFFF",
+    "textInput": "#2D2E2D",
+    "borderInput": "rgba(45, 46, 45, 0.2)",
+    "borderInputFocus": "#D71500",
+    "placeholderInput": "rgba(45, 46, 45, 0.4)"
   },
 
   "trox": {
