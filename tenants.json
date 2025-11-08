@@ -59,7 +59,7 @@
     "customCss": null
   },
 
-  "jnj": {
+"jnj": {
     "companyName": "Johnson & Johnson",
     "logoText": "J&J",
     "logoUrl": null,
@@ -75,6 +75,10 @@
     "textCardPrimary": "#F1F1F1",
     "textCardSecondary": "#F1F1F1",
     
+    "shadowPrimary": "transparent",
+    "shadowPrimaryHover": "transparent",
+    "shadowFocus": "rgba(215, 21, 0, 0.15)",
+
     "bgFormSection": "rgba(0, 0, 0, 0.2)",
     "backgroundImage": "none",
     "animatedBackground": false,
