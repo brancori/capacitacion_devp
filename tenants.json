@@ -33,7 +33,7 @@
   "demo": {
     "companyName": "Aula Corporativa (Demo)",
     "logoText": "AC",
-    "logoUrl": null,
+    "logoUrl": "./demo/assets/logo_demo.png",
     "tagline": "¡Bienvenido!",
     "description": "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
 
@@ -64,7 +64,7 @@
   "jnj": {
     "companyName": "Johnson & Johnson",
     "logoText": "J&J",
-    "logoUrl": null,
+    "logoUrl": "./jnj/assets/johnson-johnson-logo.svg",
     "tagline": "Portal de Cumplimiento",
     "description": "Plataforma de capacitación y cumplimiento de Johnson & Johnson.",
 
