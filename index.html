@@ -1275,59 +1275,63 @@ $('#formEmployees').addEventListener('submit', async (e) => {
     btn.disabled = true;
     btn.querySelector('span').textContent = 'Ingresando...';
 
-      try {
-      // 1. Validar contraseña con Supabase
+    try {
+      // 1. Validar contraseña
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: username,
         password: password,
       });
 
+      // Si las credenciales son inválidas, salta al catch
       if (authError) {
-        throw authError; // Error de credenciales
+        throw new Error('Credenciales inválidas');
       }
+
+      // 2. Si la contraseña es correcta, VERIFICAR PERFIL
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('autorizado')
+        .select('autorizado, tenant_id') // <-- Pedimos ambos campos
         .eq('user_id', authData.user.id)
         .single();
       
+      // Si no se encuentra el perfil, salta al catch
       if (profileError) {
-        throw new Error('No se pudo encontrar tu perfil de usuario.');
+        throw new Error('Perfil no encontrado');
       }
 
-      // 3. LA VERIFICACIÓN CLAVE
-      if (!profile.autorizado) {
-        // Si no está autorizado, mostrar error y CERRAR SESIÓN
-        await supabase.auth.signOut();
-        throw new Error('Tu cuenta aún no ha sido autorizada por un administrador.');
+      // 3. LA VERIFICACIÓN DE SEGURIDAD COMPLETA
+      const currentTenantUUID = window.__appConfig.tenantUUID;
+      
+      if (
+        !profile.autorizado || // NO está autorizado
+        profile.tenant_id !== currentTenantUUID // NO pertenece a este tenant
+      ) {
+        // Si CUALQUIERA de las dos falla, salta al catch
+        throw new Error('Acceso no autorizado para este tenant');
       }
-      // 2. Si el login es exitoso
+
+      // 4. Si todo es correcto, redirigir
       showModal(
         '¡Bienvenido!',
         'Inicio de sesión exitoso. Redirigiendo...',
         'success',
         () => { 
-          // Redirige a la página de perfil
           window.location.href = window.__loginRedirect || './profile/profile.html'; 
         }
       );
 
-} catch (error) {
-      // 5. Manejo de todos los errores
+    } catch (error) {
+      // 5. MANEJADOR DE ERROR GENÉRICO
+      // CUALQUIER error (contraseña, perfil, tenant) terminará aquí.
+      
+      // Nos aseguramos de cerrar la sesión por si el login fue "parcial"
+      await supabase.auth.signOut(); 
+      
       btn.disabled = false;
       btn.querySelector('span').textContent = 'Ingresar';
       
-      let userMessage = 'Ocurrió un error inesperado.';
-      
-      if (error.message.includes('Invalid login credentials')) {
-        userMessage = 'Las credenciales de acceso no son válidas.';
-      } else if (error.message.includes('Tu cuenta aún no ha sido autorizada')) {
-         userMessage = 'Tu cuenta aún no ha sido autorizada. Contacta a un administrador.';
-      } else if (error.message.includes('No se pudo encontrar tu perfil')) {
-         userMessage = 'Error de login: No se encontró un perfil asociado a esta cuenta.';
-      }
-      
-      showModal('Error de Acceso', userMessage, 'error');
+      // Mostramos el único mensaje de error permitido
+      showModal('Error de Acceso', 'Usuario o contraseña incorrecta.', 'error');
     }
 });
 
@@ -1671,7 +1675,6 @@ const escapeHandler = (e) => {
 
     // Guarda el UUID en la configuración global para usarlo después
     window.__appConfig.tenantUUID = tenantDB.id;
-    console.log(`✅ Tenant UUID cargado: ${window.__appConfig.tenantUUID}`);
     
   } catch (error) {
     console.error(error);
