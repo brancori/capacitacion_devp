@@ -27,13 +27,13 @@
       "conUser": "ID Contratista",
       "conPass": "Contraseña"
     },
-    "successRedirect": "profile.html",
+    "successRedirect": "profile/profile.html",
     "customCss": null
   },
   "demo": {
     "companyName": "Demo Academy",
     "logoText": "AC",
-    "logoUrl": "./demo/assets/logo_demo.png",
+    "logoUrl": "./tenants/demo/assets/logo_demo.png",
     "tagline": "¡Bienvenido!",
     "description": "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
 
@@ -58,13 +58,13 @@
       "conUser": "ID Contratista",
       "conPass": "Contraseña"
     },
-    "successRedirect": "profile.html",
+    "successRedirect": "profile/profile.html",
     "customCss": null
   },
   "jnj": {
     "companyName": "Johnson Academy",
     "logoText": "J&J",
-    "logoUrl": "./jnj/assets/Jnj_logo.png",
+    "logoUrl": "./tenants/jnj/assets/Jnj_logo.png",
     "tagline": "Portal de Cumplimiento",
     "description": "Plataforma de capacitación y cumplimiento de Johnson & Johnson.",
 
@@ -89,7 +89,7 @@
       "conUser": "ID de Contratista",
       "conPass": "PIN de Acceso"
     },
-    "successRedirect": "profile.html",
+    "successRedirect": "profile/profile.html",
     "customCss": null
   },
   "trox": {
@@ -120,7 +120,7 @@
       "conUser": "ID de Socio",
       "conPass": "Clave de Acceso"
     },
-    "successRedirect": "trox-dashboard.html",
+    "successRedirect": "profile/profile.html",
     "customCss": null
   }
 }
