@@ -242,6 +242,7 @@ html {
       width: 250px;
       max-height: 150px;
       background: transparent;
+      border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1047,7 +1048,7 @@ html {
       const logoText = $('#logoText');
       
     if (config.logoUrl) {
-        logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; height: auto; object-fit:contain; border-radius: var(--radius-lg);" />`;
+        logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; height: auto; object-fit:contain;" />`;
       } else {
         logoIcon.textContent = config.logoText;
       }
