@@ -183,7 +183,7 @@ html {
 
     /* Left Column: Branding */
 .brand-section {
-      padding: 3.5rem;
+      padding: 2.5rem;
       border-radius: var(--radius-lg) 0 0 var(--radius-lg);
       display: flex;
       flex-direction: column;
@@ -233,13 +233,14 @@ html {
       gap: 1rem;
       position: relative;
       z-index: 1;
+      max-height: 100px;
     }
     .fas{
         font-family: "Font Awesome 6 Free";
     }
     .logo-icon {
       width: 250px;
-      height: auto;
+      max-height: 150px;
       background: transparent;
       border-radius: var(--radius-lg);
       display: flex;
@@ -251,10 +252,11 @@ html {
     }
 
     .logo-text {
-      font-size: clamp(1.25rem, 2vw, 1.5rem);
+      font-size: clamp(.5rem, 1.3vw, 1rem);
       font-weight: 800;
       letter-spacing: -0.02em;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
     }
 
     .brand-content {
