@@ -1081,6 +1081,13 @@ html {
     
     const detectTenant = () => {
       const host = location.hostname || 'localhost';
+
+      if (host === 'localhost') {
+    return 'demo';
+  }
+  if (host === '127.0.0.1') {
+    return 'default';
+  }
       const parts = host.split('.');
       
       if (parts.length > 2 && parts[0] !== 'www') {
@@ -1268,17 +1275,32 @@ $('#formEmployees').addEventListener('submit', async (e) => {
     btn.disabled = true;
     btn.querySelector('span').textContent = 'Ingresando...';
 
-    try {
-      // 1. Llama a Supabase para iniciar sesión
-      const { data, error } = await supabase.auth.signInWithPassword({
+      try {
+      // 1. Validar contraseña con Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: username,
         password: password,
       });
 
-      if (error) {
-        throw error; // Lanza el error para que lo atrape el catch
+      if (authError) {
+        throw authError; // Error de credenciales
+      }
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('autorizado')
+        .eq('user_id', authData.user.id)
+        .single();
+      
+      if (profileError) {
+        throw new Error('No se pudo encontrar tu perfil de usuario.');
       }
 
+      // 3. LA VERIFICACIÓN CLAVE
+      if (!profile.autorizado) {
+        // Si no está autorizado, mostrar error y CERRAR SESIÓN
+        await supabase.auth.signOut();
+        throw new Error('Tu cuenta aún no ha sido autorizada por un administrador.');
+      }
       // 2. Si el login es exitoso
       showModal(
         '¡Bienvenido!',
@@ -1290,17 +1312,19 @@ $('#formEmployees').addEventListener('submit', async (e) => {
         }
       );
 
-    } catch (error) {
-      // 3. Si hay un error (ej. contraseña incorrecta)
+} catch (error) {
+      // 5. Manejo de todos los errores
       btn.disabled = false;
       btn.querySelector('span').textContent = 'Ingresar';
       
-      let userMessage = 'El usuario o la contraseña son incorrectos.';
+      let userMessage = 'Ocurrió un error inesperado.';
       
       if (error.message.includes('Invalid login credentials')) {
         userMessage = 'Las credenciales de acceso no son válidas.';
-      } else if (error.message.includes('Email not confirmed')) {
-         userMessage = 'Por favor confirma tu correo electrónico antes de ingresar.';
+      } else if (error.message.includes('Tu cuenta aún no ha sido autorizada')) {
+         userMessage = 'Tu cuenta aún no ha sido autorizada. Contacta a un administrador.';
+      } else if (error.message.includes('No se pudo encontrar tu perfil')) {
+         userMessage = 'Error de login: No se encontró un perfil asociado a esta cuenta.';
       }
       
       showModal('Error de Acceso', userMessage, 'error');
@@ -1580,7 +1604,7 @@ $('#modalSubmit').addEventListener('click', async () => {
         .update({
           nombre: regName,
           area_departamento: regArea,
-          tenant_id: tenantId
+          tenant_id: window.__appConfig.tenantUUID
         })
         .eq('user_id', authData.user.id);
 
@@ -1633,6 +1657,31 @@ const escapeHandler = (e) => {
       
       const config = await loadTenantConfig();
       applyConfiguration(config);
+
+      try {
+      const { data: tenantDB, error } = await supabase
+      .from('tenants')
+      .select('id') // Solo necesitamos el 'id' (UUID)
+      .eq('name', tenantId) // Compara 'name' (ej. 'jnj')
+      .single();
+
+    if (error) {
+      throw new Error(`Tenant '${tenantId}' no encontrado en la base de datos.`);
+    }
+
+    // Guarda el UUID en la configuración global para usarlo después
+    window.__appConfig.tenantUUID = tenantDB.id;
+    console.log(`✅ Tenant UUID cargado: ${window.__appConfig.tenantUUID}`);
+    
+  } catch (error) {
+    console.error(error);
+    // Muestra un error si el tenant no existe en la BD
+    showModal(
+      'Error de Configuración', 
+      `El tenant '${tenantId}' no está configurado correctamente en la base de datos. Contacta a soporte.`, 
+      'error'
+    );
+  }
       
       console.log('✅ Application ready');
     }
