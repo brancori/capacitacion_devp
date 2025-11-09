@@ -31,7 +31,7 @@
     "customCss": null
   },
   "demo": {
-    "companyName": "Aula Corporativa (Demo)",
+    "companyName": "Demo Academy",
     "logoText": "AC",
     "logoUrl": "./demo/assets/logo_demo.png",
     "tagline": "¡Bienvenido!",
@@ -62,7 +62,7 @@
     "customCss": null
   },
   "jnj": {
-    "companyName": "Johnson & Johnson",
+    "companyName": "Johnson Academy",
     "logoText": "J&J",
     "logoUrl": "./jnj/assets/johnson-johnson-logo_white.svg",
     "tagline": "Portal de Cumplimiento",
