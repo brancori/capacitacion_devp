@@ -1047,8 +1047,8 @@ html {
       const logoIcon = $('#logoIcon');
       const logoText = $('#logoText');
       
-      if (config.logoUrl) {
-        logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain; border-radius: var(--radius-lg);" />`;
+    if (config.logoUrl) {
+        logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; height: auto; object-fit:contain; border-radius: var(--radius-lg);" />`;
       } else {
         logoIcon.textContent = config.logoText;
       }
