@@ -468,20 +468,6 @@ async function handleForceReset(userId) {
             }
             
             const userConfirmed = await showModalConfirm(
-                'Forzar Reseteo y Bloquear', 
-                '¿Estás seguro? Esto bloqueará el acceso del usuario y le forzará a cambiar su contraseña.'
-            );
-            
-            if (!userConfirmed) {
-                return;
-            }
-async function handleForceReset(userId) {
-            if (!userId) {
-                showModal('Error', 'No se pudo identificar al usuario.', 'error');
-                return;
-            }
-            
-            const userConfirmed = await showModalConfirm(
                 'Forzar Reseteo', 
                 '¿Estás seguro? El usuario deberá cambiar su contraseña la próxima vez que inicie sesión.'
             );
