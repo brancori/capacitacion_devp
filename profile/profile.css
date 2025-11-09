@@ -11,7 +11,6 @@
             --danger: #dc3545;
             --light-gray: #f4f4f4;
             --card-bg: #ffffff;
-            --text-primary: #2c3e50;
             --text-secondary: #6e7883;
             --border: #e2e2e2;
             --shadow: rgba(0,0,0,0.05);
@@ -25,7 +24,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #f4f4f4 0%, #e8eef3 100%);
             min-height: 100vh;
-            color: var(--text-primary);
+            color: var(--primaryColor);
         }
 
         /* Top Navigation Bar */
@@ -221,7 +220,7 @@
         .notification-content h4 {
             margin: 0 0 0.25rem 0;
             font-size: 0.95rem;
-            color: var(--text-primary);
+            color: var(primaryColor);
         }
 
         .notification-content p {

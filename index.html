@@ -841,6 +841,7 @@ html {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -1019,6 +1020,12 @@ html {
   (function() {
     'use strict';
 
+    const SUPABASE_URL = 'https://hvwygpnuunuuylzondxt.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
+
+    // El cliente de Supabase ahora está disponible globalmente
+    // La variable 'supabase' se usará para todas las llamadas (login, register, etc.)
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     // ═══════════════════════════════════════════════════════════
     // CONFIGURATION & DEFAULTS
     // ═══════════════════════════════════════════════════════════
@@ -1247,37 +1254,58 @@ forms.forEach(form => {
       // (El resto de la función sigue igual...)
       // ═══════════════════════════════════════════════════════════
       
-      $('#formEmployees').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = $('#empUsername').value.trim();
-        const password = $('#empPassword').value.trim();
-        if (!username || !password) {
-          showModal('Error', 'Por favor completa todos los campos', 'error');
-          return;
-        }
-        const btn = $('#btnLoginEmp');
-        btn.classList.add('loading');
-        btn.disabled = true;
+$('#formEmployees').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = $('#empUsername').value.trim();
+    const password = $('#empPassword').value.trim();
+    
+    if (!username || !password) {
+      showModal('Error', 'Por favor completa todos los campos', 'error');
+      return;
+    }
+    
+    const btn = $('#btnLoginEmp');
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Ingresando...';
 
-        setTimeout(() => {
-          btn.classList.remove('loading');
-          btn.disabled = false;
-          if (username === 'admin' && password === '123') {
-            showModal(
-              '¡Bienvenido!',
-              'Inicio de sesión exitoso. Redirigiendo...',
-              'success',
-              () => { window.location.href = window.__loginRedirect || './profile/profile.html'; }
-            );
-          } else {
-            showModal(
-              'Error de Acceso',
-              'El usuario o la contraseña son incorrectos.',
-              'error'
-            );
-          }
-        }, 1000);
+    try {
+      // 1. Llama a Supabase para iniciar sesión
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: username,
+        password: password,
       });
+
+      if (error) {
+        throw error; // Lanza el error para que lo atrape el catch
+      }
+
+      // 2. Si el login es exitoso
+      showModal(
+        '¡Bienvenido!',
+        'Inicio de sesión exitoso. Redirigiendo...',
+        'success',
+        () => { 
+          // Redirige a la página de perfil
+          window.location.href = window.__loginRedirect || './profile/profile.html'; 
+        }
+      );
+
+    } catch (error) {
+      // 3. Si hay un error (ej. contraseña incorrecta)
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Ingresar';
+      
+      let userMessage = 'El usuario o la contraseña son incorrectos.';
+      
+      if (error.message.includes('Invalid login credentials')) {
+        userMessage = 'Las credenciales de acceso no son válidas.';
+      } else if (error.message.includes('Email not confirmed')) {
+         userMessage = 'Por favor confirma tu correo electrónico antes de ingresar.';
+      }
+      
+      showModal('Error de Acceso', userMessage, 'error');
+    }
+});
 
       $('#formContractors').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -1511,43 +1539,91 @@ forms.forEach(form => {
       
       // --- Acciones del Modal ---
       $('#modalCancel').addEventListener('click', closeModal);
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-      });
 
-      $('#modalSubmit').addEventListener('click', () => {
-        const form = $('#registrationForm');
-        if (!form.checkValidity()) {
-          showModal('Error', 'Por favor completa todos los campos requeridos.', 'error');
-          return;
-        }
-        
-        if (!validatePassword()) {
-          showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla todos los requisitos.', 'error');
-          return;
-        }
-        
-        // Cierra el modal de registro
-        closeModal();
-        
-        // Muestra modal de éxito (proceso futuro)
-        setTimeout(() => {
-           showModal(
-            'Solicitud Enviada',
-            'Tu solicitud ha sido enviada para autorización. Recibirás una notificación por correo.',
-            'success'
-          );
-        }, 250);
-      });
+$('#modalSubmit').addEventListener('click', async () => {
+    const form = $('#registrationForm');
+    const submitBtn = $('#modalSubmit');
 
-      const escapeHandler = (e) => {
-        if (e.key === 'Escape') {
-          closeModal();
-          document.removeEventListener('keydown', escapeHandler);
-        }
-      };
-      document.addEventListener('keydown', escapeHandler);
+    if (!form.checkValidity()) {
+      showModal('Error', 'Por favor completa todos los campos requeridos.', 'error');
+      return;
     }
+    
+    if (!validatePassword()) {
+      showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla los requisitos.', 'error');
+      return;
+    }
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+
+      const regName = $('#regName').value.trim();
+      const regArea = $('#regArea').value.trim();
+      const regEmail = $('#regEmail').value.trim();
+      const regPassword = $('#regPassword').value;
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: regEmail,
+        password: regPassword
+      });
+
+      if (authError) {
+        throw authError; 
+      }
+
+      if (!authData.user) {
+         throw new Error('No se pudo crear el usuario, por favor intente de nuevo.');
+      }
+
+      const { error: profileError } = await supabase.from('profiles')
+        .update({
+          nombre: regName,
+          area_departamento: regArea,
+          tenant_id: tenantId
+        })
+        .eq('user_id', authData.user.id);
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      closeModal();
+      setTimeout(() => {
+         showModal(
+          'Solicitud Enviada',
+          'Tu solicitud ha sido enviada para autorización. Recibirás una notificación por correo.',
+          'success'
+        );
+      }, 250);
+              
+    } catch (error) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar Solicitud';
+      
+      let userMessage = 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';
+      
+      if (error.message.includes('User already registered')) {
+          userMessage = 'Este correo electrónico ya está registrado.';
+      } else if (error.message.includes('password should be') || error.message.includes('Password should be')) {
+          userMessage = 'La contraseña es muy débil. Debe tener al menos 6 caracteres.';
+      } else if (error.message.includes('email') || error.message.includes('Email')) {
+          userMessage = 'El formato del correo no es válido.';
+      }
+      
+      showModal('Error en el Registro', userMessage, 'error');
+    }
+});
+
+const escapeHandler = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      document.removeEventListener('keydown', escapeHandler);
+    }
+  };
+  document.addEventListener('keydown', escapeHandler);
+
+}
 
     // ═══════════════════════════════════════════════════════════
     // INITIALIZATION
