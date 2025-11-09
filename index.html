@@ -1262,159 +1262,89 @@ forms.forEach(form => {
       // ═══════════════════════════════════════════════════════════
       
 $('#formEmployees').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = $('#empUsername').value.trim();
-    const password = $('#empPassword').value.trim();
-    
-    if (!username || !password) {
-      showModal('Error', 'Por favor completa todos los campos', 'error');
-      return;
-    }
-    
-    const btn = $('#btnLoginEmp');
-    btn.disabled = true;
-    btn.querySelector('span').textContent = 'Ingresando...';
-
-    // 1. Mensaje de error por defecto (por seguridad)
-    let userMessage = 'Usuario o contraseña incorrecta.';
-
-    try {
-      // 2. Validar contraseña
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: username,
-        password: password,
-      });
-
-      // Si las credenciales son inválidas, salta al catch
-      if (authError) {
-        throw new Error('Credenciales inválidas');
-      }
-
-      // 3. Si la contraseña es correcta, VERIFICAR PERFIL
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('autorizado, tenant_id')
-        .eq('user_id', authData.user.id)
-        .single();
-      
-      // Si no se encuentra el perfil, salta al catch
-      if (profileError) {
-        throw new Error('Perfil no encontrado');
-      }
-
-      // 4. VERIFICACIÓN DE ACCESO
-      
-      // CASO 1: Usuario existe pero NO está autorizado
-      if (!profile.autorizado) {
-        // Asignamos el mensaje específico que pediste
-        userMessage = 'Usuario no autorizado, contacte a su autorizador.';
-        throw new Error('No autorizado');
-      }
-      
-      // CASO 2: Usuario autorizado pero NO pertenece a este tenant
-      const currentTenantUUID = window.__appConfig.tenantUUID;
-      if (profile.tenant_id !== currentTenantUUID) {
-        // Se usa el mensaje por defecto (genérico)
-        throw new Error('Tenant incorrecto');
-      }
-
-      // 5. Si todo es correcto, redirigir
-      showModal(
-        '¡Bienvenido!',
-        'Inicio de sesión exitoso. Redirigiendo...',
-        'success',
-        () => { 
-          window.location.href = window.__loginRedirect || './profile/profile.html'; 
-        }
-      );
-
-    } catch (error) {
-      // 6. MANEJADOR DE ERROR
-      
-      // Nos aseguramos de cerrar la sesión por si el login fue "parcial"
-      await supabase.auth.signOut(); 
-      
-      btn.disabled = false;
-      btn.querySelector('span').textContent = 'Ingresar';
-      
-      // Muestra el mensaje de error (genérico o específico)
-      showModal('Error de Acceso', userMessage, 'error');
-    }
-});
-
-      $('#formContractors').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = $('#conUsername').value.trim();
-        const password = $('#conPassword').value.trim();
-        if (!username || !password) {
-          showModal('Error', 'Por favor completa todos los campos', 'error');
-          return;
-        }
-        const btn = $('#btnLoginCon');
-        btn.classList.add('loading');
-        btn.disabled = true;
-
-        setTimeout(() => {
-          btn.classList.remove('loading');
-          btn.disabled = false;
-          showModal(
-            'Acceso Aprobado',
-            'Redirigiendo a tu panel...',
-            'success',
-            () => { window.location.href = window.__loginRedirect || 'profile/profile.html'; }
-          );
-        }, 1000);
-      });
-
-      // ═══════════════════════════════════════════════════════════
-      // LINK HANDLERS
-      // (El resto de la función sigue igual...)
-      // ═══════════════════════════════════════════════════════════
-      
-      $('#forgotEmp')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showModal(
-          'Recuperar Contraseña',
-          'Contacta al departamento de RRHH o utiliza la opción de recuperación de tu empresa.',
-          'info'
-        );
-      });
-
-      $('#registerEmp')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        // Llama a la nueva función del modal de registro
-        showRegistrationModal(); 
-      });
-
-      $('#supportCon')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showModal(
-          'Soporte Contratistas',
-          'Contacta a tu supervisor o al coordinador de contratistas para asistencia.',
-          'info'
-        );
-      });
-
-      $('#helpCon')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showModal(
-          'Ayuda',
-          'Para problemas de acceso, contacta directamente a tu supervisor.',
-          'info'
-        );
-      });
-
-      // Enter key submission
-      ['empUsername', 'empPassword', 'conUsername', 'conPassword'].forEach(id => {
-        $(`#${id}`)?.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const form = e.target.closest('form');
-            form?.dispatchEvent(new Event('submit'));
+          e.preventDefault();
+          const username = $('#empUsername').value.trim();
+          const password = $('#empPassword').value.trim();
+          
+          if (!username || !password) {
+            showModal('Error', 'Por favor completa todos los campos', 'error');
+            return;
           }
-        });
+          
+          const btn = $('#btnLoginEmp');
+          btn.disabled = true;
+          btn.querySelector('span').textContent = 'Ingresando...';
+
+          let userMessage = 'Usuario o contraseña incorrecta.';
+
+          try {
+            // [CORREGIDO] Se eliminó el error de sintaxis '_'
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+              email: username,
+              password: password,
+            });
+
+            if (authError) {
+              throw new Error('Credenciales inválidas');
+            }
+
+            // [CORREGIDO] Se eliminó el error de sintaxis '_'
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('autorizado, tenant_id, force_reset')
+              .eq('user_id', authData.user.id)
+              .single();
+            
+            if (profileError) {
+              throw new Error('Perfil no encontrado');
+            }
+
+            // [LÓGICA REORDENADA]
+            
+            // 1. REVISAR PRIMERO SI DEBE RESETEAR
+            if (profile.force_reset) {
+                // Si es true, mostramos el modal de reseteo.
+                // Esto ignora si está autorizado o no, permitiendo el reseteo.
+                showResetPasswordModal(authData.user);
+                
+                // Reactivamos el botón de login
+                btn.disabled = false;
+                btn.querySelector('span').textContent = 'Ingresar';
+
+            } else if (!profile.autorizado) {
+                // 2. REVISAR SI ESTÁ AUTORIZADO (si no está reseteando)
+                userMessage = 'Usuario no autorizado, contacte a su autorizador.';
+                throw new Error('No autorizado');
+            
+            } else if (profile.tenant_id !== window.__appConfig.tenantUUID) {
+                // 3. REVISAR TENANT
+                // (Se asume que window.__appConfig.tenantUUID está definido)
+                userMessage = 'Acceso no permitido en este portal.';
+                throw new Error('Tenant incorrecto');
+
+            } else {
+                // 4. TODO BIEN -> ACCESO NORMAL
+                showModal(
+                    '¡Bienvenido!',
+                    'Inicio de sesión exitoso. Redirigiendo...',
+                    'success',
+                    () => { 
+                        window.location.href = window.__loginRedirect || './profile/profile.html'; 
+                    }
+                );
+            }
+
+          } catch (error) {
+            // MANEJADOR DE ERROR
+            await supabase.auth.signOut(); 
+            
+            btn.disabled = false;
+            btn.querySelector('span').textContent = 'Ingresar';
+            
+            // userMessage se actualiza dinámicamente
+            showModal('Error de Acceso', userMessage, 'error');
+          }
       });
-    }
 
     // ═══════════════════════════════════════════════════════════
     // MODAL SYSTEM
@@ -1659,7 +1589,133 @@ const escapeHandler = (e) => {
   document.addEventListener('keydown', escapeHandler);
 
 }
+  function showResetPasswordModal(user) {
+      const modalRoot = $('#modalRoot');
+      if (!modalRoot) return;
 
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal-content modal-form">
+          <h3 class="modal-title">Cambio de Contraseña Requerido</h3>
+          <p class="modal-text" style="text-align: left; margin-top: 1rem;">
+            Por motivos de seguridad, debes establecer una nueva contraseña para continuar.
+          </p>
+          
+          <div class="modal-body">
+            <form id="resetPasswordForm">
+              <div class="form-group">
+                <label class="form-label" for="resetPassword">Nueva Contraseña</label>
+                <input type="password" id="resetPassword" class="form-input" placeholder="••••••••" required>
+                <ul class="password-rules">
+                  <li id="rule-length">8+ Caracteres</li>
+                  <li id="rule-number">1 Número</li>
+                  <li id="rule-letter">1 Letra</li>
+                </ul>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="resetConfirmPassword">Confirmar Contraseña</label>
+                <input type="password" id="resetConfirmPassword" class="form-input" placeholder="••••••••" required>
+                <ul class="password-rules">
+                   <li id="rule-match">Las contraseñas coinciden</li>
+                </ul>
+              </div>
+            </form>
+          </div>
+          
+          <div class="modal-actions">
+            <button class="btn btn-primary" id="modalSubmitReset">Guardar y Continuar</button>
+          </div>
+        </div>
+      `;
+
+      modalRoot.innerHTML = '';
+      modalRoot.appendChild(modal);
+
+      const passInput = $('#resetPassword');
+      const confirmInput = $('#resetConfirmPassword');
+      const rules = {
+        length: $('#rule-length'),
+        number: $('#rule-number'),
+        letter: $('#rule-letter'),
+        match: $('#rule-match')
+      };
+      
+      const validatePassword = () => {
+        const pass = passInput.value;
+        const confirm = confirmInput.value;
+        
+        const isLength = pass.length >= 8;
+        const hasNumber = /\d/.test(pass);
+        const hasLetter = /[a-zA-Z]/.test(pass);
+        const isMatch = pass.length > 0 && pass === confirm;
+        
+        rules.length.classList.toggle('valid', isLength);
+        rules.number.classList.toggle('valid', hasNumber);
+        rules.letter.classList.toggle('valid', hasLetter);
+        rules.match.classList.toggle('valid', isMatch);
+        
+        return isLength && hasNumber && hasLetter && isMatch;
+      };
+      
+      passInput.addEventListener('input', validatePassword);
+      confirmInput.addEventListener('input', validatePassword);
+
+$('#modalSubmitReset').addEventListener('click', async () => {
+        const submitBtn = $('#modalSubmitReset');
+
+        if (!validatePassword()) {
+          showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla los requisitos.', 'error');
+          return;
+        }
+
+        try {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Guardando...';
+
+          // 1. Actualiza la contraseña en Supabase Auth
+          const { error: updateError } = await supabase.auth.updateUser({
+            password: passInput.value
+          });
+
+          if (updateError) throw updateError;
+
+          // 2. [CAMBIO CLAVE] Reactiva al usuario y limpia la bandera
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ 
+                force_reset: false, 
+                autorizado: true // <-- ¡AQUÍ!
+            })
+            .eq('user_id', user.id);
+          
+          if (profileError) throw profileError;
+
+          // 3. Éxito y redirección
+          modalRoot.innerHTML = '';
+          setTimeout(() => {
+            showModal(
+              'Éxito', 
+              'Contraseña actualizada. Redirigiendo...', 
+              'success',
+              () => {
+                window.location.href = window.__loginRedirect || './profile/profile.html';
+              }
+            );
+          }, 250);
+
+        } catch (error) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Guardar y Continuar';
+          let userMessage = 'No se pudo actualizar la contraseña. Intenta de nuevo.';
+          if (error.message.includes('weak')) {
+            userMessage = 'La contraseña es muy débil.';
+          }
+          showModal('Error', userMessage, 'error');
+        }
+      });
+    }
     // ═══════════════════════════════════════════════════════════
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════════

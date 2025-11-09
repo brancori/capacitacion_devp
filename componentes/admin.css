@@ -1,0 +1,436 @@
+/* * ESTILOS BASE REQUERIDOS (Copiados de profile.css para independizar)
+ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Estos valores --primaryColor y --secondaryColor deben ser definidos 
+       por tu script de tenant, pero definimos fallbacks. */
+    --primaryColor: #0056a3;
+    --secondaryColor: #007bff;
+    
+    --success: #28a745;
+    --warning: #f59e0b;
+    --danger: #dc3545;
+    --light-gray: #f4f4f4;
+    --card-bg: #ffffff;
+    --text-secondary: #6e7883;
+    --border: #e2e2e2;
+    --shadow: rgba(0,0,0,0.05);
+    --shadow-hover: rgba(0,0,0,0.1);
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f4f4f4 0%, #e8eef3 100%);
+    min-height: 100vh;
+    color: var(--primaryColor);
+}
+
+/* Top Navigation Bar */
+.top-navbar {
+    background: var(--card-bg);
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-section h2 {
+    color: var(--primaryColor);
+    font-size: 1.5rem;
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* Main Container */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Botones */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--primaryColor);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--secondaryColor);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,55,95,0.3);
+}
+
+.btn-outline {
+    background: white;
+    color: var(--primaryColor);
+    border: 2px solid var(--primaryColor);
+}
+
+.btn-outline:hover {
+    background: var(--primaryColor);
+    color: white;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+    animation: fadeIn 0.3s;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-icon {
+    font-size: 4rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.modal-icon.success { color: var(--success); }
+.modal-icon.info { color: var(--primaryColor); }
+.modal-icon.error { color: var(--danger); }
+
+.modal h3 {
+    text-align: center;
+    color: var(--primaryColor);
+    margin-bottom: 1rem;
+}
+
+.modal p {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+/* Search Box (parte de filter-bar) */
+.search-box {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--primaryColor);
+}
+
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+/* * ESTILOS ESPECÍFICOS DE ADMIN.CSS 
+ */
+
+/* Contenedor principal */
+.user-list-container {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px var(--shadow);
+    overflow: hidden; 
+}
+
+/* Cabecera con título y filtro */
+.list-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; 
+    gap: 1rem;
+}
+
+.list-header h1 {
+    margin: 0;
+    color: var(--primaryColor);
+    font-size: 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Barra de Filtro */
+.filter-bar {
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    min-width: 300px; 
+}
+
+/* Wrapper de la tabla para scroll */
+.user-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Tabla de Usuarios (CSS Grid) */
+.user-table {
+    width: 100%;
+    display: grid;
+    /* Columnas: auto, 1fr, 1fr, 1fr, 100px, 100px */
+    grid-template-columns: minmax(200px, 1.5fr) minmax(200px, 1.5fr) minmax(150px, 1fr) minmax(100px, 0.5fr) 110px 100px;
+    min-width: 800px; /* Ancho mínimo para forzar scroll */
+}
+
+#user-list-body {
+    display: contents;
+}
+
+.user-row {
+    display: contents; /* Hace que los hijos se pongan en el grid */
+}
+
+/* Celdas (header y body) */
+.user-row > div {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Celdas de la cabecera */
+.user-row.header > div {
+    background: var(--light-gray);
+    font-weight: 600;
+    color: var(--primaryColor);
+    padding: 1.25rem 1.5rem;
+    position: sticky; /* Opcional: cabecera pegajosa */
+    top: 0;
+}
+
+/* Celdas de datos */
+.user-row:not(.header) > div {
+    background: var(--card-bg);
+    transition: background 0.2s ease;
+}
+
+.user-row:not(.header):hover > div {
+    background: var(--light-gray);
+}
+
+.user-row div[data-label="Nombre"] strong {
+    color: var(--primaryColor);
+    font-size: 1rem;
+    font-weight: 600;
+}
+.user-row div[data-label="Nombre"] small {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+}
+
+.text-center {
+    align-items: center;
+    text-align: center;
+}
+
+.actions {
+    gap: 0.5rem;
+}
+
+.actions .btn-outline {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+.loading-row {
+    grid-column: 1 / -1; /* Ocupa todas las columnas */
+    padding: 3rem;
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 28px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--success);
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px var(--success);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .list-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .filter-bar {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .user-row > div {
+        /* Reducimos padding en móvil para que quepa más */
+        padding: 0.75rem 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+    .list-header {
+        padding: 1rem;
+    }
+}
+
+/* --- Estilos para el Modal de Edición --- */
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primaryColor);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
