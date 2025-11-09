@@ -1275,8 +1275,11 @@ $('#formEmployees').addEventListener('submit', async (e) => {
     btn.disabled = true;
     btn.querySelector('span').textContent = 'Ingresando...';
 
+    // 1. Mensaje de error por defecto (por seguridad)
+    let userMessage = 'Usuario o contraseña incorrecta.';
+
     try {
-      // 1. Validar contraseña
+      // 2. Validar contraseña
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: username,
         password: password,
@@ -1287,10 +1290,10 @@ $('#formEmployees').addEventListener('submit', async (e) => {
         throw new Error('Credenciales inválidas');
       }
 
-      // 2. Si la contraseña es correcta, VERIFICAR PERFIL
+      // 3. Si la contraseña es correcta, VERIFICAR PERFIL
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('autorizado, tenant_id') // <-- Pedimos ambos campos
+        .select('autorizado, tenant_id')
         .eq('user_id', authData.user.id)
         .single();
       
@@ -1299,18 +1302,23 @@ $('#formEmployees').addEventListener('submit', async (e) => {
         throw new Error('Perfil no encontrado');
       }
 
-      // 3. LA VERIFICACIÓN DE SEGURIDAD COMPLETA
-      const currentTenantUUID = window.__appConfig.tenantUUID;
+      // 4. VERIFICACIÓN DE ACCESO
       
-      if (
-        !profile.autorizado || // NO está autorizado
-        profile.tenant_id !== currentTenantUUID // NO pertenece a este tenant
-      ) {
-        // Si CUALQUIERA de las dos falla, salta al catch
-        throw new Error('Acceso no autorizado para este tenant');
+      // CASO 1: Usuario existe pero NO está autorizado
+      if (!profile.autorizado) {
+        // Asignamos el mensaje específico que pediste
+        userMessage = 'Usuario no autorizado, contacte a su autorizador.';
+        throw new Error('No autorizado');
+      }
+      
+      // CASO 2: Usuario autorizado pero NO pertenece a este tenant
+      const currentTenantUUID = window.__appConfig.tenantUUID;
+      if (profile.tenant_id !== currentTenantUUID) {
+        // Se usa el mensaje por defecto (genérico)
+        throw new Error('Tenant incorrecto');
       }
 
-      // 4. Si todo es correcto, redirigir
+      // 5. Si todo es correcto, redirigir
       showModal(
         '¡Bienvenido!',
         'Inicio de sesión exitoso. Redirigiendo...',
@@ -1321,8 +1329,7 @@ $('#formEmployees').addEventListener('submit', async (e) => {
       );
 
     } catch (error) {
-      // 5. MANEJADOR DE ERROR GENÉRICO
-      // CUALQUIER error (contraseña, perfil, tenant) terminará aquí.
+      // 6. MANEJADOR DE ERROR
       
       // Nos aseguramos de cerrar la sesión por si el login fue "parcial"
       await supabase.auth.signOut(); 
@@ -1330,8 +1337,8 @@ $('#formEmployees').addEventListener('submit', async (e) => {
       btn.disabled = false;
       btn.querySelector('span').textContent = 'Ingresar';
       
-      // Mostramos el único mensaje de error permitido
-      showModal('Error de Acceso', 'Usuario o contraseña incorrecta.', 'error');
+      // Muestra el mensaje de error (genérico o específico)
+      showModal('Error de Acceso', userMessage, 'error');
     }
 });
 
