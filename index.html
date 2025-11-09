@@ -959,7 +959,7 @@ html {
         conPass: "Contraseña"
       },
       
-      successRedirect: "dashboard.html",
+      successRedirect: "profile.html",
       copyrightText: null,
       customCss: null
     };
@@ -1202,7 +1202,7 @@ forms.forEach(form => {
             'Acceso Aprobado',
             'Redirigiendo a tu panel...',
             'success',
-            () => { window.location.href = window.__loginRedirect || 'dashboard.html'; }
+            () => { window.location.href = window.__loginRedirect || 'profile.html'; }
           );
         }, 1000);
       });

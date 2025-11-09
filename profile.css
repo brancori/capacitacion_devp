@@ -5,8 +5,7 @@
         }
 
         :root {
-            --primary: #00375F;
-            --primary-dark: #002a4a;
+            
             --success: #28a745;
             --warning: #f59e0b;
             --danger: #dc3545;
@@ -49,7 +48,7 @@
         }
 
         .logo-section h2 {
-            color: var(--primary);
+            color: var(--primaryColor);
             font-size: 1.5rem;
         }
 
@@ -71,7 +70,7 @@
         }
 
         .notification-btn:hover {
-            color: var(--primary);
+            color: var(--primaryColor);
         }
 
         .notification-badge {
@@ -136,7 +135,7 @@
         }
 
         .notification-header h3 {
-            color: var(--primary);
+            color: var(--primaryColor);
             margin: 0;
         }
 
@@ -181,7 +180,7 @@
 
         .notification-item.info {
             background: #e6f0ff;
-            border-left-color: var(--primary);
+            border-left-color: var(--primaryColor);
         }
 
         .notification-item.success {
@@ -206,7 +205,7 @@
         }
 
         .notification-item.info .notification-icon-box {
-            background: var(--primary);
+            background: var(--primaryColor);
             color: white;
         }
 
@@ -246,7 +245,7 @@
         .notification-footer button {
             background: none;
             border: none;
-            color: var(--primary);
+            color: var(--primaryColor);
             font-weight: 600;
             cursor: pointer;
             font-size: 0.9rem;
@@ -292,7 +291,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, var(--primary) 0%, #0056a3 100%);
+            background: linear-gradient(135deg, var(--primaryColor) 0%, #0056a3 100%);
             color: white;
             border-radius: 12px 12px 0 0;
         }
@@ -323,7 +322,7 @@
         }
 
         .badge-path-section h3 {
-            color: var(--primary);
+            color: var(--primaryColor);
             margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
@@ -344,7 +343,7 @@
         }
 
         .badge-requirement-card:hover {
-            border-color: var(--primary);
+            border-color: var(--primaryColor);
             box-shadow: 0 4px 12px var(--shadow-hover);
         }
 
@@ -383,7 +382,7 @@
 
         .badge-req-info h4 {
             margin: 0 0 0.5rem 0;
-            color: var(--primary);
+            color: var(--primaryColor);
             font-size: 1.2rem;
         }
 
@@ -490,7 +489,7 @@
         }
 
         .progress-step.current .progress-step-circle {
-            background: var(--primary);
+            background: var(--primaryColor);
             color: white;
             animation: pulse 2s infinite;
         }
@@ -513,7 +512,7 @@
         }
 
         .theme-toggle:hover {
-            background: var(--primary);
+            background: var(--primaryColor);
             color: white;
         }
 
@@ -561,11 +560,11 @@
         .stat-icon.pending { background: #fff8e1; color: var(--warning); }
         .stat-icon.completed { background: #e6f4ea; color: var(--success); }
         .stat-icon.urgent { background: #feedeb; color: var(--danger); }
-        .stat-icon.total { background: #e6f0ff; color: var(--primary); }
+        .stat-icon.total { background: #e6f0ff; color: var(--primaryColor); }
 
         .stat-content h3 {
             font-size: 2rem;
-            color: var(--primary);
+            color: var(--primaryColor);
             margin-bottom: 0.25rem;
             text-align: center;
         }
@@ -603,7 +602,7 @@
             width: 100px;
             height: 100px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, #0056a3 100%);
+            background: linear-gradient(135deg, var(--primaryColor) 0%, #0056a3 100%);
             margin: 0 auto 1rem;
             display: flex;
             align-items: center;
@@ -615,7 +614,7 @@
 
         .profile-card h2 {
             margin-bottom: 0.5rem;
-            color: var(--primary);
+            color: var(--primaryColor);
         }
 
         .profile-card .role {
@@ -643,7 +642,7 @@
 
         .progress-donut-fg {
             fill: none;
-            stroke: var(--primary);
+            stroke: var(--primaryColor);
             stroke-width: 12;
             stroke-linecap: round;
             stroke-dasharray: 433.5;
@@ -662,7 +661,7 @@
             transform: translate(-50%, -50%);
             font-size: 2.5rem;
             font-weight: bold;
-            color: var(--primary);
+            color: var(--primaryColor);
         }
 
         /* Badges Section */
@@ -675,7 +674,7 @@
 
         .badges-card h3 {
             margin-bottom: 1rem;
-            color: var(--primary);
+            color: var(--primaryColor);
         }
 
         .badges-grid {
@@ -724,7 +723,7 @@
 
         .calendar-card h3 {
             margin-bottom: 1rem;
-            color: var(--primary);
+            color: var(--primaryColor);
         }
 
         .calendar-event {
@@ -750,7 +749,7 @@
         .event-date .day {
             font-size: 1.5rem;
             font-weight: bold;
-            color: var(--primary);
+            color: var(--primaryColor);
         }
 
         .event-date .month {
@@ -805,7 +804,7 @@
 
         .search-box input:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: var(--primaryColor);
         }
 
         .search-box i {
@@ -833,9 +832,9 @@
         }
 
         .filter-btn:hover, .filter-btn.active {
-            background: var(--primary);
+            background: var(--primaryColor);
             color: white;
-            border-color: var(--primary);
+            border-color: var(--primaryColor);
         }
 
         /* Tabs */
@@ -865,9 +864,9 @@
         }
 
         .tab.active {
-            background: var(--primary);
+            background: var(--primaryColor);
             color: white;
-            border-color: var(--primary);
+            border-color: var(--primaryColor);
         }
 
         .tab i {
@@ -913,7 +912,7 @@
         .course-card:hover {
             transform: translateX(5px);
             box-shadow: 0 8px 20px var(--shadow-hover);
-            border-color: var(--primary);
+            border-color: var(--primaryColor);
         }
 
         .course-icon-lg {
@@ -930,7 +929,7 @@
         .course-icon-lg.urgent { background: #feedeb; color: var(--danger); }
         .course-icon-lg.pending { background: #fff8e1; color: var(--warning); }
         .course-icon-lg.completed { background: #e6f4ea; color: var(--success); }
-        .course-icon-lg.catalog { background: #e6f0ff; color: var(--primary); }
+        .course-icon-lg.catalog { background: #e6f0ff; color: var(--primaryColor); }
 
         .course-info {
             flex: 1;
@@ -938,7 +937,7 @@
 
         .course-info h3 {
             margin-bottom: 0.5rem;
-            color: var(--primary);
+            color: var(--primaryColor);
         }
 
         .course-meta {
@@ -966,7 +965,7 @@
 
         .progress-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary) 0%, #0056a3 100%);
+            background: linear-gradient(90deg, var(--primaryColor) 0%, #0056a3 100%);
             border-radius: 4px;
             transition: width 1s ease-out;
         }
@@ -993,12 +992,12 @@
         }
 
         .btn-primary {
-            background: var(--primary);
+            background: var(--primaryColor);
             color: white;
         }
 
         .btn-primary:hover {
-            background: var(--primary-dark);
+            background: var(--secondaryColor);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,55,95,0.3);
         }
@@ -1015,12 +1014,12 @@
 
         .btn-outline {
             background: white;
-            color: var(--primary);
-            border: 2px solid var(--primary);
+            color: var(--primaryColor);
+            border: 2px solid var(--primaryColor);
         }
 
         .btn-outline:hover {
-            background: var(--primary);
+            background: var(--primaryColor);
             color: white;
         }
 
@@ -1053,9 +1052,9 @@
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: var(--primary);
+            background: var(--primaryColor);
             border: 3px solid white;
-            box-shadow: 0 0 0 3px var(--primary);
+            box-shadow: 0 0 0 3px var(--primaryColor);
         }
 
         .timeline-content {
@@ -1089,7 +1088,7 @@
         .recommendation-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 20px var(--shadow-hover);
-            border-color: var(--primary);
+            border-color: var(--primaryColor);
         }
 
         .rec-header {
@@ -1104,7 +1103,7 @@
             height: 50px;
             border-radius: 10px;
             background: #e6f0ff;
-            color: var(--primary);
+            color: var(--primaryColor);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1162,11 +1161,11 @@
         }
 
         .modal-icon.success { color: var(--success); }
-        .modal-icon.info { color: var(--primary); }
+        .modal-icon.info { color: var(--primaryColor); }
 
         .modal h3 {
             text-align: center;
-            color: var(--primary);
+            color: var(--primaryColor);
             margin-bottom: 1rem;
         }
 

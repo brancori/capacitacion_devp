@@ -27,7 +27,7 @@
       "conUser": "ID Contratista",
       "conPass": "Contraseña"
     },
-    "successRedirect": "dashboard.html",
+    "successRedirect": "profile.html",
     "customCss": null
   },
   "demo": {
@@ -58,7 +58,7 @@
       "conUser": "ID Contratista",
       "conPass": "Contraseña"
     },
-    "successRedirect": "dashboard.html",
+    "successRedirect": "profile.html",
     "customCss": null
   },
   "jnj": {
@@ -89,7 +89,7 @@
       "conUser": "ID de Contratista",
       "conPass": "PIN de Acceso"
     },
-    "successRedirect": "jnj-dashboard.html",
+    "successRedirect": "profile.html",
     "customCss": null
   },
   "trox": {

@@ -4,14 +4,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil de Capacitación PRO</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./profiel.css">
+    <link rel="stylesheet" href="./profile.css">
 </head>
 <body>
 
     <!-- Top Navigation -->
     <nav class="top-navbar">
         <div class="logo-section">
-            <h2><i class="fas fa-graduation-cap"></i> TROX Academy</h2>
+            <h2 id="companyName"><i class="fas fa-graduation-cap"></i> TROX Academy</h2>
         </div>
         <div class="nav-actions">
                 <div class="demo-controls">
@@ -656,201 +656,210 @@
     </div>
 
     <script>
-        // Modal functionality
-        const modal = document.getElementById('modal');
-        const modalIcon = document.getElementById('modalIcon');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const modalClose = document.getElementById('modalClose');
 
-        function showModal(title, message, type = 'success') {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            modalIcon.className = `modal-icon ${type}`;
-            
-            if (type === 'success') {
-                modalIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-            } else if (type === 'info') {
-                modalIcon.innerHTML = '<i class="fas fa-info-circle"></i>';
-            }
-            
-            modal.classList.add('show');
-        }
+(async () => {
+  const setStyle = (prop, value) => {
+    if (value) document.documentElement.style.setProperty(prop, value);
+  };
 
-        function closeModal() {
-            modal.classList.remove('show');
-        }
+  const detectTenant = () => {
+    const host = location.hostname || 'localhost';
+    const parts = host.split('.');
+    if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+    return host === 'localhost' ? 'demo' : 'default';
+  };
 
-        modalClose.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
+  async function loadTenantConfig() {
+    const tenantId = detectTenant();
+    console.log(`🔍 Detectando tenant: ${tenantId}`);
+    try {
+      const response = await fetch('./tenants.json', {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) throw new Error('No se pudo cargar tenants.json');
+      const data = await response.json();
+      return data[tenantId] || data['default'] || {};
+    } catch (error) {
+      console.warn('⚠️ Error al cargar configuración del tenant:', error);
+      return {};
+    }
+  }
 
-        // Tab switching
-        const tabs = document.querySelectorAll('.tab');
-        const tabContents = document.querySelectorAll('.tab-content');
+  function applyConfiguration(config) {
+    if (!config) return;
 
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tabContents.forEach(tc => tc.classList.remove('active'));
-                
-                tab.classList.add('active');
-                const targetId = tab.dataset.tab;
-                document.getElementById(targetId).classList.add('active');
-            });
-        });
+    // Colores globales
+    setStyle('--primaryColor', config.primaryColor);
+    setStyle('--secondaryColor', config.secondaryColor);
 
-        // Filter functionality
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        const courseCards = document.querySelectorAll('.course-card[data-status]');
+    // Nombre de la compañía
+    const companyNameEl = document.getElementById('companyName');
+    if (companyNameEl && config.companyName) {
+      const icon = companyNameEl.querySelector('i');
+      companyNameEl.innerHTML = '';
+      if (icon) companyNameEl.appendChild(icon);
+      companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
+    }
 
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                filterBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                const filter = btn.dataset.filter;
-                
-                courseCards.forEach(card => {
-                    if (filter === 'all' || card.dataset.status === filter) {
-                        card.style.display = 'flex';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-            });
-        });
+    console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
+  }
 
-        // Search functionality
-        const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const allCourseCards = document.querySelectorAll('.course-card');
-            
-            allCourseCards.forEach(card => {
-                const title = card.querySelector('h3').textContent.toLowerCase();
-                if (title.includes(searchTerm)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
+  async function init() {
+    const config = await loadTenantConfig();
+    applyConfiguration(config);
+    console.log('✅ Tenant listo');
+  }
 
-        // Enroll buttons
-        const enrollBtns = document.querySelectorAll('.btn-enroll');
-        enrollBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const courseName = btn.dataset.course;
-                showModal(
-                    '¡Inscripción Exitosa!',
-                    `Te has inscrito al curso "${courseName}". Aparecerá en tu pestaña de cursos asignados.`,
-                    'success'
-                );
-            });
-        });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 
-        // Download buttons
-        const downloadBtns = document.querySelectorAll('.btn-download');
-        downloadBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const certName = btn.dataset.cert;
-                showModal(
-                    'Generando Certificado',
-                    `Tu certificado "${certName}" se está generando en formato PDF...`,
-                    'success'
-                );
-            });
-        });
+// ═══════════════════════════════════════════════════════════
+// FUNCIONALIDAD DE INTERFAZ (MODALES, TABS, FILTROS, ETC.)
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
 
-        // Reminder buttons
-        const reminderBtns = document.querySelectorAll('.btn-reminder');
-        reminderBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const courseName = btn.dataset.course;
-                showModal(
-                    'Recordatorio Activado',
-                    `Recibirás notificaciones sobre el curso "${courseName}"`,
-                    'info'
-                );
-            });
-        });
+  // --- Modal general ---
+  const modal = document.getElementById('modal');
+  const modalIcon = document.getElementById('modalIcon');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalMessage = document.getElementById('modalMessage');
+  const modalClose = document.getElementById('modalClose');
 
-        // Notification button
-        const notificationBtn = document.getElementById('notificationBtn');
-        const notificationPanel = document.getElementById('notificationPanel');
-        const notificationClose = document.getElementById('notificationClose');
-        const markAllRead = document.getElementById('markAllRead');
+  function showModal(title, message, type = 'success') {
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    modalIcon.className = `modal-icon ${type}`;
+    modalIcon.innerHTML = type === 'success'
+      ? '<i class="fas fa-check-circle"></i>'
+      : '<i class="fas fa-info-circle"></i>';
+    modal.classList.add('show');
+  }
 
-        notificationBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            notificationPanel.classList.toggle('show');
-        });
+  function closeModal() {
+    modal.classList.remove('show');
+  }
 
-        notificationClose.addEventListener('click', () => {
-            notificationPanel.classList.remove('show');
-        });
+  modalClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
 
-        markAllRead.addEventListener('click', () => {
-            showModal(
-                'Notificaciones Actualizadas',
-                'Todas las notificaciones han sido marcadas como leídas',
-                'info'
-            );
-            document.querySelector('.notification-badge').textContent = '0';
-            setTimeout(() => {
-                notificationPanel.classList.remove('show');
-            }, 1500);
-        });
+  // --- Tabs ---
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(tc => tc.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
 
-        // Close notification panel when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!notificationPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
-                notificationPanel.classList.remove('show');
-            }
-        });
+  // --- Filtros ---
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const courseCards = document.querySelectorAll('.course-card[data-status]');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+      courseCards.forEach(card => {
+        card.style.display = (filter === 'all' || card.dataset.status === filter) ? 'flex' : 'none';
+      });
+    });
+  });
 
-        // Badge Requirements Modal
-        const badgeModal = document.getElementById('badgeModal');
-        const viewBadgesBtn = document.getElementById('viewBadgesBtn');
-        const badgeModalClose = document.getElementById('badgeModalClose');
+  // --- Buscador ---
+  const searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    document.querySelectorAll('.course-card').forEach(card => {
+      const title = card.querySelector('h3').textContent.toLowerCase();
+      card.style.display = title.includes(searchTerm) ? 'flex' : 'none';
+    });
+  });
 
-        viewBadgesBtn.addEventListener('click', () => {
-            badgeModal.classList.add('show');
-        });
+  // --- Botones de acción ---
+  document.querySelectorAll('.btn-enroll').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const courseName = btn.dataset.course;
+      showModal('¡Inscripción Exitosa!', `Te has inscrito al curso "${courseName}".`, 'success');
+    });
+  });
 
-        badgeModalClose.addEventListener('click', () => {
-            badgeModal.classList.remove('show');
-        });
+  document.querySelectorAll('.btn-download').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const certName = btn.dataset.cert;
+      showModal('Generando Certificado', `Tu certificado "${certName}" se está generando...`, 'success');
+    });
+  });
 
-        badgeModal.addEventListener('click', (e) => {
-            if (e.target === badgeModal) {
-                badgeModal.classList.remove('show');
-            }
-        });
+  document.querySelectorAll('.btn-reminder').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const courseName = btn.dataset.course;
+      showModal('Recordatorio Activado', `Recibirás notificaciones del curso "${courseName}"`, 'info');
+    });
+  });
 
-        // Theme toggle (dummy)
-        const themeToggle = document.getElementById('themeToggle');
-        themeToggle.addEventListener('click', () => {
-            showModal(
-                'Cambio de Tema',
-                'La función de modo oscuro estará disponible próximamente',
-                'info'
-            );
-        });
+  // --- Notificaciones ---
+  const notificationBtn = document.getElementById('notificationBtn');
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationClose = document.getElementById('notificationClose');
+  const markAllRead = document.getElementById('markAllRead');
 
-        // Animate progress bars on page load
-        window.addEventListener('load', () => {
-            const progressBars = document.querySelectorAll('.progress-bar-fill');
-            progressBars.forEach(bar => {
-                const width = bar.style.width;
-                bar.style.width = '0%';
-                setTimeout(() => {
-                    bar.style.width = width;
-                }, 100);
-            });
-        });
+  if (notificationBtn && notificationPanel) {
+    notificationBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      notificationPanel.classList.toggle('show');
+    });
+    notificationClose?.addEventListener('click', () => notificationPanel.classList.remove('show'));
+    markAllRead?.addEventListener('click', () => {
+      showModal('Notificaciones Actualizadas', 'Todas fueron marcadas como leídas', 'info');
+      document.querySelector('.notification-badge').textContent = '0';
+      setTimeout(() => notificationPanel.classList.remove('show'), 1500);
+    });
+    document.addEventListener('click', (e) => {
+      if (!notificationPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
+        notificationPanel.classList.remove('show');
+      }
+    });
+  }
+
+  // --- Modal de insignias ---
+  const badgeModal = document.getElementById('badgeModal');
+  const viewBadgesBtn = document.getElementById('viewBadgesBtn');
+  const badgeModalClose = document.getElementById('badgeModalClose');
+  if (viewBadgesBtn && badgeModal && badgeModalClose) {
+    viewBadgesBtn.addEventListener('click', () => badgeModal.classList.add('show'));
+    badgeModalClose.addEventListener('click', () => badgeModal.classList.remove('show'));
+    badgeModal.addEventListener('click', (e) => {
+      if (e.target === badgeModal) badgeModal.classList.remove('show');
+    });
+  }
+
+  // --- Botón de tema (por ahora informativo) ---
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle?.addEventListener('click', () => {
+    showModal('Cambio de Tema', 'El modo oscuro estará disponible próximamente', 'info');
+  });
+
+  // --- Animación de barras ---
+  const progressBars = document.querySelectorAll('.progress-bar-fill');
+  progressBars.forEach(bar => {
+    const width = bar.style.width;
+    bar.style.width = '0%';
+    setTimeout(() => {
+      bar.style.width = width;
+    }, 100);
+  });
+
+});
     </script>
 </body>
 </html>
