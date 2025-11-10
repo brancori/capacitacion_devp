@@ -1374,6 +1374,17 @@ if (authError || !authData.user) {
     }
 });
 
+      // ═══════════════════════════════════════════════════════════
+      // REGISTRO BUTTON
+      // ═══════════════════════════════════════════════════════════
+      const registerBtn = $('#registerEmp');
+      if (registerBtn) {
+        registerBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          showRegistrationModal();
+        });
+      }
+    };
     // ═══════════════════════════════════════════════════════════
     // MODAL SYSTEM
     // ═══════════════════════════════════════════════════════════
@@ -1507,13 +1518,13 @@ function showModal(title, message, type = 'info', callback = null) {
       };
 
       // --- Lógica de Validación de Password ---
-      const passInput = $('#regPassword');
-      const confirmInput = $('#regConfirmPassword');
+      const passInput = modal.querySelector('#regPassword');
+      const confirmInput = modal.querySelector('#regConfirmPassword');
       const rules = {
-        length: $('#rule-length'),
-        number: $('#rule-number'),
-        letter: $('#rule-letter'),
-        match: $('#rule-match')
+        length: modal.querySelector('#rule-length'),
+        number: modal.querySelector('#rule-number'),
+        letter: modal.querySelector('#rule-letter'),
+        match: modal.querySelector('#rule-match')
       };
       
       const validatePassword = () => {
@@ -1540,7 +1551,7 @@ function showModal(title, message, type = 'info', callback = null) {
       $('#modalCancel').addEventListener('click', closeModal);
 
 $('#modalSubmit').addEventListener('click', async () => {
-    const form = $('#registrationForm');
+    const form = modal.querySelector('#registrationForm');
     const submitBtn = $('#modalSubmit');
 
     if (!form.checkValidity()) {
@@ -1614,7 +1625,7 @@ $('#modalSubmit').addEventListener('click', async () => {
     }
 })();
 }
-} // ← 🔹 ESTA llave cierra correctamente showRegistrationModal()
+ // ← 🔹 ESTA llave cierra correctamente showRegistrationModal()
 
 function showResetPasswordModal(user) {
     console.log('🔵 showResetPasswordModal llamado con:', user); // 👈 (A)
