@@ -212,8 +212,70 @@
             if (type === 'error') modalIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
             modal.classList.add('show');
         }
+
+        
         function closeModal() { modal.classList.remove('show'); }
         modalClose.addEventListener('click', closeModal);
+
+
+// ═══════════════════════════════════════════════════════════
+// FUNCIÓN PARA MODAL DE CONFIRMACIÓN (SÍ/NO)
+// ═══════════════════════════════════════════════════════════
+function showModalConfirm(title, message) {
+    return new Promise((resolve) => {
+        // Usamos las referencias globales del modal simple
+        modalTitle.textContent = title;
+        // La propiedad 'pre-wrap' es importante para ver los saltos de línea (\n)
+        modalMessage.style.whiteSpace = 'pre-wrap'; 
+        modalMessage.textContent = message;
+        
+        modalIcon.className = `modal-icon info`;
+        modalIcon.innerHTML = '<i class="fas fa-question-circle"></i>';
+        
+        // 1. Ocultar el botón original 'Aceptar' y crear un contenedor de acciones
+        modalClose.style.display = 'none';
+
+        const actionContainer = document.createElement('div');
+        actionContainer.className = 'modal-actions-confirm';
+        actionContainer.style.marginTop = '1rem';
+        actionContainer.style.display = 'flex';
+        actionContainer.style.justifyContent = 'space-around';
+        actionContainer.style.gap = '1rem';
+        
+        // 2. Botón CANCELAR (NO)
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-outline';
+        cancelBtn.textContent = 'Cancelar';
+        cancelBtn.style.flex = '1';
+        
+        // 3. Botón CONFIRMAR (SÍ)
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'btn btn-primary';
+        confirmBtn.textContent = 'Confirmar';
+        confirmBtn.style.flex = '1';
+
+        // 4. Lógica de cierre y promesa
+        const cleanup = (result) => {
+            modal.classList.remove('show');
+            // Quitar los botones temporales del DOM
+            actionContainer.remove();
+            // Restaurar el botón original de 'Aceptar'
+            modalClose.style.display = 'block';
+            modalMessage.style.whiteSpace = 'normal';
+            resolve(result); // Resuelve la Promesa con true o false
+        };
+
+        cancelBtn.addEventListener('click', () => cleanup(false));
+        confirmBtn.addEventListener('click', () => cleanup(true));
+
+        // Insertar los botones de acción
+        modal.querySelector('.modal-content').appendChild(actionContainer);
+        actionContainer.appendChild(cancelBtn);
+        actionContainer.appendChild(confirmBtn);
+
+        modal.classList.add('show');
+    });
+}
 
         // --- Lógica de la Página de Administración ---
 

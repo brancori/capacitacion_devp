@@ -1287,31 +1287,31 @@ if (!username) {
         });
 
         // 2. MANEJO DE FALLO DE LOGIN
-        if (authError || !authData.user) {
+if (authError || !authData.user) {
           console.log('2️⃣ Login falló, verificando force_reset...');
-            // Login falló. Verificamos si el usuario existe y si tiene reset forzado.
             
-            const { data: profileCheck } = await supabase
+            // 🐛 CORRECCIÓN: Definimos data como profileCheck y error como checkError.
+            const { data: profileCheck, error: checkError } = await supabase
                 .from('profiles')
                 .select('user_id, force_reset')
                 .eq('email', username)
                 .single();
+            
             console.log('3️⃣ profileCheck:', profileCheck);
-            console.log('3️⃣ checkError:', checkError);
+            console.log('3️⃣ checkError:', checkError); // <-- Ahora sí imprime undefined o el error.
             console.log('3️⃣ force_reset value:', profileCheck?.force_reset);
+            
             // Si el perfil existe Y tiene force_reset=true,
-            // forzamos el flujo de reseteo aunque la contraseña sea incorrecta.
-            if (profileCheck && profileCheck.force_reset) {
-                // Forzamos el modal de reset.
-                showResetPasswordModal({ id: profileCheck.user_id, email: username });
-                
-                btn.disabled = false;
-                btn.querySelector('span').textContent = 'Ingresar';
-                
-                // Cerramos cualquier sesión residual
-                await supabase.auth.signOut(); 
-                return;
-            } else {
+            if (profileCheck && profileCheck.force_reset) { 
+              // Esto se ejecuta porque profileCheck.force_reset es true
+              showResetPasswordModal({ id: profileCheck.user_id, email: username });
+              
+              btn.disabled = false;
+              btn.querySelector('span').textContent = 'Ingresar';
+              
+              await supabase.auth.signOut(); 
+              return; 
+          } else {
                 // El usuario no existe O no tiene reset forzado
                 userMessage = 'Usuario o contraseña incorrecta.';
                 throw new Error('Credenciales inválidas');
@@ -1612,15 +1612,15 @@ $('#modalSubmit').addEventListener('click', async () => {
       
       showModal('Error en el Registro', userMessage, 'error');
     }
-});
+})();
 }
 } // ← 🔹 ESTA llave cierra correctamente showRegistrationModal()
 
 function showResetPasswordModal(user) {
-    console.log('🔵 showResetPasswordModal llamado con:', user); // 👈 AÑADIR
+    console.log('🔵 showResetPasswordModal llamado con:', user); // 👈 (A)
     const modalRoot = $('#modalRoot');
-    console.log('🔵 modalRoot existe?', !!modalRoot); // 👈 AÑADIR
-    if (!modalRoot) return;
+    console.log('🔵 modalRoot existe?', !!modalRoot); // 👈 (B)
+    if (!modalRoot) return
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
