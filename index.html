@@ -1014,7 +1014,7 @@ html {
 
   <!-- Modal Root -->
   <div id="modalRoot" role="dialog" aria-live="polite"></div>
-
+<div id="modalRoot"></div>
   <!-- Main JavaScript -->
 <script>
   (function() {
@@ -1023,8 +1023,9 @@ html {
     const SUPABASE_URL = 'https://hvwygpnuunuuylzondxt.supabase.co'; 
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
 
+    // El cliente de Supabase ahora está disponible globalmente
+    // La variable 'supabase' se usará para todas las llamadas (login, register, etc.)
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
     // ═══════════════════════════════════════════════════════════
     // CONFIGURATION & DEFAULTS
     // ═══════════════════════════════════════════════════════════
@@ -1082,12 +1083,11 @@ html {
       const host = location.hostname || 'localhost';
 
       if (host === 'localhost') {
-        return 'demo';
-      }
-      if (host === '127.0.0.1') {
-        return 'default';
-      }
-      
+    return 'demo';
+  }
+  if (host === '127.0.0.1') {
+    return 'default';
+  }
       const parts = host.split('.');
       
       if (parts.length > 2 && parts[0] !== 'www') {
@@ -1114,6 +1114,7 @@ html {
         const data = await response.json();
         const tenantConfig = data[tenantId] || data['default'] || {};
         
+        // Deep merge with defaults
         const config = {
           ...DEFAULTS,
           ...tenantConfig,
@@ -1132,25 +1133,31 @@ html {
     // ═══════════════════════════════════════════════════════════
     function applyConfiguration(config) {
       window.__appConfig = config;
-      
+      // 1. Aplicar las 10 variables "Maestras" al CSS
       setStyle('--bgPage', config.bgPage);
       setStyle('--textPage', config.textPage);
+      
       setStyle('--primaryColor', config.primaryColor);
       setStyle('--secondaryColor', config.secondaryColor);
+      
       setStyle('--bgBrand', config.bgBrand);
       setStyle('--textBrand', config.textBrand);
+      
       setStyle('--bgForm', config.bgForm);
       setStyle('--textForm', config.textForm);
+      
       setStyle('--bgSuccess', config.bgSuccess);
       setStyle('--bgError', config.bgError);
       setStyle('--bgOverlay', config.bgOverlay);
 
+      // 2. Aplicar el "Interruptor" del Tema de Inputs
       document.body.dataset.inputTheme = config.inputTheme || 'dark';
 
+      // 3. Aplicar el resto de la configuración (logo, textos, etc.)
       const logoIcon = $('#logoIcon');
       const logoText = $('#logoText');
       
-      if (config.logoUrl) {
+    if (config.logoUrl) {
         logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; height: auto; object-fit:contain;" />`;
       } else {
         logoIcon.textContent = config.logoText;
@@ -1192,6 +1199,7 @@ html {
         $('.bg-orbs').style.display = 'none';
       }
 
+      // 4. Aplicar CSS Personalizado (al final para que tenga más peso)
       if (config.customCss) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
@@ -1207,7 +1215,7 @@ html {
     // ═══════════════════════════════════════════════════════════
     // TAB SYSTEM
     // ═══════════════════════════════════════════════════════════
-    function initializeInteractions() {
+function initializeInteractions() {
       const tabButtons = $$('.tab-btn');
       const forms = $$('.login-form');
       const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
@@ -1219,12 +1227,14 @@ html {
           
           if (button.classList.contains('active')) return;
 
+          // Actualizar botones
           tabButtons.forEach(btn => {
             const isActive = btn.dataset.tab === targetTab;
             btn.classList.toggle('active', isActive);
             btn.setAttribute('aria-selected', isActive);
           });
 
+          // Actualizar formularios con animación
           let formToLeave = null;
           forms.forEach(form => {
             if (form.classList.contains('active')) {
@@ -1233,100 +1243,141 @@ html {
             form.classList.remove('is-leaving'); 
           });
 
-          forms.forEach(form => {
-            form.classList.remove('active');
-          });
 
-          const formToEnter = $(`#${targetFormId}`);
-          if (formToEnter) {
-            formToEnter.classList.add('active');
-          }
+forms.forEach(form => {
+        form.classList.remove('active');
+      });
+
+      // Mostrar solo el formulario objetivo
+      const formToEnter = $(`#${targetFormId}`);
+      if (formToEnter) {
+        formToEnter.classList.add('active');
+      }
         });
       });
 
       // ═══════════════════════════════════════════════════════════
-      // FORM SUBMISSIONS - EMPLOYEES
+      // FORM SUBMISSIONS
+      // (El resto de la función sigue igual...)
       // ═══════════════════════════════════════════════════════════
-      $('#formEmployees').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = $('#empUsername').value.trim();
-        const password = $('#empPassword').value.trim();
+      
+$('#formEmployees').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = $('#empUsername').value.trim();
+    const password = $('#empPassword').value.trim();
+
+    console.log('1️⃣ Iniciando login para:', username);
+    
+if (!username) {
+      showModal('Error', 'Por favor, ingresa tu correo electrónico.', 'error');
+      return;
+    }
+    
+    const btn = $('#btnLoginEmp');
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Ingresando...';
+
+    let userMessage = 'Usuario o contraseña incorrecta.';
+
+    try {
+        // 1. INTENTO DE LOGIN ESTÁNDAR
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: username,
+          password: password,
+        });
+
+        // 2. MANEJO DE FALLO DE LOGIN
+        if (authError || !authData.user) {
+          console.log('2️⃣ Login falló, verificando force_reset...');
+            // Login falló. Verificamos si el usuario existe y si tiene reset forzado.
+            
+            const { data: profileCheck } = await supabase
+                .from('profiles')
+                .select('user_id, force_reset')
+                .eq('email', username)
+                .single();
+            console.log('3️⃣ profileCheck:', profileCheck);
+            console.log('3️⃣ checkError:', checkError);
+            console.log('3️⃣ force_reset value:', profileCheck?.force_reset);
+            // Si el perfil existe Y tiene force_reset=true,
+            // forzamos el flujo de reseteo aunque la contraseña sea incorrecta.
+            if (profileCheck && profileCheck.force_reset) {
+                // Forzamos el modal de reset.
+                showResetPasswordModal({ id: profileCheck.user_id, email: username });
+                
+                btn.disabled = false;
+                btn.querySelector('span').textContent = 'Ingresar';
+                
+                // Cerramos cualquier sesión residual
+                await supabase.auth.signOut(); 
+                return;
+            } else {
+                // El usuario no existe O no tiene reset forzado
+                userMessage = 'Usuario o contraseña incorrecta.';
+                throw new Error('Credenciales inválidas');
+            }
+        }
+
+        // 3. CONTINUACIÓN DEL FLUJO NORMAL (Login fue exitoso: authData.user es válido)
         
-        if (!username || !password) {
-          showModal('Error', 'Por favor completa todos los campos', 'error');
-          return;
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('autorizado, tenant_id, force_reset')
+          .eq('user_id', authData.user.id)
+          .single();
+        
+        if (profileError) {
+          userMessage = 'Error al cargar perfil de usuario.';
+          throw new Error('Perfil no encontrado');
         }
         
-        const btn = $('#btnLoginEmp');
-        btn.disabled = true;
-        btn.querySelector('span').textContent = 'Ingresando...';
-
-        let userMessage = 'Usuario o contraseña incorrecta.';
-
-        try {
-          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email: username,
-            password: password,
-          });
-
-          if (authError) {
-            throw new Error('Credenciales inválidas');
-          }
-
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('autorizado, tenant_id, force_reset')
-            .eq('user_id', authData.user.id)
-            .single();
-          
-          if (profileError) {
-            throw new Error('Perfil no encontrado');
-          }
-
-          if (profile.force_reset) {
+        // 4. VERIFICACIÓN CRÍTICA DE FORCE_RESET (PRIORIDAD ABSOLUTA)
+        if (profile.force_reset) {
+            // Si es true, mostramos el modal de reseteo, ignorando 'autorizado' y 'tenant'.
             showResetPasswordModal(authData.user);
+            
             btn.disabled = false;
             btn.querySelector('span').textContent = 'Ingresar';
-          } else if (!profile.autorizado) {
+            return;
+        }
+
+        // 5. OTRAS VERIFICACIONES (Si NO hay reset forzado)
+        
+        if (!profile.autorizado) {
             userMessage = 'Usuario no autorizado, contacte a su autorizador.';
             throw new Error('No autorizado');
-          } else if (profile.tenant_id !== window.__appConfig.tenantUUID) {
+        
+        } else if (profile.tenant_id !== window.__appConfig.tenantUUID) {
             userMessage = 'Acceso no permitido en este portal.';
             throw new Error('Tenant incorrecto');
-          } else {
-            showModal(
-              '¡Bienvenido!',
-              'Inicio de sesión exitoso. Redirigiendo...',
-              'success',
-              () => { 
-                window.location.href = window.__loginRedirect || './profile/profile.html'; 
-              }
-            );
-          }
-        } catch (error) {
-          await supabase.auth.signOut(); 
-          btn.disabled = false;
-          btn.querySelector('span').textContent = 'Ingresar';
-          showModal('Error de Acceso', userMessage, 'error');
-        }
-      });
 
-      // ═══════════════════════════════════════════════════════════
-      // REGISTRO BUTTON
-      // ═══════════════════════════════════════════════════════════
-      const registerBtn = $('#btnRegister');
-      if (registerBtn) {
-        registerBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          showRegistrationModal();
-        });
-      }
+        } else {
+            // 6. TODO BIEN -> ACCESO NORMAL
+            showModal(
+                '¡Bienvenido!',
+                'Inicio de sesión exitoso. Redirigiendo...',
+                'success',
+                () => { 
+                    window.location.href = window.__loginRedirect || './profile/profile.html'; 
+                }
+            );
+        }
+
+    } catch (error) {
+        // MANEJADOR DE ERROR FINAL
+        await supabase.auth.signOut(); 
+        
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Ingresar';
+        
+        showModal('Error de Acceso', userMessage, 'error');
     }
+});
 
     // ═══════════════════════════════════════════════════════════
     // MODAL SYSTEM
     // ═══════════════════════════════════════════════════════════
-    function showModal(title, message, type = 'info', callback = null) {
+function showModal(title, message, type = 'info', callback = null) {
       const modalRoot = $('#modalRoot');
       if (!modalRoot) return;
 
@@ -1353,23 +1404,29 @@ html {
       modalRoot.appendChild(modal);
 
       const closeModal = () => {
-        modal.style.animation = 'fadeOut 200ms ease-out forwards';
-        setTimeout(() => {
-          modalRoot.innerHTML = '';
-          if (callback) callback();
-        }, 200);
+          modal.style.animation = 'fadeOut 200ms ease-out forwards';
+          setTimeout(() => {
+              modalRoot.innerHTML = '';
+              if (callback) callback(); // Ejecutar callback
+          }, 200);
       };
-
-      $('#modalClose').addEventListener('click', closeModal);
+      
+      // 🐛 CORRECCIÓN: Buscamos el botón dentro del nuevo elemento modal
+      const modalCloseBtn = modal.querySelector('#modalClose');
+      
+      if (modalCloseBtn) {
+          modalCloseBtn.addEventListener('click', closeModal);
+      }
+      // Se mantiene el resto de listeners (overlay y escape)
       modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
+          if (e.target === modal) closeModal();
       });
 
       const escapeHandler = (e) => {
-        if (e.key === 'Escape') {
-          closeModal();
-          document.removeEventListener('keydown', escapeHandler);
-        }
+          if (e.key === 'Escape') {
+              closeModal();
+              document.removeEventListener('keydown', escapeHandler);
+          }
       };
       document.addEventListener('keydown', escapeHandler);
     }
@@ -1449,6 +1506,7 @@ html {
         }, 200);
       };
 
+      // --- Lógica de Validación de Password ---
       const passInput = $('#regPassword');
       const confirmInput = $('#regConfirmPassword');
       const rules = {
@@ -1477,200 +1535,92 @@ html {
       
       passInput.addEventListener('input', validatePassword);
       confirmInput.addEventListener('input', validatePassword);
-
-      $('#modalSubmitReset').addEventListener('click', async () => {
-        const submitBtn = $('#modalSubmitReset');
-
-        if (!validatePassword()) {
-          showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla los requisitos.', 'error');
-          return;
-        }
-
-        try {
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Guardando...';
-
-          const { error: updateError } = await supabase.auth.updateUser({
-            password: passInput.value
-          });
-
-          if (updateError) throw updateError;
-
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ 
-              force_reset: false, 
-              autorizado: true
-            })
-            .eq('user_id', user.id);
-          
-          if (profileError) throw profileError;
-
-          modalRoot.innerHTML = '';
-          setTimeout(() => {
-            showModal(
-              'Éxito', 
-              'Contraseña actualizada. Redirigiendo...', 
-              'success',
-              () => {
-                window.location.href = window.__loginRedirect || './profile/profile.html';
-              }
-            );
-          }, 250);
-
-        } catch (error) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Guardar y Continuar';
-          let userMessage = 'No se pudo actualizar la contraseña. Intenta de nuevo.';
-          if (error.message.includes('weak')) {
-            userMessage = 'La contraseña es muy débil.';
-          }
-          showModal('Error', userMessage, 'error');
-        }
-      });
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // INITIALIZATION
-    // ═══════════════════════════════════════════════════════════
-    async function init() {
-      console.log(`🚀 Initializing tenant: ${tenantId}`);
       
-      const config = await loadTenantConfig();
-      applyConfiguration(config);
-
-      try {
-        const { data: tenantDB, error } = await supabase
-          .from('tenants')
-          .select('id')
-          .eq('name', tenantId)
-          .single();
-
-        if (error) {
-          throw new Error(`Tenant '${tenantId}' no encontrado en la base de datos.`);
-        }
-
-        window.__appConfig.tenantUUID = tenantDB.id;
-        
-      } catch (error) {
-        console.error(error);
-        showModal(
-          'Error de Configuración', 
-          `El tenant '${tenantId}' no está configurado correctamente en la base de datos. Contacta a soporte.`, 
-          'error'
-        );
-      }
-      
-      console.log('✅ Application ready');
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
-
-  })();
-</script>
-        
-        return isLength && hasNumber && hasLetter && isMatch;
-      };
-      
-      passInput.addEventListener('input', validatePassword);
-      confirmInput.addEventListener('input', validatePassword);
-      
+      // --- Acciones del Modal ---
       $('#modalCancel').addEventListener('click', closeModal);
 
-      $('#modalSubmit').addEventListener('click', async () => {
-        const form = $('#registrationForm');
-        const submitBtn = $('#modalSubmit');
+$('#modalSubmit').addEventListener('click', async () => {
+    const form = $('#registrationForm');
+    const submitBtn = $('#modalSubmit');
 
-        if (!form.checkValidity()) {
-          showModal('Error', 'Por favor completa todos los campos requeridos.', 'error');
-          return;
-        }
-        
-        if (!validatePassword()) {
-          showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla los requisitos.', 'error');
-          return;
-        }
-        
-        try {
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Enviando...';
+    if (!form.checkValidity()) {
+      showModal('Error', 'Por favor completa todos los campos requeridos.', 'error');
+      return;
+    }
+    
+    if (!validatePassword()) {
+      showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla los requisitos.', 'error');
+      return;
+    }
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
 
-          const regName = $('#regName').value.trim();
-          const regArea = $('#regArea').value.trim();
-          const regEmail = $('#regEmail').value.trim();
-          const regPassword = $('#regPassword').value;
+      const regName = $('#regName').value.trim();
+      const regArea = $('#regArea').value.trim();
+      const regEmail = $('#regEmail').value.trim();
+      const regPassword = $('#regPassword').value;
 
-          const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: regEmail,
-            password: regPassword
-          });
-
-          if (authError) {
-            throw authError; 
-          }
-
-          if (!authData.user) {
-            throw new Error('No se pudo crear el usuario, por favor intente de nuevo.');
-          }
-
-          const { error: profileError } = await supabase.from('profiles')
-            .update({
-              nombre: regName,
-              area_departamento: regArea,
-              tenant_id: window.__appConfig.tenantUUID
-            })
-            .eq('user_id', authData.user.id);
-
-          if (profileError) {
-            throw profileError;
-          }
-
-          closeModal();
-          setTimeout(() => {
-            showModal(
-              'Solicitud Enviada',
-              'Tu solicitud ha sido enviada para autorización. Recibirás una notificación por correo.',
-              'success'
-            );
-          }, 250);
-                
-        } catch (error) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Enviar Solicitud';
-          
-          let userMessage = 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';
-          
-          if (error.message.includes('User already registered')) {
-            userMessage = 'Este correo electrónico ya está registrado.';
-          } else if (error.message.includes('password should be') || error.message.includes('Password should be')) {
-            userMessage = 'La contraseña es muy débil. Debe tener al menos 6 caracteres.';
-          } else if (error.message.includes('email') || error.message.includes('Email')) {
-            userMessage = 'El formato del correo no es válido.';
-          }
-          
-          showModal('Error en el Registro', userMessage, 'error');
-        }
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: regEmail,
+        password: regPassword
       });
 
-      const escapeHandler = (e) => {
-        if (e.key === 'Escape') {
-          closeModal();
-          document.removeEventListener('keydown', escapeHandler);
-        }
-      };
-      document.addEventListener('keydown', escapeHandler);
-    }
+      if (authError) {
+        throw authError; 
+      }
 
-    // ═══════════════════════════════════════════════════════════
-    // RESET PASSWORD MODAL
-    // ═══════════════════════════════════════════════════════════
-    function showResetPasswordModal(user) {
-      const modalRoot = $('#modalRoot');
-      if (!modalRoot) return;
+      if (!authData.user) {
+         throw new Error('No se pudo crear el usuario, por favor intente de nuevo.');
+      }
+
+      const { error: profileError } = await supabase.from('profiles')
+        .update({
+          nombre: regName,
+          area_departamento: regArea,
+          tenant_id: window.__appConfig.tenantUUID
+        })
+        .eq('user_id', authData.user.id);
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      closeModal();
+      setTimeout(() => {
+         showModal(
+          'Solicitud Enviada',
+          'Tu solicitud ha sido enviada para autorización. Recibirás una notificación por correo.',
+          'success'
+        );
+      }, 250);
+              
+    } catch (error) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar Solicitud';
+      
+      let userMessage = 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';
+      
+      if (error.message.includes('User already registered')) {
+          userMessage = 'Este correo electrónico ya está registrado.';
+      } else if (error.message.includes('password should be') || error.message.includes('Password should be')) {
+          userMessage = 'La contraseña es muy débil. Debe tener al menos 6 caracteres.';
+      } else if (error.message.includes('email') || error.message.includes('Email')) {
+          userMessage = 'El formato del correo no es válido.';
+      }
+      
+      showModal('Error en el Registro', userMessage, 'error');
+    }
+});
+}
+} // ← 🔹 ESTA llave cierra correctamente showRegistrationModal()
+
+function showResetPasswordModal(user) {
+    console.log('🔵 showResetPasswordModal llamado con:', user); // 👈 AÑADIR
+    const modalRoot = $('#modalRoot');
+    console.log('🔵 modalRoot existe?', !!modalRoot); // 👈 AÑADIR
+    if (!modalRoot) return;
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -1734,5 +1684,111 @@ html {
         rules.number.classList.toggle('valid', hasNumber);
         rules.letter.classList.toggle('valid', hasLetter);
         rules.match.classList.toggle('valid', isMatch);
+        
+        return isLength && hasNumber && hasLetter && isMatch;
+      };
+      
+      passInput.addEventListener('input', validatePassword);
+      confirmInput.addEventListener('input', validatePassword);
+
+$('#modalSubmitReset').addEventListener('click', async () => {
+    const submitBtn = $('#modalSubmitReset');
+
+    if (!validatePassword()) {
+        showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla los requisitos.', 'error');
+        return;
+    }
+
+    try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Guardando...';
+
+        // Llamar a la Edge Function (que ya está en Supabase)
+        const response = await fetch(
+            'https://hvwygpnuunuuylzondxt.supabase.co/functions/v1/reset-password-user',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70'
+                },
+                body: JSON.stringify({
+                    userId: user.id,
+                    newPassword: passInput.value
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Error al actualizar');
+        }
+
+        modalRoot.innerHTML = '';
+        setTimeout(() => {
+            showModal('Éxito', 'Contraseña actualizada. Inicia sesión nuevamente.', 'success', () => {
+                window.location.reload();
+            });
+        }, 250);
+
+    } catch (error) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Guardar y Continuar';
+        showModal('Error', error.message, 'error');
+    }
+});
+    }
+    // ═══════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════
+async function init() {
+    console.log(`🚀 Initializing tenant: ${tenantId}`);
+    
+    // 1. Cargar y aplicar configuración (CSS, textos)
+    const config = await loadTenantConfig();
+    applyConfiguration(config);
+
+    // 2. Verificar la existencia del Tenant en la BD y obtener su UUID
+    try {
+        const { data: tenantDB, error } = await supabase
+        .from('tenants')
+        .select('id') // Solo necesitamos el 'id' (UUID)
+        .eq('name', tenantId) // Compara 'name' (ej. 'jnj')
+        .single();
+
+        if (error) {
+            throw new Error(`Tenant '${tenantId}' no encontrado en la base de datos.`);
+        }
+
+        // Guarda el UUID en la configuración global para usarlo después en el login
+        window.__appConfig.tenantUUID = tenantDB.id;
+        
+    } catch (error) {
+        console.error(error);
+        // Muestra un error si el tenant no existe en la BD
+        showModal(
+            'Error de Configuración', 
+            `El tenant '${tenantId}' no está configurado correctamente en la base de datos. Contacta a soporte.`, 
+            'error'
+        );
+        // Bloqueamos la ejecución si hay un error crítico de configuración.
+        return; 
+    }
+    
+    console.log('✅ Application ready');
+} 
+
+// ═══════════════════════════════════════════════════════════
+// DISPARADOR DE CARGA (FUERA DE init())
+// ═══════════════════════════════════════════════════════════
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+})(); // ← 🔹 ESTA CIERRA la función autoejecutable principal
+</script>
 </body>
 </html>
