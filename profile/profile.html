@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil de Capacitación PRO</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../componentes/global.css">
     <link rel="stylesheet" href="./profile.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../componentes/supabase-client.js"></script>
@@ -43,7 +44,7 @@
                     <div class="avatar">
                         <i class="fas fa-user"></i>
                     </div>
-                    <h2>Admin Usuario</h2>
+                    <h2 id="profileName">Cargando...</h2>
                     <p class="role">Contratista | ID: 789456</p>
                     
                     <div class="progress-donut">
@@ -730,8 +731,15 @@
   /**
    * Muestra u oculta elementos basados en el rol del usuario.
    */
-  function updateProfileView(role) {
-    if (role === 'admin' || role === 'master') {
+  function updateProfileView(profile) {
+    // Actualizar el nombre
+    const profileNameEl = document.getElementById('profileName');
+    if (profileNameEl) {
+      profileNameEl.textContent = profile.nombre || 'Usuario';
+    }
+
+    // Lógica de permisos existente
+    if (profile.role === 'admin' || profile.role === 'master') {
       if (manageUsersBtn) manageUsersBtn.style.display = 'flex';
     } else {
       if (manageUsersBtn) manageUsersBtn.style.display = 'none';
@@ -752,21 +760,21 @@
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, nombre')
         .eq('user_id', user.id)
         .single();
 
       if (profileError) throw profileError;
 
       if (profile) {
-        updateProfileView(profile.role);
+        updateProfileView(profile);
       } else {
         console.warn('Usuario autenticado pero sin perfil.');
-        updateProfileView('user'); // Oculta por seguridad
+        updateProfileView({ role: 'user', nombre: 'Usuario' }); // Oculta por seguridad
       }
     } catch (error) {
       console.error('Error al cargar el perfil del usuario:', error.message);
-      updateProfileView('user'); // Oculta por seguridad
+      updateProfileView({ role: 'user', nombre: 'Usuario' }); // Oculta por seguridad
     }
   }
 

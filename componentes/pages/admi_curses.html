@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración de Cursos</title>
+    
+    <!-- 1. Estilos Globales (asumiendo que está un nivel arriba) -->
+    <link rel="stylesheet" href="../global.css">
+    
+    <!-- 2. Estilos Específicos para esta página -->
+    <link rel="stylesheet" href="./admi_curses.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+</head>
+<body>
+    <!-- Header -->
+    <nav class="top-navbar">
+        <div class="logo-section">
+            <h2 id="companyName"><i class="fas fa-graduation-cap"></i> TROX Academy</h2>
+        </div>
+            <div class="nav-actions">
+        <a href="../../profile/profile.html" class="btn btn-outline">
+            <i class="fas fa-user"></i> Mi Perfil
+        </a>
+            </div>
+    </nav>
+
+<!-- Main Container -->
+<div class="container">
+    <!-- KPI Dashboard -->
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="kpi-content">
+                <div class="kpi-value" id="kpi-completed">78%</div>
+                <div class="kpi-label">Completado</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-spinner"></i></div>
+            <div class="kpi-content">
+                <div class="kpi-value" id="kpi-active">234</div>
+                <div class="kpi-label">En Progreso</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="kpi-content">
+                <div class="kpi-value" id="kpi-expired">12</div>
+                <div class="kpi-label">Vencidos</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-bolt"></i></div>
+            <div class="kpi-content">
+                <div class="kpi-value" id="kpi-urgent">8</div>
+                <div class="kpi-label">Urgentes</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main View -->
+    <div id="main-view">
+        <!-- Controls -->
+        <div class="controls">
+            <div class="search-box">
+                <span class="search-icon"><i class="fas fa-search"></i></span>
+                <input type="text" class="search-input" id="search-groups" placeholder="Buscar grupos...">
+            </div>
+            <button class="btn btn-primary" onclick="openNewGroupModal()">
+                <span><i class="fas fa-plus"></i></span> Nuevo Grupo
+            </button>
+        </div>
+
+        <!-- Groups Grid -->
+        <div class="groups-grid" id="groups-container"></div>
+    </div>
+
+    <!-- Detail View -->
+    <div id="detail-view" class="detail-view">
+        
+        <div class="detail-header">
+            <button class="back-btn" onclick="backToMain()">
+                <i class="fas fa-arrow-left"></i> Volver a Grupos
+            </button>
+            <h2 id="detail-group-name" style="margin-top: 1rem;"></h2>
+            <div class="group-meta" id="detail-group-meta"></div>
+        </div>
+        
+        <div class="detail-content-wrapper">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('courses')"><i class="fas fa-book"></i> Cursos</button>
+                <button class="tab" onclick="switchTab('users')"><i class="fas fa-users"></i> Usuarios</button>
+            </div>
+
+            <div id="tab-courses" class="tab-content">
+                <div id="courses-list"></div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="openAssignModal()">
+                    ➕ Asignar Nuevos Cursos
+                </button>
+            </div>
+
+            <div id="tab-users" class="tab-content" style="display: none;">
+                <div id="users-list"></div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="openAddUserModal()">
+                    <i class="fas fa-user-plus"></i> Añadir Usuarios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notifications Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Context Menu -->
+<div class="context-menu" id="context-menu">
+    <div class="context-menu-item" onclick="editCourseAssignment()">
+        <span><i class="fas fa-pencil-alt"></i></span> Editar Asignación
+    </div>
+    <div class="context-menu-item" onclick="changePriority()">
+        <span><i class="fas fa-bolt"></i></span> Cambiar Prioridad
+    </div>
+    <div class="context-menu-item" onclick="extendDeadline()">
+        <span><i class="fas fa-calendar-alt"></i></span> Extender Fecha
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" onclick="pauseCourse()">
+        <span><i class="fas fa-pause"></i></span> Suspender Curso
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item danger" onclick="removeCourseAssignment()">
+        <span><i class="fas fa-trash-alt"></i></span> Eliminar Asignación
+    </div>
+</div>
+<div class="context-menu" id="user-context-menu">
+    <div class="context-menu-item" onclick="viewUserProfile()">
+        <span><i class="fas fa-id-card"></i></span> Ver Perfil
+    </div>
+    <div class="context-menu-item" onclick="resetUserProgress()">
+        <span><i class="fas fa-sync-alt"></i></span> Reiniciar Progreso
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item danger" onclick="removeUserFromGroup()">
+        <span><i class="fas fa-user-minus"></i></span> Quitar del Grupo
+    </div>
+</div>
+<!-- Quick Actions (Desktop) -->
+<div class="quick-actions">
+    <button class="quick-action-btn" data-tooltip="Exportar Reporte" onclick="exportReport()">
+        <i class="fas fa-chart-bar"></i>
+    </button>
+    <button class="quick-action-btn" data-tooltip="Asignar Curso Individual" onclick="openIndividualAssign()">
+        <i class="fas fa-user-plus"></i>
+    </button>
+    <button class="quick-action-btn" data-tooltip="Vista de Cursos" onclick="showCoursesView()">
+        <i class="fas fa-book-open"></i>
+    </button>
+</div>
+
+<!-- Floating Action Button (Mobile) -->
+<button class="fab" onclick="openQuickMenu()"><i class="fas fa-plus"></i></button>
+
+<!-- Assign Courses Modal -->
+<div class="modal" id="assign-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Asignar Cursos</h3>
+            <button class="modal-close" onclick="closeAssignModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="duplicate-alert"></div>
+            
+            <div class="search-box" style="margin-bottom: 1rem;">
+                <span class="search-icon"><i class="fas fa-search"></i></span>
+                <input type="text" class="search-input" id="search-courses" placeholder="Buscar cursos...">
+            </div>
+
+            <div class="two-column">
+                <div>
+                    <div class="column-title">CATÁLOGO DE CURSOS</div>
+                    <div class="course-list" id="catalog-list"></div>
+                </div>
+                <div>
+                    <div class="column-title">SELECCIONADOS (<span id="selected-count">0</span>)</div>
+                    <div id="selected-list"></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeAssignModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="assignCourses()">Asignar Cursos →</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Supabase Configuration
+const SUPABASE_URL = 'https://hvwygpnuunuuylzondxt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
+
+// Cliente Supabase (comentado hasta que se implemente)
+// const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Tenant Detection
+const detectTenant = () => {
+    const host = location.hostname || 'localhost';
+    if (host === 'localhost' || host === '127.0.0.1') return 'demo';
+    const parts = host.split('.');
+    if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+    return 'default';
+};
+
+const tenantId = detectTenant();
+console.log('🏢 Tenant detectado:', tenantId);
+
+    // ==========================================================
+    // INICIO DE LA MODIFICACIÓN: Arrays Estáticos
+    // ==========================================================
+
+    // 1. Define los arrays de datos estáticos
+    const staticCourses = [
+      { "id": "course_01", "title": "Inducción de Seguridad", "category": "Seguridad", "duration_hours": 2 },
+      { "id": "course_02", "title": "Manejo de Químicos", "category": "Seguridad", "duration_hours": 3 },
+      { "id": "course_03", "title": "Uso de Extintores Nivel 1", "category": "Seguridad", "duration_hours": 1.5 },
+      { "id": "course_04", "title": "Excel para Finanzas", "category": "Tecnología", "duration_hours": 16 },
+      { "id": "course_05", "title": "Liderazgo de Equipos", "category": "Habilidades Blandas", "duration_hours": 8 }
+    ];
+
+    const staticUsers = [
+      { "id": "user_1", "name": "Ana García", "email": "ana@empresa.com", "department": "Ventas" },
+      { "id": "user_2", "name": "Carlos López", "email": "carlos@empresa.com", "department": "Ventas" },
+      { "id": "user_3", "name": "María P.", "email": "maria@empresa.com", "department": "Ventas" },
+      { "id": "user_4", "name": "Luis Torres", "email": "luis@empresa.com", "department": "Marketing" },
+      { "id": "user_5", "name": "Sofía Díaz", "email": "sofia@empresa.com", "department": "Marketing" }
+    ];
+
+    const staticGroups = [
+      { 
+        "id": "group_1", 
+        "name": "Marketing Digital", 
+        "supervisor_id": "supervisor_1", 
+        "users": ["user_4", "user_5"] // 2 usuarios
+      },
+      { 
+        "id": "group_2", 
+        "name": "Ventas Regional", 
+        "supervisor_id": "supervisor_1", 
+        "users": ["user_1", "user_2", "user_3"] // 3 usuarios
+      }
+    ];
+
+    const staticAssignments = [
+      // Asignaciones para Grupo 1 (Marketing)
+      { "id": "assign_1", "course_id": "course_05", "assigned_to_type": "group", "assigned_to_id": "group_1", "due_date": "2025-12-31T00:00:00Z", "priority": "normal" },
+
+      // Asignaciones para Grupo 2 (Ventas)
+      { "id": "assign_2", "course_id": "course_01", "assigned_to_type": "group", "assigned_to_id": "group_2", "due_date": "2025-11-30T00:00:00Z", "priority": "urgent" },
+      { "id": "assign_3", "course_id": "course_02", "assigned_to_type": "group", "assigned_to_id": "group_2", "due_date": "2025-12-15T00:00:00Z", "priority": "normal" }
+    ];
+
+    const staticProgress = [
+      // --- Progreso Grupo 1 (Marketing) ---
+      // Curso course_05 (Liderazgo)
+      { "user_id": "user_4", "course_id": "course_05", "status": "completed", "progress_percent": 100 },
+      { "user_id": "user_5", "course_id": "course_05", "status": "in_progress", "progress_percent": 50 },
+
+      // --- Progreso Grupo 2 (Ventas) ---
+      // Curso course_01 (Inducción)
+      { "user_id": "user_1", "course_id": "course_01", "status": "completed", "progress_percent": 100 },
+      { "user_id": "user_2", "course_id": "course_01", "status": "in_progress", "progress_percent": 60 },
+      { "user_id": "user_3", "course_id": "course_01", "status": "expired", "progress_percent": 10 },
+      // Curso course_02 (Químicos)
+      { "user_id": "user_1", "course_id": "course_02", "status": "in_progress", "progress_percent": 20 },
+      { "user_id": "user_2", "course_id": "course_02", "status": "not_started", "progress_percent": 0 },
+      { "user_id": "user_3", "course_id": "course_02", "status": "not_started", "progress_percent": 0 }
+    ];
+
+    // 2. Asigna los arrays estáticos al objeto mockData
+    const mockData = {
+        groups: staticGroups,
+        users: staticUsers,
+        courses: staticCourses,
+        assignments: staticAssignments,
+        progress: staticProgress
+    };
+
+    // 3. ELIMINAMOS la función 'initializeMockData' y su llamada
+
+    // ==========================================================
+    // FIN DE LA MODIFICACIÓN
+    // ==========================================================
+
+    // Current state
+    let currentGroup = null;
+    let selectedCourses = [];
+    let currentTab = 'courses';
+
+    // Initialize
+    // initializeMockData(); // <-- ELIMINADO
+    renderGroups();
+    updateKPIs();
+
+    // Render groups
+    function renderGroups(searchTerm = '') {
+        const container = document.getElementById('groups-container');
+        const filteredGroups = mockData.groups.filter(g => 
+            g.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        if (filteredGroups.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-box-open"></i></div>
+                    <h3>No se encontraron grupos</h3>
+                    <p>Intenta con otros términos de búsqueda</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filteredGroups.map(group => {
+            const assignments = mockData.assignments.filter(a => 
+                a.assigned_to_type === 'group' && a.assigned_to_id === group.id
+            );
+            
+            const urgentCount = assignments.filter(a => a.priority === 'urgent').length;
+            
+            // Calculate progress statistics
+            let completed = 0, inProgress = 0, expired = 0, total = 0;
+            
+            group.users.forEach(userId => {
+                assignments.forEach(assignment => {
+                    const progress = mockData.progress.find(p => 
+                        p.user_id === userId && p.course_id === assignment.course_id
+                    );
+                    if (progress) {
+                        total++;
+                        if (progress.status === 'completed') completed++;
+                        else if (progress.status === 'in_progress') inProgress++;
+                        else if (progress.status === 'expired') expired++;
+                    }
+                });
+            });
+
+            const completedPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            const inProgressPercent = total > 0 ? Math.round((inProgress / total) * 100) : 0;
+            const expiredPercent = total > 0 ? Math.round((expired / total) * 100) : 0;
+
+            return `
+                <div class="group-card" onclick="viewGroupDetail('${group.id}')">
+                    <div class="group-header">
+                        <div class="group-info">
+                            <h3><i class="fas fa-folder"></i> ${group.name}</h3>
+                            <div class="group-meta">
+                                <span><i class="fas fa-users"></i> ${group.users.length} usuarios</span>
+                                <span><i class="fas fa-book"></i> ${assignments.length} cursos asignados</span>
+                                ${urgentCount > 0 ? `<span class="urgent-badge"><i class="fas fa-bolt"></i> ${urgentCount} urgentes</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group-progress">
+                        <div class="progress-stats">
+                            <div class="stat">
+                                <span class="stat-icon"><i class="fas fa-check-circle"></i></span>
+                                <span>${completedPercent}%</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-icon"><i class="fas fa-hourglass-half"></i></span>
+                                <span>${inProgressPercent}%</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-icon"><i class="fas fa-times-circle"></i></span>
+                                <span>${expiredPercent}%</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${completedPercent}%"></div>
+                        </div>
+                    </div>
+                    <div class="group-actions">
+                        <button class="btn btn-secondary" onclick="event.stopPropagation(); viewGroupDetail('${group.id}')">
+                            <i class="fas fa-eye"></i> Ver Detalle
+                        </button>
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); openAssignModalForGroup('${group.id}')">
+                            <i class="fas fa-plus"></i> Asignar
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // View group detail
+    function viewGroupDetail(groupId) {
+        currentGroup = mockData.groups.find(g => g.id === groupId);
+        if (!currentGroup) return;
+
+        document.getElementById('main-view').style.display = 'none';
+        document.getElementById('detail-view').classList.add('active');
+
+        document.getElementById('detail-group-name').textContent = currentGroup.name;
+        
+        const assignments = mockData.assignments.filter(a => 
+            a.assigned_to_type === 'group' && a.assigned_to_id === groupId
+        );
+        
+        const urgentCount = assignments.filter(a => a.priority === 'urgent').length;
+
+        document.getElementById('detail-group-meta').innerHTML = `
+            <span><i class="fas fa-users"></i> ${currentGroup.users.length} usuarios</span>
+            <span><i class="fas fa-book"></i> ${assignments.length} cursos asignados</span>
+            ${urgentCount > 0 ? `<span class="urgent-badge"><i class="fas fa-bolt"></i> ${urgentCount} urgentes</span>` : ''}
+        `;
+
+        switchTab('courses');
+        renderGroupCourses();
+    }
+
+    // Back to main view
+    function backToMain() {
+        document.getElementById('main-view').style.display = 'block';
+        document.getElementById('detail-view').classList.remove('active');
+        currentGroup = null;
+    }
+
+    // Switch tabs
+    function switchTab(tab) {
+        currentTab = tab;
+        
+        // This line was causing an error if event was not passed
+        // event.target.classList.add('active');
+        // Simple fix: find tab by data attribute
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+
+
+        if (tab === 'courses') {
+            document.getElementById('tab-courses').style.display = 'block';
+            document.getElementById('tab-users').style.display = 'none';
+            renderGroupCourses();
+        } else {
+            document.getElementById('tab-courses').style.display = 'none';
+            document.getElementById('tab-users').style.display = 'block';
+            renderGroupUsers();
+        }
+    }
+
+    // Render group courses
+    function renderGroupCourses() {
+        if (!currentGroup) return;
+
+        const assignments = mockData.assignments.filter(a => 
+            a.assigned_to_type === 'group' && a.assigned_to_id === currentGroup.id
+        );
+
+        const container = document.getElementById('courses-list');
+
+        if (assignments.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-book"></i></div>
+                    <h3>No hay cursos asignados</h3>
+                    <p>Comienza asignando cursos a este grupo</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = assignments.map(assignment => {
+            const course = mockData.courses.find(c => c.id === assignment.course_id);
+            
+            // Calculate user progress for this course
+            let completed = 0, inProgress = 0, notStarted = 0, expired = 0;
+            
+            currentGroup.users.forEach(userId => {
+                const progress = mockData.progress.find(p => 
+                    p.user_id === userId && p.course_id === course.id
+                );
+                if (progress) {
+                    if (progress.status === 'completed') completed++;
+                    else if (progress.status === 'in_progress') inProgress++;
+                    else if (progress.status === 'expired') expired++;
+                    else notStarted++;
+                }
+            });
+
+            const dueDate = new Date(assignment.due_date).toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+
+            return `
+                <div class="course-detail-item">
+                    <div class="course-detail-header">
+                        <div class="course-detail-info">
+                            <h4>${course.title} ${assignment.priority === 'urgent' ? '<i class="fas fa-bolt"></i>' : ''}</h4>
+                            <div style="color: var(--gray-600); font-size: 0.875rem;">
+                                Vence: ${dueDate} | ${course.duration_hours}h
+                            </div>
+                        </div>
+                        <button class="menu-btn" onclick="toggleCourseExpand(event, '${assignment.id}')" oncontextmenu="showContextMenu(event, '${assignment.id}', '${course.id}'); return false;">⋮</button>
+                    </div>
+                    <div class="progress-stats">
+                        <div class="stat">
+                            <span class="stat-icon"><i class="fas fa-check-circle"></i></span>
+                            <span>${completed}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon"><i class="fas fa-hourglass-half"></i></span>
+                            <span>${inProgress}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon"><i class="fas fa-times-circle"></i></span>
+                            <span>${expired}</span>
+                        </div>
+                    </div>
+                    <div class="expandable" id="expand-${assignment.id}">
+                        <div class="user-list">
+                            ${currentGroup.users.map(userId => {
+                                const user = mockData.users.find(u => u.id === userId);
+                                const progress = mockData.progress.find(p => 
+                                    p.user_id === userId && p.course_id === course.id
+                                );
+                                
+                                const statusMap = {
+                                    completed: { text: 'Completado', class: 'status-completed' },
+                                    in_progress: { text: 'En progreso', class: 'status-progress' },
+                                    not_started: { text: 'No iniciado', class: 'status-notstarted' },
+                                    expired: { text: 'Vencido', class: 'status-expired' }
+                                };
+
+                                const status = statusMap[progress?.status || 'not_started'];
+
+                                return `
+                                    <div class="user-item">
+                                        <div class="user-name">
+                                            <span><i class="fas fa-user"></i></span>
+                                            <span>${user.name}</span>
+                                        </div>
+                                        <span class="status-badge ${status.class}">
+                                            ${status.text} ${progress?.progress_percent || 0}%
+                                        </span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Toggle course expand
+    function toggleCourseExpand(event, assignmentId) {
+        event.stopPropagation();
+        const element = document.getElementById(`expand-${assignmentId}`);
+        element.classList.toggle('expanded');
+    }
+
+    // Render group users
+    function renderGroupUsers() {
+        if (!currentGroup) return;
+
+        const container = document.getElementById('users-list');
+        
+        container.innerHTML = currentGroup.users.map(userId => {
+            const user = mockData.users.find(u => u.id === userId);
+            
+            // ... (cálculos de stats que ya tienes)
+            let completed = 0, inProgress = 0, notStarted = 0;
+            // ... (tu lógica de stats)
+
+            // ¡Añadimos el botón de menú!
+            return `
+                <div class="course-detail-item">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        
+                        <div>
+                            <h4><i class="fas fa-user"></i> ${user.name}</h4>
+                            <div style="color: var(--gray-600); font-size: 0.875rem; margin-top: 0.25rem;">
+                                ${user.email} | ${user.department}
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; margin-left: 1rem;">
+                            <div class="stat">
+                                <span class="stat-icon"><i class="fas fa-check-circle"></i></span>
+                                <span>${completed}</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-icon"><i class="fas fa-hourglass-half"></i></span>
+                                <span>${inProgress}</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-icon"><i class="fas fa-book"></i></span>
+                                <span>${notStarted}</span>
+                            </div>
+                        </div>
+
+                        <button class="menu-btn" onclick="showUserContextMenu(event, '${user.id}')">⋮</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Open assign modal
+    function openAssignModalForGroup(groupId) {
+        currentGroup = mockData.groups.find(g => g.id === groupId);
+        openAssignModal();
+    }
+
+    function openAssignModal() {
+        if (!currentGroup) return;
+
+        selectedCourses = [];
+        document.getElementById('modal-title').textContent = `Asignar Cursos a: ${currentGroup.name}`;
+        document.getElementById('assign-modal').classList.add('active');
+        renderCatalog();
+        updateSelectedList();
+    }
+
+    function closeAssignModal() {
+        document.getElementById('assign-modal').classList.remove('active');
+        selectedCourses = [];
+    }
+
+    // Render course catalog
+    function renderCatalog(searchTerm = '') {
+        const container = document.getElementById('catalog-list');
+        
+        // Get already assigned courses for this group
+        const assignedCourseIds = mockData.assignments
+            .filter(a => a.assigned_to_type === 'group' && a.assigned_to_id === currentGroup.id)
+            .map(a => a.course_id);
+
+        const filteredCourses = mockData.courses.filter(c => 
+            c.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+            !assignedCourseIds.includes(c.id)
+        );
+
+        container.innerHTML = filteredCourses.map(course => {
+            const isSelected = selectedCourses.some(s => s.id === course.id);
+            
+            return `
+                <div class="course-item ${isSelected ? 'selected' : ''}" onclick="toggleCourseSelection('${course.id}')">
+                    <input type="checkbox" class="course-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()">
+                    <div class="course-details">
+                        <div class="course-title">${course.title}</div>
+                        <div class="course-meta-text">${course.category} | ${course.duration_hours}h</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Toggle course selection
+    function toggleCourseSelection(courseId) {
+        const course = mockData.courses.find(c => c.id === courseId);
+        const index = selectedCourses.findIndex(s => s.id === courseId);
+
+        if (index > -1) {
+            selectedCourses.splice(index, 1);
+        } else {
+            selectedCourses.push({
+                id: course.id,
+                title: course.title,
+                dueDate: new Date(2025, 11, 31).toISOString().split('T')[0],
+                priority: 'normal'
+            });
+        }
+
+        renderCatalog(document.getElementById('search-courses').value);
+        updateSelectedList();
+    }
+
+    // Update selected courses list
+    function updateSelectedList() {
+        const container = document.getElementById('selected-list');
+        document.getElementById('selected-count').textContent = selectedCourses.length;
+
+        if (selectedCourses.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-book"></i></div>
+                    <p>Selecciona cursos del catálogo</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = selectedCourses.map((selected, index) => {
+            return `
+                <div class="selected-course-item">
+                    <div class="selected-course-header">
+                        <strong>${selected.title}</strong>
+                        <button class="remove-btn" onclick="removeSelectedCourse(${index})">✕</button>
+                    </div>
+                    <div class="course-config">
+                        <div class="form-group">
+                            <label class="form-label">Fecha límite:</label>
+                            <input type="date" class="form-input" value="${selected.dueDate}" 
+                                onchange="updateCourseConfig(${index}, 'dueDate', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Prioridad:</label>
+                            <select class="form-select" value="${selected.priority}"
+                                onchange="updateCourseConfig(${index}, 'priority', this.value)">
+                                <option value="normal" ${selected.priority === 'normal' ? 'selected' : ''}>Normal</option>
+                                <option value="urgent" ${selected.priority === 'urgent' ? 'selected' : ''}><i class="fas fa-bolt"></i> Urgente</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Remove selected course
+    function removeSelectedCourse(index) {
+        selectedCourses.splice(index, 1);
+        renderCatalog(document.getElementById('search-courses').value);
+        updateSelectedList();
+    }
+
+    // Update course configuration
+    function updateCourseConfig(index, field, value) {
+        selectedCourses[index][field] = value;
+    }
+
+    // Assign courses
+    function assignCourses() {
+        if (selectedCourses.length === 0) {
+            // alert('Selecciona al menos un curso');
+            showToast('Sin Selección', 'Selecciona al menos un curso', 'warning');
+            return;
+        }
+
+        // Check for duplicates
+        const existingAssignments = mockData.assignments.filter(a => 
+            a.assigned_to_type === 'group' && a.assigned_to_id === currentGroup.id
+        );
+        
+        const duplicates = selectedCourses.filter(sc => 
+            existingAssignments.some(ea => ea.course_id === sc.id)
+        );
+
+        if (duplicates.length > 0) {
+            const duplicateNames = duplicates.map(d => d.title).join(', ');
+            showToast(
+                'Cursos Duplicados', 
+                `Los siguientes cursos ya están asignados: ${duplicateNames}`, 
+                'warning'
+            );
+            return;
+        }
+
+        // Add assignments
+        selectedCourses.forEach(selected => {
+            mockData.assignments.push({
+                id: `assignment_${mockData.assignments.length + 1}`,
+                course_id: selected.id,
+                assigned_to_type: 'group',
+                assigned_to_id: currentGroup.id,
+                assigned_date: new Date().toISOString(),
+                due_date: new Date(selected.dueDate).toISOString(),
+                priority: selected.priority,
+                assigned_by_supervisor_id: 'supervisor_1'
+            });
+
+            // Create progress entries
+            currentGroup.users.forEach(userId => {
+                mockData.progress.push({
+                    user_id: userId,
+                    course_id: selected.id,
+                    status: 'not_started',
+                    progress_percent: 0,
+                    started_date: null,
+                    completed_date: null,
+                    last_activity: new Date().toISOString()
+                });
+            });
+        });
+
+        closeAssignModal();
+        renderGroupCourses();
+        renderGroups();
+        updateKPIs();
+
+        showToast(
+            'Asignación Exitosa', 
+            `${selectedCourses.length} curso(s) asignados a ${currentGroup.name}`,
+            'success'
+        );
+    }
+
+    // Update KPIs
+    function updateKPIs() {
+        let totalCompleted = 0;
+        let totalInProgress = 0;
+        let totalExpired = 0;
+        let totalUrgent = 0;
+
+        mockData.progress.forEach(p => {
+            if (p.status === 'completed') totalCompleted++;
+            if (p.status === 'in_progress') totalInProgress++;
+            if (p.status === 'expired') totalExpired++;
+        });
+
+        mockData.assignments.forEach(a => {
+            if (a.priority === 'urgent') totalUrgent++;
+        });
+
+        const completedPercent = mockData.progress.length > 0 
+            ? Math.round((totalCompleted / mockData.progress.length) * 100) 
+            : 0;
+
+        document.getElementById('kpi-completed').textContent = `${completedPercent}%`;
+        document.getElementById('kpi-active').textContent = totalInProgress;
+        document.getElementById('kpi-expired').textContent = totalExpired;
+        document.getElementById('kpi-urgent').textContent = totalUrgent;
+    }
+
+    // Search handlers
+    document.getElementById('search-groups').addEventListener('input', (e) => {
+        renderGroups(e.target.value);
+    });
+
+    document.getElementById('search-courses').addEventListener('input', (e) => {
+        renderCatalog(e.target.value);
+    });
+
+    // New group modal (placeholder)
+    function openNewGroupModal() {
+        // alert('Funcionalidad de crear nuevo grupo - Por implementar según perfil de administrador');
+        showToast('Próximamente', 'La creación de grupos estará disponible pronto', 'info');
+    }
+
+    // Click outside modal to close
+    document.getElementById('assign-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'assign-modal') {
+            closeAssignModal();
+        }
+    });
+
+    // Toast Notification System
+    function showToast(title, message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toastId = `toast-${Date.now()}`;
+        
+        const icons = {
+            success: '<i class="fas fa-check-circle"></i>',
+            error: '<i class="fas fa-times-circle"></i>',
+            warning: '<i class="fas fa-exclamation-triangle"></i>',
+            info: '<i class="fas fa-info-circle"></i>'
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.id = toastId;
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type]}</span>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" onclick="closeToast('${toastId}')">✕</button>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            closeToast(toastId);
+        }, 5000);
+    }
+
+    function closeToast(toastId) {
+        const toast = document.getElementById(toastId);
+        if (toast) {
+            // toast.style.animation = 'slideInRight 0.3s ease reverse';
+            // setTimeout(() => toast.remove(), 300);
+            toast.remove(); // Simple remove
+        }
+    }
+
+    // Context Menu for Course Actions
+    let contextMenuTarget = null;
+
+    function showContextMenu(event, assignmentId, courseId) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        contextMenuTarget = { assignmentId, courseId };
+        
+        const menu = document.getElementById('context-menu');
+        menu.classList.add('active');
+        
+        const x = event.clientX;
+        const y = event.clientY;
+        
+        // Prevent menu from going off-screen
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+
+        menu.style.left = `${Math.min(x, screenWidth - menuWidth - 10)}px`;
+        menu.style.top = `${Math.min(y, screenHeight - menuHeight - 10)}px`;
+    }
+
+let userContextMenuTarget = null;
+
+function showUserContextMenu(event, userId) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Oculta el otro menú si estuviera abierto
+    hideContextMenu();
+    
+    userContextMenuTarget = { userId };
+    
+    const menu = document.getElementById('user-context-menu');
+    menu.classList.add('active');
+    
+    // ... (copia la lógica de posicionamiento de showContextMenu)
+    const x = event.clientX;
+    const y = event.clientY;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+
+    menu.style.left = `${Math.min(x, screenWidth - menuWidth - 10)}px`;
+    menu.style.top = `${Math.min(y, screenHeight - menuHeight - 10)}px`;
+}
+
+// Cierra AMBOS menús al hacer clic afuera
+document.addEventListener('click', () => {
+    hideContextMenu(); // Cierra menú de cursos
+    
+    const userMenu = document.getElementById('user-context-menu');
+    if (userMenu) userMenu.classList.remove('active'); // Cierra menú de usuarios
+});
+
+
+// Funciones de acción (placeholders)
+function viewUserProfile() {
+    showToast('Próximamente', `Viendo perfil de ${userContextMenuTarget.userId}`, 'info');
+    document.getElementById('user-context-menu').classList.remove('active');
+}
+
+function resetUserProgress() {
+    showToast('Próximamente', `Reiniciando progreso de ${userContextMenuTarget.userId}`, 'warning');
+    document.getElementById('user-context-menu').classList.remove('active');
+}
+
+function removeUserFromGroup() {
+    const userId = userContextMenuTarget.userId;
+    const user = mockData.users.find(u => u.id === userId);
+    
+    if (confirm(`¿Seguro que deseas eliminar a ${user.name} del grupo ${currentGroup.name}?`)) {
+        // Lógica de eliminación (Mock)
+        const userIndex = currentGroup.users.findIndex(id => id === userId);
+        if (userIndex > -1) {
+            currentGroup.users.splice(userIndex, 1);
+        }
+        
+        // Volver a renderizar la lista de usuarios
+        renderGroupUsers();
+        // Actualizar la tarjeta del grupo en la vista principal
+        renderGroups();
+        
+        showToast('Usuario Eliminado', `${user.name} ha sido eliminado del grupo.`, 'success');
+    }
+    
+    document.getElementById('user-context-menu').classList.remove('active');
+}
+
+// Placeholder para el botón de "Añadir Usuarios"
+function openAddUserModal() {
+    showToast('Próximamente', 'Implementación de modal para añadir usuarios.', 'info');
+}
+
+
+    function hideContextMenu() {
+        const menu = document.getElementById('context-menu');
+        if (menu) menu.classList.remove('active');
+    }
+
+    // Close context menu on click outside
+    document.addEventListener('click', hideContextMenu);
+
+    // Context menu actions
+    function editCourseAssignment() {
+        if (!contextMenuTarget) return;
+        
+        const assignment = mockData.assignments.find(a => a.id === contextMenuTarget.assignmentId);
+        const course = mockData.courses.find(c => c.id === contextMenuTarget.courseId);
+        
+        showToast('Editar Asignación', `Editando: ${course.title}`, 'info');
+        hideContextMenu();
+    }
+
+    function changePriority() {
+        if (!contextMenuTarget) return;
+        
+        const assignment = mockData.assignments.find(a => a.id === contextMenuTarget.assignmentId);
+        const course = mockData.courses.find(c => c.id === assignment.course_id);
+        
+        assignment.priority = assignment.priority === 'urgent' ? 'normal' : 'urgent';
+        
+        renderGroupCourses();
+        renderGroups();
+        updateKPIs();
+        
+        showToast(
+            'Prioridad Actualizada', 
+            `${course.title} ahora es ${assignment.priority === 'urgent' ? 'urgente <i class="fas fa-bolt"></i>' : 'normal'}`,
+            'success'
+        );
+        hideContextMenu();
+    }
+
+    function extendDeadline() {
+        if (!contextMenuTarget) return;
+        
+        const assignment = mockData.assignments.find(a => a.id === contextMenuTarget.assignmentId);
+        const course = mockData.courses.find(c => c.id === assignment.course_id);
+        
+        const currentDate = new Date(assignment.due_date);
+        currentDate.setDate(currentDate.getDate() + 14);
+        assignment.due_date = currentDate.toISOString();
+        
+        renderGroupCourses();
+        
+        showToast(
+            'Fecha Extendida', 
+            `${course.title} ahora vence el ${currentDate.toLocaleDateString('es-ES')}`,
+            'success'
+        );
+        hideContextMenu();
+    }
+
+    function pauseCourse() {
+        if (!contextMenuTarget) return;
+        
+        const course = mockData.courses.find(c => c.id === contextMenuTarget.courseId);
+        
+        // Update all progress to paused for this course in current group
+        currentGroup.users.forEach(userId => {
+            const progress = mockData.progress.find(p => 
+                p.user_id === userId && p.course_id === contextMenuTarget.courseId
+            );
+            if (progress && progress.status === 'in_progress') {
+                progress.status = 'paused';
+            }
+        });
+        
+        renderGroupCourses();
+        updateKPIs();
+        
+        showToast('Curso Suspendido', `${course.title} ha sido suspendido temporalmente`, 'warning');
+        hideContextMenu();
+    }
+
+    function removeCourseAssignment() {
+        if (!contextMenuTarget) return;
+        
+        const assignment = mockData.assignments.find(a => a.id === contextMenuTarget.assignmentId);
+        const course = mockData.courses.find(c => c.id === assignment.course_id);
+        
+        // Use custom modal for confirmation instead of alert
+        if (confirm(`¿Estás seguro de eliminar "${course.title}" del grupo ${currentGroup.name}?\n\nEsta acción no se puede deshacer.`)) {
+            // Remove assignment
+            const assignmentIndex = mockData.assignments.findIndex(a => a.id === contextMenuTarget.assignmentId);
+            mockData.assignments.splice(assignmentIndex, 1);
+            
+            // Remove progress entries
+            mockData.progress = mockData.progress.filter(p => 
+                !(currentGroup.users.includes(p.user_id) && p.course_id === contextMenuTarget.courseId)
+            );
+            
+            renderGroupCourses();
+            renderGroups();
+            updateKPIs();
+            
+            showToast('Asignación Eliminada', `${course.title} eliminado del grupo`, 'success');
+        }
+        
+        hideContextMenu();
+    }
+
+    // Export Report
+    function exportReport() {
+        showToast('Exportando...', 'Generando reporte en formato Excel', 'info');
+        
+        setTimeout(() => {
+            showToast('Reporte Generado', 'El reporte se ha descargado exitosamente', 'success');
+        }, 2000);
+    }
+
+    // Individual Assignment
+    function openIndividualAssign() {
+        showToast('Asignación Individual', 'Funcionalidad de asignación individual próximamente', 'info');
+    }
+
+    // Courses View
+    function showCoursesView() {
+        showToast('Vista de Cursos', 'Cambiando a vista de catálogo de cursos', 'info');
+    }
+
+    // Quick Menu (Mobile)
+    function openQuickMenu() {
+        const options = [
+            { text: 'Nuevo Grupo', action: openNewGroupModal },
+            { text: 'Asignar Individual', action: openIndividualAssign },
+            { text: 'Exportar Reporte', action: exportReport }
+        ];
+        
+        // Simple menu for mobile
+        const choice = prompt('Selecciona una opción:\n1. Nuevo Grupo\n2. Asignar Individual\n3. Exportar Reporte');
+        
+        if (choice === '1') openNewGroupModal();
+        else if (choice === '2') openIndividualAssign();
+        else if (choice === '3') exportReport();
+    }
+
+    // Enhanced toggle with context menu
+    function toggleCourseExpand(event, assignmentId) {
+        event.stopPropagation();
+        
+        // Check if it's a right click or long press
+        if (event.button === 2 || event.type === 'contextmenu') {
+            const assignment = mockData.assignments.find(a => a.id === assignmentId);
+            showContextMenu(event, assignmentId, assignment.course_id);
+            return;
+        }
+        
+        const element = document.getElementById(`expand-${assignmentId}`);
+        element.classList.toggle('expanded');
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // ESC to close modals
+        if (e.key === 'Escape') {
+            closeAssignModal();
+            hideContextMenu();
+        }
+        
+        // Ctrl/Cmd + K for search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            document.getElementById('search-groups').focus();
+        }
+    });
+
+    // Initialize welcome toast
+    setTimeout(() => {
+        showToast(
+            '¡Bienvenida María!', 
+            'Sistema de gestión de cursos cargado correctamente',
+            'success'
+        );
+    }, 500);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,322 @@
+/* ========================================================================
+   ARCHIVO GLOBAL DE ESTILOS
+   ========================================================================
+   Este archivo contiene todos los estilos base, variables y componentes
+   reutilizables para la plataforma completa.
+   
+   PRINCIPIOS DE DISEÑO (Basado en Refactoring UI & Laws of UX):
+   1. SISTEMA DEFINIDO: Usar variables CSS para colores, sombras y
+      fuentes permite cambios globales y theming (tenants).
+   2. CONSISTENCIA: Los componentes reutilizables (botones, nav) deben
+      ser idénticos en todas las páginas (Ley de Jakob).
+   3. JERARQUÍA: Los estilos base establecen una jerarquía visual clara.
+   4. MANTENIBILIDAD: Evitar duplicación de código.
+======================================================================== */
+
+/* ========================================================================
+   1. VARIABLES GLOBALES (:root)
+   ========================================================================
+   Define la paleta de colores completa, fuentes y efectos (sombras).
+   Las variables de "tenant" (--primaryColor, --secondaryColor) se
+   inyectan mediante JavaScript desde tenants.json, pero definimos
+   fallbacks seguros aquí.
+======================================================================== */
+:root {
+    /* Colores dinámicos del Tenant (inyectados por JS) */
+    /* Fallback para 'default' o si el JS falla */
+    --primaryColor: #004a99; 
+    --secondaryColor: #0056a3;
+
+    /* Colores semánticos estándar */
+    --success: #28a745;
+    --warning: #f59e0b;
+    --danger: #dc3545;
+
+    /* Paleta de grises y neutros del sistema */
+    --light-gray: #f4f4f4;  /* Para fondos claros, "casi blanco" */
+    --border: #e2e2e2;      /* Bordes de inputs, cards, etc. */
+    --text-secondary: #6e7883; /* Texto secundario, placeholders */
+    --card-bg: #ffffff;     /* Color de fondo estándar para tarjetas */
+
+    /* Efectos de UI (Refactoring UI p. 180) */
+    --shadow: rgba(0,0,0,0.05);
+    --shadow-hover: rgba(0,0,0,0.1);
+}
+
+/* ========================================================================
+   2. ESTILOS BASE (Reset y Tipografía)
+   ========================================================================
+   Define el aspecto fundamental del 'body', 'html' y la fuente base.
+======================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    /* Usar 80% (o 12.8px) como base ayuda a crear una UI más refinada
+       y menos "tosca" que el default de 16px. (Refactoring UI) */
+    font-size: 80%; 
+    height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    /* Fuente base del sistema: Segoe UI es limpia y profesional */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    
+    /* Fondo global de la aplicación */
+    background: linear-gradient(135deg, #f4f4f4 0%, #e8eef3 100%);
+    min-height: 100vh;
+    
+    /* El color de texto principal se hereda del color primario del tenant */
+    color: var(--primaryColor);
+}
+
+/* Dependencia global de iconos (Font Awesome) */
+/* Asegúrate de cargar el CDN de Font Awesome en el <head> de cada HTML */
+
+
+/* ========================================================================
+   3. COMPONENTES REUTILIZABLES
+   ========================================================================
+   Estilos para componentes que aparecen en múltiples páginas.
+======================================================================== */
+
+/* --------------------------------------
+   3.1 Barra de Navegación Superior
+   -------------------------------------- */
+.top-navbar {
+    background: var(--card-bg);
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-section h2 {
+    color: var(--primaryColor);
+    font-size: 1.5rem; /* 1.5 * 12.8px = 19.2px */
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* --------------------------------------
+   3.2 Botones (Sistema de Botones)
+   --------------------------------------
+   Basado en Refactoring UI (p. 60), la jerarquía es más
+   importante que la semántica. Definimos 3 niveles:
+   - .btn (base)
+   - .btn-primary (acción principal)
+   - .btn-outline (acción secundaria o terciaria)
+-------------------------------------- */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.95rem; /* 0.95 * 12.8px = ~12px */
+}
+
+/* Botón Primario (fondo sólido) */
+.btn-primary {
+    background: var(--primaryColor);
+    color: white;
+    border: 2px solid var(--primaryColor); /* Borde para consistencia */
+}
+
+.btn-primary:hover {
+    background: var(--secondaryColor);
+    border-color: var(--secondaryColor);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Botón Secundario/Outline (fondo transparente) */
+.btn-outline {
+    background: white;
+    color: var(--primaryColor);
+    border: 2px solid var(--primaryColor);
+}
+
+.btn-outline:hover {
+    background: var(--primaryColor);
+    color: white;
+}
+
+/* Botón de Peligro (ej. eliminar) */
+.btn-danger {
+    background: var(--danger);
+    color: white;
+    border: 2px solid var(--danger);
+}
+.btn-danger:hover {
+    background: #b91c1c; /* Un rojo más oscuro para hover */
+    border-color: #b91c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* --------------------------------------
+   3.3 Modales (Pop-ups)
+   -------------------------------------- */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+    animation: fadeIn 0.3s;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: slideUp 0.3s;
+    color: var(--text-secondary); /* Texto base dentro del modal */
+}
+
+.modal-content h3 {
+    text-align: center;
+    color: var(--primaryColor);
+    margin-bottom: 1rem;
+}
+
+.modal-content p {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.modal-icon {
+    font-size: 4rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+.modal-icon.success { color: var(--success); }
+.modal-icon.info { color: var(--primaryColor); }
+.modal-icon.error { color: var(--danger); }
+
+/* Acciones dentro del modal */
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+
+/* ========================================================================
+   4. CLASES DE UTILIDAD (Layout y Formularios)
+   ======================================================================== */
+
+/* Contenedor principal de página */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Elementos de formulario base */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primaryColor);
+}
+
+/* Caja de búsqueda estándar */
+.search-box {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--primaryColor);
+}
+
+.search-box i,
+.search-box .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
