@@ -485,8 +485,8 @@ $('#formEmployees').addEventListener('submit', async (e) => {
 
     console.log('1️⃣ Iniciando login para:', username);
     
-if (!username) {
-      showModal('Error', 'Por favor, ingresa tu correo electrónico.', 'error');
+    if (!username || !password) {
+      showModal('Error', 'Por favor, ingresa tu correo y contraseña.', 'error');
       return;
     }
     
@@ -497,103 +497,97 @@ if (!username) {
     let userMessage = 'Usuario o contraseña incorrecta.';
 
     try {
-        // 1. INTENTO DE LOGIN ESTÁNDAR
-        await supabase.from('registration_requests').insert({
-          email: regEmail,
-          name: regName,
-          area: regArea,
-          worker_id: idUser,
-          tenant_id: window.__appConfig.tenantUUID
+        // 1️⃣ AUTENTICAR CON SUPABASE
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: username,
+          password: password
         });
 
-        // 2. MANEJO DE FALLO DE LOGIN
-if (authError || !authData.user) {
-          console.log('2️⃣ Login falló, verificando force_reset...');
+        console.log('2️⃣ Auth response:', authData, authError);
+
+        // ❌ SI FALLA LA AUTENTICACIÓN
+        if (authError || !authData.user) {
+          console.log('3️⃣ Login fallió, verificando force_reset...');
             
-            // 🐛 CORRECCIÓN: Definimos data como profileCheck y error como checkError.
-            const { data: profileCheck, error: checkError } = await supabase
-                .from('profiles')
-                .select('user_id, force_reset')
-                .eq('email', username)
-                .single();
-            
-            console.log('3️⃣ profileCheck:', profileCheck);
-            console.log('3️⃣ checkError:', checkError); // <-- Ahora sí imprime undefined o el error.
-            console.log('3️⃣ force_reset value:', profileCheck?.force_reset);
-            
-            // Si el perfil existe Y tiene force_reset=true,
-            if (profileCheck && profileCheck.force_reset) { 
-              // Esto se ejecuta porque profileCheck.force_reset es true
-              showResetPasswordModal({ id: profileCheck.user_id, email: username });
-              
-              btn.disabled = false;
-              btn.querySelector('span').textContent = 'Ingresar';
-              
-              await supabase.auth.signOut(); 
-              return; 
+          const { data: profileCheck, error: checkError } = await supabase
+            .from('profiles')
+            .select('user_id, force_reset')
+            .eq('email', username)
+            .single();
+          
+          console.log('4️⃣ profileCheck:', profileCheck);
+          
+          if (profileCheck && profileCheck.force_reset) { 
+            showResetPasswordModal({ id: profileCheck.user_id, email: username });
+            btn.disabled = false;
+            btn.querySelector('span').textContent = 'Ingresar';
+            await supabase.auth.signOut(); 
+            return; 
           } else {
-                // El usuario no existe O no tiene reset forzado
-                userMessage = 'Usuario o contraseña incorrecta.';
-                throw new Error('Credenciales inválidas');
-            }
+            userMessage = authError?.message || 'Usuario o contraseña incorrecta.';
+            throw new Error('Credenciales inválidas');
+          }
         }
 
-        // 3. CONTINUACIÓN DEL FLUJO NORMAL (Login fue exitoso: authData.user es válido)
-        
+        // ✅ AUTENTICACIÓN EXITOSA
+        console.log('5️⃣ Usuario autenticado:', authData.user.id);
+
+        // 2️⃣ OBTENER PERFIL DEL USUARIO
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('autorizado, tenant_id, force_reset')
+          .select('role, autorizado, tenant_id, force_reset')
           .eq('user_id', authData.user.id)
           .single();
         
+        console.log('6️⃣ Profile:', profile, profileError);
+
         if (profileError) {
           userMessage = 'Error al cargar perfil de usuario.';
           throw new Error('Perfil no encontrado');
         }
         
-        // 4. VERIFICACIÓN CRÍTICA DE FORCE_RESET (PRIORIDAD ABSOLUTA)
+        // 3️⃣ VERIFICAR FORCE_RESET (PRIORIDAD ABSOLUTA)
         if (profile.force_reset) {
-            // Si es true, mostramos el modal de reseteo, ignorando 'autorizado' y 'tenant'.
-            showResetPasswordModal(authData.user);
-            
-            btn.disabled = false;
-            btn.querySelector('span').textContent = 'Ingresar';
-            return;
+          console.log('7️⃣ Force reset detectado');
+          showResetPasswordModal(authData.user);
+          btn.disabled = false;
+          btn.querySelector('span').textContent = 'Ingresar';
+          return;
         }
 
-        // 5. OTRAS VERIFICACIONES (Si NO hay reset forzado)
-        
+        // 4️⃣ VERIFICAR AUTORIZACIÓN
         if (!profile.autorizado) {
-            userMessage = 'Usuario no autorizado, contacte a su autorizador.';
-            throw new Error('No autorizado');
-        
-        } else if (profile.tenant_id !== window.__appConfig.tenantUUID) {
-            userMessage = 'Acceso no permitido en este portal.';
-            throw new Error('Tenant incorrecto');
-
-        } else {
-            // 6. TODO BIEN -> ACCESO NORMAL
-            showModal(
-                '¡Bienvenido!',
-                'Inicio de sesión exitoso. Redirigiendo...',
-                'success',
-                () => { 
-                    window.location.href = window.__loginRedirect || './profile/profile.html'; 
-                }
-            );
+          userMessage = 'Usuario no autorizado, contacte a su administrador.';
+          throw new Error('No autorizado');
         }
+
+        // 5️⃣ VERIFICAR TENANT (si es distinto al tenant actual)
+        if (profile.tenant_id !== window.__appConfig.tenantUUID) {
+          userMessage = 'Acceso no permitido en este portal.';
+          throw new Error('Tenant incorrecto');
+        }
+
+        // ✅ TODO BIEN -> ACCESO NORMAL
+        console.log('8️⃣ Login exitoso');
+        showModal(
+          '¡Bienvenido!',
+          'Inicio de sesión exitoso. Redirigiendo...',
+          'success',
+          () => { 
+            window.location.href = window.__loginRedirect || './profile/profile.html'; 
+          }
+        );
 
     } catch (error) {
-        // MANEJADOR DE ERROR FINAL
-        await supabase.auth.signOut(); 
-        
-        btn.disabled = false;
-        btn.querySelector('span').textContent = 'Ingresar';
-        
-        showModal('Error de Acceso', userMessage, 'error');
+      console.error('❌ Error:', error);
+      await supabase.auth.signOut(); 
+      
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Ingresar';
+      
+      showModal('Error de Acceso', userMessage, 'error');
     }
 });
-
       // ═══════════════════════════════════════════════════════════
       // REGISTRO BUTTON
       // ═══════════════════════════════════════════════════════════
