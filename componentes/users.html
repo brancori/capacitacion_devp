@@ -155,8 +155,40 @@ Supevisor
             </form>
         </div>
     </div>
-
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <div class="modal-icon" id="modalIcon"></div>
+        <h3 id="modalTitle"></h3>
+        <p id="modalMessage"></p>
+        <button class="btn btn-primary" id="modalClose" style="width: 100%;">Aceptar</button>
+    </div>
+</div>
 <script>
+    const modal = document.getElementById('modal');
+const modalIcon = document.getElementById('modalIcon');
+const modalTitle = document.getElementById('modalTitle');
+const modalMessage = document.getElementById('modalMessage');
+const modalClose = document.getElementById('modalClose');
+
+function showModal(title, message, type = "success") {
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+
+    modalIcon.className = `modal-icon ${type}`;
+
+    modalIcon.innerHTML =
+        type === "success" ? '<i class="fas fa-check-circle"></i>' :
+        type === "error"   ? '<i class="fas fa-exclamation-triangle"></i>' :
+                             '<i class="fas fa-info-circle"></i>';
+
+    modal.classList.add("show");
+}
+
+function closeModal() {
+    modal.classList.remove("show");
+}
+
+modalClose.addEventListener("click", closeModal);
     (async () => {
 
         // --- Almacén de estado ---
