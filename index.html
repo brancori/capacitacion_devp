@@ -283,37 +283,63 @@
     // ═══════════════════════════════════════════════════════════
     const tenantId = detectTenant();
     
-    async function loadTenantConfig() {
-      try {
-        const response = await fetch('./tenants/tenants.json', {
-          cache: 'no-store',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        if (!response.ok) throw new Error('Tenant config not found');
-        
-        const data = await response.json();
-        const tenantConfig = data[tenantId] || data['default'] || {};
-        
-        // Deep merge with defaults
-        const config = {
-          ...DEFAULTS,
-          ...tenantConfig,
-          labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
-        };
-        
-        return config;
-      } catch (error) {
-        console.warn('⚠️ Tenant config not loaded, using defaults:', error);
-        return DEFAULTS;
+async function loadTenantConfig() {
+  try {
+    const response = await fetch('./tenants/tenants.json', {
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) throw new Error('Tenant config not found');
+    
+    const data = await response.json();
+    const tenantConfig = data[tenantId] || data['default'] || {};
+    
+    // Deep merge con defaults
+    const config = {
+      ...DEFAULTS,
+      ...tenantConfig,
+      labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
+    };
+    
+    // ✅ AQUÍ ESTÁ LA CLAVE: Obtener el UUID del tenant
+    try {
+      const { data: tenantDB, error } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('name', tenantId)
+        .single();
+
+      if (error) {
+        console.error('❌ Tenant no encontrado en BD:', tenantId, error);
+        throw new Error(`Tenant '${tenantId}' no encontrado en la base de datos.`);
       }
+
+      // ✅ GUARDAR el UUID en la configuración
+      config.tenantUUID = tenantDB.id;
+      console.log('✅ Tenant UUID asignado:', tenantDB.id);
+      
+    } catch (dbError) {
+      console.error('Error al consultar tenant en BD:', dbError);
+      throw dbError;
     }
+    
+    return config;
+  } catch (error) {
+    console.warn('⚠️ Error al cargar tenant config:', error);
+    return DEFAULTS;
+  }
+}
 
     // ═══════════════════════════════════════════════════════════
     // APPLY CONFIGURATION
     // ═══════════════════════════════════════════════════════════
     function applyConfiguration(config) {
       window.__appConfig = config;
+
+      console.log('✅ Config aplicada');
+  console.log('   - tenantUUID:', config.tenantUUID);
+  console.log('   - companyName:', config.companyName);
       // 1. Aplicar las 10 variables "Maestras" al CSS
       setStyle('--bgPage', config.bgPage);
       setStyle('--textPage', config.textPage);
