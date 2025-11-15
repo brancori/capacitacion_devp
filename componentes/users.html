@@ -416,50 +416,47 @@ function showModalConfirm(title, message) {
         /**
          * Carga la lista de usuarios (MODIFICADA para búsqueda en servidor)
          */
-        async function loadUserList(adminRole, adminTenantId) {
-            try {
-                let query = supabase
-                    .from('profiles')
-                    .select(`
-                        user_id, nombre, email, area_departamento, role, autorizado,
-                        tenant_id, 
-                        tenants ( name )
-                    `); // [MODIFICADO] Añadido 'tenant_id'
+async function loadUserList(adminRole, adminTenantId) {
+    try {
+        let query = supabase
+            .from('profiles')
+            .select(`
+                user_id, nombre, email, area_departamento, role, autorizado,
+                tenant_id, 
+                tenants ( name )
+            `);
 
-                // REGLA DE SEGURIDAD (master vs admin)
-                if (adminRole === 'admin') {
-                    query = query.eq('tenant_id', adminTenantId);
-                    tenantHeaderCol.style.display = 'none';
-                } else if (adminRole === 'master') {
-                    tenantHeaderCol.style.display = 'block';
-                }
-
-                // [MODIFICADO] AÑADIR FILTRO DE BÚSQUEDA (SERVER-SIDE)
-                if (searchTerm) {
-                    // ... (sin cambios) ...
-                    query = query.or(
-                        `nombre.ilike.%${searchTerm}%,` +
-                        `email.ilike.%${searchTerm}%,` +
-                        `area_departamento.ilike.%${searchTerm}%`
-                    );
-                }
-
-                // [MODIFICADO] AÑADIR LÍMITE (Paginación básica)
-                // ... (sin cambios) ...
-                query = query.limit(100);
-
-                const { data: profiles, error } = await query;
-                if (error) throw error;
-
-                renderUserList(profiles, adminRole);
-
-            } catch (error) {
-                console.error('Error al cargar lista de usuarios:', error.message);
-                loadingRow.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error al cargar usuarios.';
-                userListBody.innerHTML = ''; // Limpia para mostrar solo el error
-                userListBody.appendChild(loadingRow);
-            }
+        // IMPORTANTE: Master NO filtra por tenant
+        if (adminRole !== 'master' && adminRole === 'admin') {
+            query = query.eq('tenant_id', adminTenantId);
+            tenantHeaderCol.style.display = 'none';
+        } else {
+            tenantHeaderCol.style.display = 'block';
         }
+
+        if (searchTerm) {
+            query = query.or(
+                `nombre.ilike.%${searchTerm}%,` +
+                `email.ilike.%${searchTerm}%,` +
+                `area_departamento.ilike.%${searchTerm}%`
+            );
+        }
+
+        query = query.limit(100);
+
+        const { data: profiles, error } = await query;
+        if (error) throw error;
+
+        console.log(`📊 Cargados ${profiles.length} usuarios (Rol: ${adminRole})`);
+        renderUserList(profiles, adminRole);
+
+    } catch (error) {
+        console.error('Error al cargar lista de usuarios:', error.message);
+        loadingRow.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: ' + error.message;
+        userListBody.innerHTML = '';
+        userListBody.appendChild(loadingRow);
+    }
+}
 
         /**
          * Dibuja la lista de usuarios en el DOM.
@@ -995,14 +992,20 @@ async function handleApproveRequest(requestId) {
 
         if (reqError) throw reqError;
 
+        // Generar contraseña temporal
+        const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
+
         // 1️⃣ Crear usuario Auth
         const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
             email: reqData.email,
-            password: crypto.randomUUID(), 
+            password: tempPassword,
             email_confirm: true
         });
 
-        if (authError) throw authError;
+        if (authError) {
+            console.error('Auth error:', authError);
+            throw new Error(authError.message || 'Error al crear usuario en Auth');
+        }
 
         // 2️⃣ Crear perfil
         const { error: profError } = await supabase
@@ -1014,7 +1017,8 @@ async function handleApproveRequest(requestId) {
                 area_departamento: reqData.area_departamento,
                 role: 'usuario',
                 autorizado: false,
-                tenant_id: reqData.tenant_id
+                tenant_id: reqData.tenant_id,
+                force_reset: true
             });
 
         if (profError) throw profError;
@@ -1025,12 +1029,19 @@ async function handleApproveRequest(requestId) {
             .update({ status: 'approved' })
             .eq('id', requestId);
 
-        showModal("Aprobado", "El usuario fue creado exitosamente.", "success");
+        // Mostrar contraseña temporal
+        showModalWithCopy(
+            'Usuario Creado',
+            `Usuario: ${reqData.email}\nContraseña temporal:\n${tempPassword}\n\n⚠️ El usuario debe cambiarla en su próximo inicio de sesión.`,
+            'success',
+            tempPassword
+        );
 
         await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id);
         await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
 
     } catch (error) {
+        console.error('Error en handleApproveRequest:', error);
         showModal("Error", error.message, "error");
     }
 }
