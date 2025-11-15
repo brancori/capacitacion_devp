@@ -426,11 +426,13 @@ async function loadUserList(adminRole, adminTenantId) {
                 tenants ( name )
             `);
 
-        // IMPORTANTE: Master NO filtra por tenant
-        if (adminRole !== 'master' && adminRole === 'admin') {
+        // FILTRO POR ROL (en la aplicación, no en BD)
+        if (adminRole === 'admin') {
+            // Admin solo ve su tenant
             query = query.eq('tenant_id', adminTenantId);
             tenantHeaderCol.style.display = 'none';
-        } else {
+        } else if (adminRole === 'master') {
+            // Master ve TODO
             tenantHeaderCol.style.display = 'block';
         }
 
@@ -451,7 +453,7 @@ async function loadUserList(adminRole, adminTenantId) {
         renderUserList(profiles, adminRole);
 
     } catch (error) {
-        console.error('Error al cargar lista de usuarios:', error.message);
+        console.error('Error:', error.message);
         loadingRow.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: ' + error.message;
         userListBody.innerHTML = '';
         userListBody.appendChild(loadingRow);
@@ -842,20 +844,46 @@ function showModalWithCopy(title, message, type, textToCopy) {
             cancelBtn.addEventListener('click', closeModal);
         }
 
-        async function handleToggleAuthorize(userId, newStatus) {
-            // ... (sin cambios) ...
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ autorizado: newStatus })
-                    .eq('user_id', userId);
-                
-                if (error) throw error;
-                console.log(`Usuario ${userId} actualizado a ${newStatus}`);
-            } catch (error) {
-                showModal('Error', `No se pudo actualizar el estado: ${error.message}`, 'error');
+async function handleToggleAuthorize(userId, newStatus) {
+    try {
+        // 1. Validar que el usuario actual tiene permisos
+        if (currentAdmin.role !== 'master' && currentAdmin.role !== 'admin' && currentAdmin.role !== 'supervisor') {
+            showModal('Error', 'No tienes permisos para autorizar usuarios.', 'error');
+            return;
+        }
+
+        // 2. Si es admin/supervisor, verificar que el usuario está en su tenant
+        if (currentAdmin.role === 'admin' || currentAdmin.role === 'supervisor') {
+            const { data: targetUser } = await supabase
+                .from('profiles')
+                .select('tenant_id')
+                .eq('user_id', userId)
+                .single();
+
+            if (targetUser.tenant_id !== currentAdmin.tenant_id) {
+                showModal('Error', 'No puedes autorizar usuarios de otro tenant.', 'error');
+                return;
             }
         }
+
+        // 3. Actualizar el estado de autorización
+        const { error } = await supabase
+            .from('profiles')
+            .update({ autorizado: newStatus })
+            .eq('user_id', userId);
+
+        if (error) throw error;
+
+        console.log(`✅ Usuario ${userId} actualizado a autorizado: ${newStatus}`);
+        
+        // 4. Recargar la lista
+        await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
+
+    } catch (error) {
+        console.error('Error en handleToggleAuthorize:', error);
+        showModal('Error', `No se pudo actualizar el estado: ${error.message}`, 'error');
+    }
+}
         
         // [NUEVO] Helper Debounce
 function debounce(func, delay) {
@@ -992,36 +1020,24 @@ async function handleApproveRequest(requestId) {
 
         if (reqError) throw reqError;
 
-        // Generar contraseña temporal
-        const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
+        // 1️⃣ Encontrar el perfil del usuario (ya existe)
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .eq('email', reqData.email)
+            .single();
 
-        // 1️⃣ Crear usuario Auth
-        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-            email: reqData.email,
-            password: tempPassword,
-            email_confirm: true
-        });
-
-        if (authError) {
-            console.error('Auth error:', authError);
-            throw new Error(authError.message || 'Error al crear usuario en Auth');
+        if (profileError) {
+            throw new Error('Usuario no encontrado en el sistema');
         }
 
-        // 2️⃣ Crear perfil
-        const { error: profError } = await supabase
+        // 2️⃣ AUTORIZAR el perfil
+        const { error: updateError } = await supabase
             .from('profiles')
-            .insert({
-                user_id: authUser.user.id,
-                email: reqData.email,
-                nombre: reqData.nombre,
-                area_departamento: reqData.area_departamento,
-                role: 'usuario',
-                autorizado: false,
-                tenant_id: reqData.tenant_id,
-                force_reset: true
-            });
+            .update({ autorizado: true })
+            .eq('user_id', profile.user_id);
 
-        if (profError) throw profError;
+        if (updateError) throw updateError;
 
         // 3️⃣ Marcar solicitud como aprobada
         await supabase
@@ -1029,22 +1045,22 @@ async function handleApproveRequest(requestId) {
             .update({ status: 'approved' })
             .eq('id', requestId);
 
-        // Mostrar contraseña temporal
-        showModalWithCopy(
-            'Usuario Creado',
-            `Usuario: ${reqData.email}\nContraseña temporal:\n${tempPassword}\n\n⚠️ El usuario debe cambiarla en su próximo inicio de sesión.`,
-            'success',
-            tempPassword
+        showModal(
+            'Solicitud Aprobada',
+            `${reqData.email} ha sido autorizado. Ya puede acceder al sistema.`,
+            'success'
         );
 
         await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id);
         await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
 
     } catch (error) {
-        console.error('Error en handleApproveRequest:', error);
+        console.error('Error:', error);
         showModal("Error", error.message, "error");
     }
 }
+
+
 async function handleRejectRequest(requestId) {
     try {
         await supabase

@@ -569,17 +569,18 @@ console.log('   - Tenant actual (config):', window.__appConfig.tenantUUID);
 
 // MASTER: Acceso a cualquier tenant sin restricción
 if (profile.role === 'master') {
-  console.log('✅ MASTER detectado - Acceso total permitido a cualquier tenant');
-  // No hacer más verificaciones, master entra siempre
-} else {
-  // OTROS ROLES: Verificar que coincida el tenant
-  console.log('👤 Usuario regular - Verificando tenant...');
-  if (!profile.tenant_id || profile.tenant_id !== window.__appConfig.tenantUUID) {
-    console.log('❌ Tenant mismatch:', profile.tenant_id, '!==', window.__appConfig.tenantUUID);
+  // Master: acceso total
+  console.log('✅ Master - acceso total');
+} else if (profile.role === 'admin' || profile.role === 'supervisor') {
+  // Admin/Supervisor: solo su tenant
+  if (profile.tenant_id !== window.__appConfig.tenantUUID) {
     userMessage = 'Acceso no permitido en este portal.';
     throw new Error('Tenant incorrecto');
   }
-  console.log('✅ Usuario verificado en su tenant');
+} else {
+  // Usuario normal: solo acceso a su perfil
+  userMessage = 'Rol no autorizado.';
+  throw new Error('Rol incorrecto');
 }
 
 // ✅ TODO BIEN -> ACCESO NORMAL
@@ -616,7 +617,7 @@ showModal(
     // ═══════════════════════════════════════════════════════════
     // MODAL SYSTEM
     // ═══════════════════════════════════════════════════════════
-function showRegistrationModal() {
+async function showRegistrationModal() {
   const modalRoot = $('#modalRoot');
   if (!modalRoot) return;
 
@@ -652,13 +653,8 @@ function showRegistrationModal() {
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="idUser">ID Usuario</label>
-            <input type="text" id="idUser" class="form-input" required>
-          </div>
-
-          <div class="form-group">
             <label class="form-label" for="regPassword">Crear Contraseña</label>
-            <input type="password" id="regPassword" class="form-input" required>
+            <input type="password" id="regPassword" class="form-input" placeholder="••••••••" required>
             <ul class="password-rules">
               <li id="rule-length">8+ Caracteres</li>
               <li id="rule-number">1 Número</li>
@@ -668,7 +664,7 @@ function showRegistrationModal() {
           
           <div class="form-group">
             <label class="form-label" for="regConfirmPassword">Confirmar Contraseña</label>
-            <input type="password" id="regConfirmPassword" class="form-input" required>
+            <input type="password" id="regConfirmPassword" class="form-input" placeholder="••••••••" required>
             <ul class="password-rules">
               <li id="rule-match">Las contraseñas coinciden</li>
             </ul>
@@ -678,7 +674,7 @@ function showRegistrationModal() {
       
       <div class="modal-actions">
         <button class="btn btn-secondary" id="modalCancel">Cancelar</button>
-        <button class="btn btn-primary" id="modalSubmit">Enviar Solicitud</button>
+        <button class="btn btn-primary" id="modalSubmit">Crear Cuenta</button>
       </div>
     </div>
   `;
@@ -691,7 +687,7 @@ function showRegistrationModal() {
     setTimeout(() => { modalRoot.innerHTML = ''; }, 200);
   };
 
-  // --- Validación de contraseña ---
+  // Validación de contraseña
   const passInput = modal.querySelector('#regPassword');
   const confirmInput = modal.querySelector('#regConfirmPassword');
   const rules = {
@@ -721,13 +717,13 @@ function showRegistrationModal() {
   passInput.addEventListener('input', validatePassword);
   confirmInput.addEventListener('input', validatePassword);
 
-  // --- Botones ---
+  // Botones
   const cancelBtn = modal.querySelector('#modalCancel');
   const submitBtn = modal.querySelector('#modalSubmit');
 
   cancelBtn.addEventListener('click', closeModal);
 
-  submitBtn.addEventListener('click', async (e) => {
+submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
     const form = modal.querySelector('#registrationForm');
@@ -743,21 +739,85 @@ function showRegistrationModal() {
 
     try {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Enviando...';
+      submitBtn.textContent = 'Creando...';
 
       const regName = modal.querySelector('#regName').value.trim();
       const regArea = modal.querySelector('#regArea').value.trim();
       const regEmail = modal.querySelector('#regEmail').value.trim();
-      const idUser = modal.querySelector('#idUser').value.trim();
+      const regPassword = modal.querySelector('#regPassword').value.trim();
 
-      // ⬇️ NUEVO MODELO: SOLO insertar registro temporal
+      // 1️⃣ INTENTAR CREAR USUARIO EN AUTH
+      let userId = null;
+      
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: regEmail,
+        password: regPassword,
+        options: {
+          emailRedirectTo: window.location.origin + '/index.html'
+        }
+      });
+
+      // Si el usuario ya existe, obten su ID
+      if (authError && authError.message.includes('already registered')) {
+        console.log('⚠️ El email ya está registrado, obteniendo usuario...');
+        
+        // Obtener el usuario existente (solo funciona si eres admin o master)
+        // Para clientes normales, no puedes obtener ID de otro usuario
+        // Así que intentamos hacer login para obtener el ID
+        const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: regEmail,
+          password: regPassword
+        });
+
+        if (signInError) {
+          throw new Error('Este email ya está registrado con otra contraseña. Usa la contraseña correcta o contacta a soporte.');
+        }
+
+        userId = sessionData.user.id;
+        await supabase.auth.signOut();
+
+      } else if (authError) {
+        throw authError;
+      } else {
+        userId = authData.user.id;
+      }
+
+      // 2️⃣ VERIFICAR SI EL PERFIL YA EXISTE
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('user_id', userId)
+        .single();
+
+      // Si el perfil NO existe, crearlo
+      if (!existingProfile) {
+        const { error: profError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            email: regEmail,
+            nombre: regName,
+            area_departamento: regArea,
+            role: 'usuario',
+            autorizado: false,
+            tenant_id: window.__appConfig.tenantUUID,
+            force_reset: false
+          });
+
+        if (profError) throw profError;
+      } else {
+        console.log('✅ El perfil ya existe');
+      }
+
+      // 3️⃣ CREAR SOLICITUD DE REGISTRO
       const { error: reqError } = await supabase
         .from('registration_requests')
         .insert({
           email: regEmail,
           nombre: regName,
           area_departamento: regArea,
-          tenant_id: window.__appConfig.tenantUUID
+          tenant_id: window.__appConfig.tenantUUID,
+          status: 'pending'
         });
 
       if (reqError) throw reqError;
@@ -765,8 +825,8 @@ function showRegistrationModal() {
       closeModal();
       setTimeout(() => {
         showModal(
-          'Solicitud enviada',
-          'Tu solicitud será revisada por un administrador.',
+          'Cuenta Creada',
+          'Tu cuenta ha sido creada. Un administrador debe autorizarte para acceder. Te notificaremos cuando sea aprobada.',
           'success'
         );
       }, 300);
@@ -774,8 +834,8 @@ function showRegistrationModal() {
     } catch (error) {
       console.error(error);
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Enviar Solicitud';
-      showModal('Error', 'Ocurrió un error inesperado.', 'error');
+      submitBtn.textContent = 'Crear Cuenta';
+      showModal('Error', error.message || 'Ocurrió un error inesperado.', 'error');
     }
   });
 }
