@@ -295,29 +295,31 @@ async function loadTenantConfig() {
     const data = await response.json();
     const tenantConfig = data[tenantId] || data['default'] || {};
     
-    // Deep merge con defaults
     const config = {
       ...DEFAULTS,
       ...tenantConfig,
       labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
     };
     
-    // ✅ AQUÍ ESTÁ LA CLAVE: Obtener el UUID del tenant
+    // Obtener el UUID del tenant
     try {
-      const { data: tenantDB, error } = await supabase
+      const { data: tenantsDB, error } = await supabase
         .from('tenants')
         .select('id')
-        .eq('name', tenantId)
-        .single();
+        .eq('name', tenantId);
 
-      if (error) {
-        console.error('❌ Tenant no encontrado en BD:', tenantId, error);
+      if (error) throw error;
+      
+      if (!tenantsDB || tenantsDB.length === 0) {
         throw new Error(`Tenant '${tenantId}' no encontrado en la base de datos.`);
       }
+      
+      if (tenantsDB.length > 1) {
+        console.warn('⚠️ Múltiples tenants con el mismo nombre, usando el primero');
+      }
 
-      // ✅ GUARDAR el UUID en la configuración
-      config.tenantUUID = tenantDB.id;
-      console.log('✅ Tenant UUID asignado:', tenantDB.id);
+      config.tenantUUID = tenantsDB[0].id;
+      console.log('✅ Tenant UUID asignado:', tenantsDB[0].id);
       
     } catch (dbError) {
       console.error('Error al consultar tenant en BD:', dbError);
