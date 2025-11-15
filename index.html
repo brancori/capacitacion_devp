@@ -785,6 +785,17 @@ submitBtn.addEventListener('click', async (e) => {
 
       console.log('🔍 Tenant UUID:', window.__appConfig.tenantUUID);
 
+      // 0️⃣ VERIFICAR SI EL EMAIL YA ESTÁ REGISTRADO
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('email', regEmail)
+        .maybeSingle();
+
+      if (existingProfile) {
+        throw new Error('Este email ya está registrado. Usa la contraseña correcta o contacta a soporte.');
+      }
+
       // 1️⃣ CREAR USUARIO EN AUTH
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: regEmail,
@@ -805,7 +816,7 @@ submitBtn.addEventListener('click', async (e) => {
           area_departamento: regArea,
           role: 'usuario',
           autorizado: false,
-          tenant_id: window.__appConfig.tenantUUID, // ✅ AQUÍ
+          tenant_id: window.__appConfig.tenantUUID,
           force_reset: false
         });
 
@@ -818,7 +829,7 @@ submitBtn.addEventListener('click', async (e) => {
           email: regEmail,
           nombre: regName,
           area_departamento: regArea,
-          tenant_id: window.__appConfig.tenantUUID, // ✅ AQUÍ
+          tenant_id: window.__appConfig.tenantUUID,
           status: 'pending'
         });
 
@@ -836,7 +847,7 @@ submitBtn.addEventListener('click', async (e) => {
     } catch (error) {
       console.error(error);
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Crear Cuenta';
+      submitBtn.textContent = 'Enviar Solicitud';
       showModal('Error', error.message || 'Ocurrió un error inesperado.', 'error');
     }
   });
