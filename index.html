@@ -755,77 +755,42 @@ submitBtn.addEventListener('click', async (e) => {
       const regEmail = modal.querySelector('#regEmail').value.trim();
       const regPassword = modal.querySelector('#regPassword').value.trim();
 
-      // 1️⃣ INTENTAR CREAR USUARIO EN AUTH
-      let userId = null;
-      
+      console.log('🔍 Tenant UUID:', window.__appConfig.tenantUUID);
+
+      // 1️⃣ CREAR USUARIO EN AUTH
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: regEmail,
-        password: regPassword,
-        options: {
-          emailRedirectTo: window.location.origin + '/index.html'
-        }
+        password: regPassword
       });
 
-      // Si el usuario ya existe, obten su ID
-      if (authError && authError.message.includes('already registered')) {
-        console.log('⚠️ El email ya está registrado, obteniendo usuario...');
-        
-        // Obtener el usuario existente (solo funciona si eres admin o master)
-        // Para clientes normales, no puedes obtener ID de otro usuario
-        // Así que intentamos hacer login para obtener el ID
-        const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+      if (authError) throw authError;
+
+      const userId = authData.user.id;
+
+      // 2️⃣ CREAR PERFIL CON EL TENANT
+      const { error: profError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: userId,
           email: regEmail,
-          password: regPassword
+          nombre: regName,
+          area_departamento: regArea,
+          role: 'usuario',
+          autorizado: false,
+          tenant_id: window.__appConfig.tenantUUID, // ✅ AQUÍ
+          force_reset: false
         });
 
-        if (signInError) {
-          throw new Error('Este email ya está registrado con otra contraseña. Usa la contraseña correcta o contacta a soporte.');
-        }
+      if (profError) throw profError;
 
-        userId = sessionData.user.id;
-        await supabase.auth.signOut();
-
-      } else if (authError) {
-        throw authError;
-      } else {
-        userId = authData.user.id;
-      }
-
-      // 2️⃣ VERIFICAR SI EL PERFIL YA EXISTE
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('user_id', userId)
-        .single();
-
-      // Si el perfil NO existe, crearlo
-      if (!existingProfile) {
-        const { error: profError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: userId,
-            email: regEmail,
-            nombre: regName,
-            area_departamento: regArea,
-            role: 'usuario',
-            autorizado: false,
-            tenant_id: window.__appConfig.tenantUUID,
-            force_reset: false
-          });
-
-        if (profError) throw profError;
-      } else {
-        console.log('✅ El perfil ya existe');
-      }
-
-      // 3️⃣ CREAR SOLICITUD DE REGISTRO
+      // 3️⃣ CREAR SOLICITUD DE REGISTRO CON EL TENANT
       const { error: reqError } = await supabase
         .from('registration_requests')
         .insert({
           email: regEmail,
           nombre: regName,
           area_departamento: regArea,
-          tenant_id: window.__appConfig.tenantUUID,
+          tenant_id: window.__appConfig.tenantUUID, // ✅ AQUÍ
           status: 'pending'
         });
 
@@ -835,7 +800,7 @@ submitBtn.addEventListener('click', async (e) => {
       setTimeout(() => {
         showModal(
           'Cuenta Creada',
-          'Tu cuenta ha sido creada. Un administrador debe autorizarte para acceder. Te notificaremos cuando sea aprobada.',
+          'Tu cuenta ha sido creada. Un administrador debe autorizarte para acceder.',
           'success'
         );
       }, 300);
@@ -978,39 +943,21 @@ $('#modalSubmitReset').addEventListener('click', async () => {
 async function init() {
     console.log(`🚀 Initializing tenant: ${tenantId}`);
     
-    // 1. Cargar y aplicar configuración (CSS, textos)
+    // 1. Cargar configuración
     const config = await loadTenantConfig();
     applyConfiguration(config);
-  console.log('🔍 Tenant UUID guardado:', window.__appConfig.tenantUUID);
-    // 2. Verificar la existencia del Tenant en la BD y obtener su UUID
-    try {
-        const { data: tenantDB, error } = await supabase
-        .from('tenants')
-        .select('id') // Solo necesitamos el 'id' (UUID)
-        .eq('name', tenantId) // Compara 'name' (ej. 'jnj')
-        .single();
 
-        if (error) {
-            throw new Error(`Tenant '${tenantId}' no encontrado en la base de datos.`);
-        }
-
-        // Guarda el UUID en la configuración global para usarlo después en el login
-        window.__appConfig.tenantUUID = tenantDB.id;
-        
-    } catch (error) {
-        console.error(error);
-        // Muestra un error si el tenant no existe en la BD
-        showModal(
-            'Error de Configuración', 
-            `El tenant '${tenantId}' no está configurado correctamente en la base de datos. Contacta a soporte.`, 
-            'error'
-        );
-        // Bloqueamos la ejecución si hay un error crítico de configuración.
-        return; 
+    // 2. Verificar que tenantUUID está guardado
+    console.log('🔍 window.__appConfig.tenantUUID:', window.__appConfig.tenantUUID);
+    
+    if (!window.__appConfig.tenantUUID) {
+      console.error('❌ tenantUUID NO fue seteado!');
+      showModal('Error de Configuración', 'No se pudo cargar el tenant. Por favor recarga la página.', 'error');
+      return;
     }
     
     console.log('✅ Application ready');
-} 
+}
 
 // ═══════════════════════════════════════════════════════════
 // DISPARADOR DE CARGA (FUERA DE init())
