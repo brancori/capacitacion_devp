@@ -814,45 +814,45 @@ submitBtn.addEventListener('click', async (e) => {
       console.log('✅ Usuario creado en Auth:', userId);
 
       // 2️⃣ CREAR PERFIL
-      console.log('📊 Creando perfil...');
-      const { error: profError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: userId,
-          email: regEmail,
-          nombre: regName,
-          area_departamento: regArea,
-          role: 'usuario',
-          autorizado: false,
-          tenant_id: tenantUUID,
-          force_reset: false
-        });
+console.log('📊 Creando o actualizando perfil...');
+const { error: profError } = await supabase
+  .from('profiles')
+  .upsert({
+    user_id: userId,
+    email: regEmail,
+    nombre: regName,
+    area_departamento: regArea,
+    role: 'usuario',
+    autorizado: false,
+    tenant_id: tenantUUID,
+    force_reset: false
+  }, { onConflict: 'user_id' });
 
-      if (profError) {
-        console.error('❌ Profile error:', profError);
-        throw profError;
-      }
+if (profError) {
+  console.error('❌ Profile error:', profError);
+  throw profError;
+}
 
-      console.log('✅ Perfil creado');
+console.log('✅ Perfil creado/actualizado');
 
       // 3️⃣ CREAR SOLICITUD
       console.log('📋 Creando solicitud de registro...');
-      const { error: reqError } = await supabase
-        .from('registration_requests')
-        .insert({
-          email: regEmail,
-          nombre: regName,
-          area_departamento: regArea,
-          tenant_id: tenantUUID,
-          status: 'pending'
-        });
+const { error: reqError } = await supabase
+  .from('registration_requests')
+  .upsert({
+    email: regEmail,
+    nombre: regName,
+    area_departamento: regArea,
+    tenant_id: tenantUUID,
+    status: 'pending'
+  }, { onConflict: 'email' });
 
-      if (reqError) {
-        console.error('❌ Request error:', reqError);
-        throw reqError;
-      }
+if (reqError) {
+  console.error('❌ Request error:', reqError);
+  throw reqError;
+}
 
-      console.log('✅ Solicitud creada');
+console.log('✅ Solicitud creada/actualizada');
 
       closeModal();
       setTimeout(() => {
