@@ -530,54 +530,68 @@ $('#formEmployees').addEventListener('submit', async (e) => {
         }
 
         // ✅ AUTENTICACIÓN EXITOSA
-        console.log('5️⃣ Usuario autenticado:', authData.user.id);
+console.log('5️⃣ Usuario autenticado:', authData.user.id);
 
-        // 2️⃣ OBTENER PERFIL DEL USUARIO
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, autorizado, tenant_id, force_reset')
-          .eq('user_id', authData.user.id)
-          .single();
-        
-        console.log('6️⃣ Profile:', profile, profileError);
+// 2️⃣ OBTENER PERFIL DEL USUARIO
+const { data: profile, error: profileError } = await supabase
+  .from('profiles')
+  .select('role, autorizado, tenant_id, force_reset')
+  .eq('user_id', authData.user.id)
+  .single();
 
-        if (profileError) {
-          userMessage = 'Error al cargar perfil de usuario.';
-          throw new Error('Perfil no encontrado');
-        }
-        
-        // 3️⃣ VERIFICAR FORCE_RESET (PRIORIDAD ABSOLUTA)
-        if (profile.force_reset) {
-          console.log('7️⃣ Force reset detectado');
-          showResetPasswordModal(authData.user);
-          btn.disabled = false;
-          btn.querySelector('span').textContent = 'Ingresar';
-          return;
-        }
+console.log('6️⃣ Profile:', profile, profileError);
 
-        // 4️⃣ VERIFICAR AUTORIZACIÓN
-        if (!profile.autorizado) {
-          userMessage = 'Usuario no autorizado, contacte a su administrador.';
-          throw new Error('No autorizado');
-        }
+if (profileError) {
+  userMessage = 'Error al cargar perfil de usuario.';
+  throw new Error('Perfil no encontrado');
+}
 
-        // 5️⃣ VERIFICAR TENANT (si es distinto al tenant actual)
-        if (profile.tenant_id !== window.__appConfig.tenantUUID) {
-          userMessage = 'Acceso no permitido en este portal.';
-          throw new Error('Tenant incorrecto');
-        }
+// 3️⃣ VERIFICAR FORCE_RESET (PRIORIDAD ABSOLUTA)
+if (profile.force_reset) {
+  console.log('7️⃣ Force reset detectado');
+  showResetPasswordModal(authData.user);
+  btn.disabled = false;
+  btn.querySelector('span').textContent = 'Ingresar';
+  return;
+}
 
-        // ✅ TODO BIEN -> ACCESO NORMAL
-        console.log('8️⃣ Login exitoso');
-        showModal(
-          '¡Bienvenido!',
-          'Inicio de sesión exitoso. Redirigiendo...',
-          'success',
-          () => { 
-            window.location.href = window.__loginRedirect || './profile/profile.html'; 
-          }
-        );
+// 4️⃣ VERIFICAR AUTORIZACIÓN
+if (!profile.autorizado) {
+  userMessage = 'Usuario no autorizado, contacte a su administrador.';
+  throw new Error('No autorizado');
+}
 
+// 5️⃣ VERIFICAR TENANT (MASTER NO TIENE RESTRICCIÓN)
+console.log('8️⃣ Verificando permisos de tenant...');
+console.log('   - Rol del usuario:', profile.role);
+console.log('   - Tenant del usuario:', profile.tenant_id);
+console.log('   - Tenant actual (config):', window.__appConfig.tenantUUID);
+
+// MASTER: Acceso a cualquier tenant sin restricción
+if (profile.role === 'master') {
+  console.log('✅ MASTER detectado - Acceso total permitido a cualquier tenant');
+  // No hacer más verificaciones, master entra siempre
+} else {
+  // OTROS ROLES: Verificar que coincida el tenant
+  console.log('👤 Usuario regular - Verificando tenant...');
+  if (!profile.tenant_id || profile.tenant_id !== window.__appConfig.tenantUUID) {
+    console.log('❌ Tenant mismatch:', profile.tenant_id, '!==', window.__appConfig.tenantUUID);
+    userMessage = 'Acceso no permitido en este portal.';
+    throw new Error('Tenant incorrecto');
+  }
+  console.log('✅ Usuario verificado en su tenant');
+}
+
+// ✅ TODO BIEN -> ACCESO NORMAL
+console.log('9️⃣ Login exitoso - Redirigiendo...');
+showModal(
+  '¡Bienvenido!',
+  'Inicio de sesión exitoso. Redirigiendo...',
+  'success',
+  () => { 
+    window.location.href = window.__loginRedirect || './profile/profile.html'; 
+  }
+);
     } catch (error) {
       console.error('❌ Error:', error);
       await supabase.auth.signOut(); 
