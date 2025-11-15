@@ -782,31 +782,39 @@ submitBtn.addEventListener('click', async (e) => {
       const regArea = modal.querySelector('#regArea').value.trim();
       const regEmail = modal.querySelector('#regEmail').value.trim();
       const regPassword = modal.querySelector('#regPassword').value.trim();
+      const tenantUUID = window.__appConfig.tenantUUID;
 
-      console.log('🔍 Tenant UUID:', window.__appConfig.tenantUUID);
+      console.log('📝 Registrando:', regEmail, 'en tenant:', tenantUUID);
 
-      // 0️⃣ VERIFICAR SI EL EMAIL YA ESTÁ REGISTRADO
-      const { data: existingProfile } = await supabase
+      // 0️⃣ VERIFICAR SI EL EMAIL YA ESTÁ EN PROFILES
+      console.log('🔍 Verificando si el email ya existe en profiles...');
+      const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
-        .select('user_id')
-        .eq('email', regEmail)
-        .maybeSingle();
+        .select('user_id, email')
+        .eq('email', regEmail);
 
-      if (existingProfile) {
-        throw new Error('Este email ya está registrado. Usa la contraseña correcta o contacta a soporte.');
+      if (existingProfile && existingProfile.length > 0) {
+        console.log('⚠️ Email ya existe en profiles:', existingProfile[0]);
+        throw new Error('Este email ya está registrado. Por favor usa otro email o contacta a soporte.');
       }
 
       // 1️⃣ CREAR USUARIO EN AUTH
+      console.log('👤 Creando usuario en Auth...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: regEmail,
         password: regPassword
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error('❌ Auth error:', authError);
+        throw authError;
+      }
 
       const userId = authData.user.id;
+      console.log('✅ Usuario creado en Auth:', userId);
 
-      // 2️⃣ CREAR PERFIL CON EL TENANT
+      // 2️⃣ CREAR PERFIL
+      console.log('📊 Creando perfil...');
       const { error: profError } = await supabase
         .from('profiles')
         .insert({
@@ -816,24 +824,35 @@ submitBtn.addEventListener('click', async (e) => {
           area_departamento: regArea,
           role: 'usuario',
           autorizado: false,
-          tenant_id: window.__appConfig.tenantUUID,
+          tenant_id: tenantUUID,
           force_reset: false
         });
 
-      if (profError) throw profError;
+      if (profError) {
+        console.error('❌ Profile error:', profError);
+        throw profError;
+      }
 
-      // 3️⃣ CREAR SOLICITUD DE REGISTRO CON EL TENANT
+      console.log('✅ Perfil creado');
+
+      // 3️⃣ CREAR SOLICITUD
+      console.log('📋 Creando solicitud de registro...');
       const { error: reqError } = await supabase
         .from('registration_requests')
         .insert({
           email: regEmail,
           nombre: regName,
           area_departamento: regArea,
-          tenant_id: window.__appConfig.tenantUUID,
+          tenant_id: tenantUUID,
           status: 'pending'
         });
 
-      if (reqError) throw reqError;
+      if (reqError) {
+        console.error('❌ Request error:', reqError);
+        throw reqError;
+      }
+
+      console.log('✅ Solicitud creada');
 
       closeModal();
       setTimeout(() => {
@@ -845,7 +864,7 @@ submitBtn.addEventListener('click', async (e) => {
       }, 300);
 
     } catch (error) {
-      console.error(error);
+      console.error('❌ Error completo:', error);
       submitBtn.disabled = false;
       submitBtn.textContent = 'Enviar Solicitud';
       showModal('Error', error.message || 'Ocurrió un error inesperado.', 'error');
