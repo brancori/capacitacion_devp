@@ -122,5 +122,36 @@
     },
     "successRedirect": "profile/profile.html",
     "customCss": null
-  }
+  },
+  "sistemas_rescate": {
+  "companyName": "Sistemas de Rescate y Seguridad Industrial",
+  "logoText": "SR",
+  "logoUrl": null,
+  "tagline": "Sistemas de Rescate y Seguridad Industrial",
+  "description": "Accede a tu plataforma de capacitación en seguridad industrial y rescate.",
+  
+  "bgPage": "#1C1348",
+  "textPage": "#ffffff",
+  "primaryColor": "#Fc6327",
+  "secondaryColor": "#E05A24",
+  
+  "bgBrand": "#ffffff",
+  "textBrand": "#1C1348",
+  
+  "bgForm": "rgba(0, 0, 0, 0.1)",
+  "textForm": "#1C1348",
+  "inputTheme": "light",
+  
+  "backgroundImage": "linear-gradient(to bottom, #1C1348, #100A2E)",
+  "animatedBackground": false,
+  
+  "labels": {
+    "empUser": "Usuario",
+    "empPass": "Contraseña",
+    "conUser": "ID Contratista",
+    "conPass": "Contraseña"
+  },
+  "successRedirect": "profile/profile.html",
+  "customCss": null
+}
 }
