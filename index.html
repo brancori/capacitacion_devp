@@ -561,26 +561,35 @@ if (!profile.autorizado) {
   throw new Error('No autorizado');
 }
 
-// 5️⃣ VERIFICAR TENANT (MASTER NO TIENE RESTRICCIÓN)
-console.log('8️⃣ Verificando permisos de tenant...');
-console.log('   - Rol del usuario:', profile.role);
+// 5️⃣ VERIFICAR TENANT Y ROL
+console.log('8️⃣ Verificando permisos...');
+console.log('   - Rol:', profile.role);
 console.log('   - Tenant del usuario:', profile.tenant_id);
-console.log('   - Tenant actual (config):', window.__appConfig.tenantUUID);
+console.log('   - Tenant actual:', window.__appConfig.tenantUUID);
 
-// MASTER: Acceso a cualquier tenant sin restricción
+// MASTER: Acceso a cualquier tenant
 if (profile.role === 'master') {
-  // Master: acceso total
-  console.log('✅ Master - acceso total');
-} else if (profile.role === 'admin' || profile.role === 'supervisor') {
-  // Admin/Supervisor: solo su tenant
+  console.log('✅ MASTER - Acceso total');
+} 
+// ADMIN/SUPERVISOR: Solo su tenant
+else if (profile.role === 'admin' || profile.role === 'supervisor') {
   if (profile.tenant_id !== window.__appConfig.tenantUUID) {
     userMessage = 'Acceso no permitido en este portal.';
     throw new Error('Tenant incorrecto');
   }
-} else {
-  // Usuario normal: solo acceso a su perfil
-  userMessage = 'Rol no autorizado.';
-  throw new Error('Rol incorrecto');
+  console.log('✅ ADMIN/SUPERVISOR - Acceso a su tenant');
+}
+// USUARIO: Solo su tenant
+else if (profile.role === 'usuario') {
+  if (profile.tenant_id !== window.__appConfig.tenantUUID) {
+    userMessage = 'Acceso no permitido en este portal.';
+    throw new Error('Tenant incorrecto');
+  }
+  console.log('✅ USUARIO - Acceso a su tenant');
+}
+else {
+  userMessage = 'Rol no reconocido.';
+  throw new Error('Rol inválido');
 }
 
 // ✅ TODO BIEN -> ACCESO NORMAL
@@ -972,7 +981,7 @@ async function init() {
     // 1. Cargar y aplicar configuración (CSS, textos)
     const config = await loadTenantConfig();
     applyConfiguration(config);
-
+  console.log('🔍 Tenant UUID guardado:', window.__appConfig.tenantUUID);
     // 2. Verificar la existencia del Tenant en la BD y obtener su UUID
     try {
         const { data: tenantDB, error } = await supabase
