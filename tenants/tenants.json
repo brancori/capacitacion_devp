@@ -133,7 +133,7 @@
   "bgPage": "#C5BAAA",
   "textPage": "#1C1348",
   "primaryColor": "#EE7828",
-  "secondaryColor": "#806D61",
+  "secondaryColor": "#Fc6327",
   
   "bgBrand": "#ffffff",
   "textBrand": "#1C1348",
@@ -142,7 +142,7 @@
   "textForm": "#1C1348",
   "inputTheme": "light",
   
-  "backgroundImage": "linear-gradient(to bottom, #C5BAAA, #EFEAE3)",
+  "backgroundImage": "linear-gradient(to bottom, #EFEAE3, #EFEAE3)",
   "animatedBackground": false,
   
   "labels": {
