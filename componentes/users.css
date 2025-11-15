@@ -222,3 +222,39 @@ input:checked + .slider:before {
     gap: 1rem;
     margin-top: 1.5rem;
 }
+
+.pending-requests-container {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #ffffff15;
+    border-radius: 10px;
+}
+
+.request-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.request-table {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+.request-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.3fr 1fr 1fr 0.8fr;
+    padding: 12px;
+    border-bottom: 1px solid #ffffff22;
+    align-items: center;
+}
+
+.request-row.header {
+    font-weight: bold;
+    background: #ffffff10;
+}
+
+.request-row .actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}

@@ -51,6 +51,31 @@ Supevisor
         <!-- Contenedor principal de la lista -->
         <div class="user-list-container">
             <header class="list-header">
+
+                <!-- ================================================ -->
+                <!--  SECCIÓN NUEVA — SOLICITUDES PENDIENTES       -->
+                <!-- ================================================ -->
+                <div class="pending-requests-container">
+                    <h2><i class="fas fa-user-plus"></i> Solicitudes Pendientes</h2>
+
+                    <div class="request-table-wrapper">
+                        <div class="request-table">
+                            <div class="request-row header">
+                                <div>Nombre</div>
+                                <div>Email</div>
+                                <div>Área</div>
+                                <div>Fecha</div>
+                                <div class="text-center">Acciones</div>
+                            </div>
+
+                            <div id="request-list-body">
+                                <div class="loading-row">
+                                    <i class="fas fa-spinner fa-spin"></i> Cargando solicitudes...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <h1><i class="fas fa-users-cog"></i> Gestión de Usuarios</h1>
                 <div class="filter-bar">
                     <div class="search-box">
@@ -739,6 +764,19 @@ function showModalWithCopy(title, message, type, textToCopy) {
 
             // Delegación de eventos para la lista de usuarios (Añade esta lógica)
             userListBody.addEventListener('click', (e) => {
+                document.getElementById('request-list-body').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    const requestId = btn.dataset.id;
+
+    if (btn.classList.contains('btn-approve')) {
+        await handleApproveRequest(requestId);
+    } 
+    else if (btn.classList.contains('btn-reject')) {
+        await handleRejectRequest(requestId);
+    }
+});
                 const target = e.target.closest('button, input[type="checkbox"]');
                 if (!target) return;
 
@@ -760,7 +798,9 @@ function showModalWithCopy(title, message, type, textToCopy) {
                     const newStatus = target.checked;
                     handleToggleAuthorize(userId, newStatus);
                 }
+                
             });
+            
         }
         
         // [NUEVO] Helper para cerrar el modal de confirmación
@@ -844,7 +884,138 @@ function initUIListeners() {
                     handleToggleAuthorize(userId, newStatus);
                 }
             });
+            document.getElementById('request-list-body').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    const requestId = btn.dataset.id;
+
+    if (btn.classList.contains('btn-approve')) {
+        await handleApproveRequest(requestId);
+    } 
+    else if (btn.classList.contains('btn-reject')) {
+        await handleRejectRequest(requestId);
+    }
+});
         }
+async function loadPendingRequests(adminRole, adminTenantId) {
+    try {
+        let query = supabase
+            .from('registration_requests')
+            .select('*')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: true });
+
+        // Admin solo ve su tenant
+        if (adminRole === 'admin') {
+            query = query.eq('tenant_id', adminTenantId);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        renderPendingRequests(data, adminRole);
+
+    } catch (error) {
+        console.error('Error cargando solicitudes:', error.message);
+        document.getElementById('request-list-body').innerHTML =
+            '<div class="loading-row">Error al cargar solicitudes.</div>';
+    }
+}
+
+function renderPendingRequests(requests, adminRole) {
+    const body = document.getElementById('request-list-body');
+    body.innerHTML = '';
+
+    if (requests.length === 0) {
+        body.innerHTML = '<div class="loading-row">No hay solicitudes pendientes.</div>';
+        return;
+    }
+
+    requests.forEach(req => {
+        const row = document.createElement('div');
+        row.className = 'request-row';
+        row.innerHTML = `
+            <div>${req.nombre}</div>
+            <div>${req.email}</div>
+            <div>${req.area_departamento}</div>
+            <div>${new Date(req.created_at).toLocaleDateString()}</div>
+            <div class="actions">
+                <button class="btn btn-primary btn-approve" data-id="${req.id}">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="btn btn-outline btn-reject" data-id="${req.id}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        body.appendChild(row);
+    });
+}
+
+async function handleApproveRequest(requestId) {
+    try {
+        const { data: reqData, error: reqError } = await supabase
+            .from('registration_requests')
+            .select('*')
+            .eq('id', requestId)
+            .single();
+
+        if (reqError) throw reqError;
+
+        // 1️⃣ Crear usuario Auth
+        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+            email: reqData.email,
+            password: crypto.randomUUID(), 
+            email_confirm: true
+        });
+
+        if (authError) throw authError;
+
+        // 2️⃣ Crear perfil
+        const { error: profError } = await supabase
+            .from('profiles')
+            .insert({
+                user_id: authUser.user.id,
+                email: reqData.email,
+                nombre: reqData.nombre,
+                area_departamento: reqData.area_departamento,
+                role: 'usuario',
+                autorizado: false,
+                tenant_id: reqData.tenant_id
+            });
+
+        if (profError) throw profError;
+
+        // 3️⃣ Marcar solicitud como aprobada
+        await supabase
+            .from('registration_requests')
+            .update({ status: 'approved' })
+            .eq('id', requestId);
+
+        showModal("Aprobado", "El usuario fue creado exitosamente.", "success");
+
+        await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id);
+        await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
+
+    } catch (error) {
+        showModal("Error", error.message, "error");
+    }
+}
+async function handleRejectRequest(requestId) {
+    try {
+        await supabase
+            .from('registration_requests')
+            .update({ status: 'rejected' })
+            .eq('id', requestId);
+
+        showModal("Solicitud Rechazada", "La solicitud ha sido marcada como rechazada.", "info");
+        await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id);
+
+    } catch (error) {
+        showModal("Error", error.message, "error");
+    }
+}
 
         // --- Función Principal de Arranque ---
         async function mainInit() {
@@ -866,7 +1037,9 @@ function initUIListeners() {
 
             // 4. Cargar la lista de usuarios
             await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
+            await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id);
             console.log('✅ Lista de usuarios cargada');
+            
             
             // 5. Iniciar listeners de la UI
             initUIListeners();
@@ -877,8 +1050,9 @@ function initUIListeners() {
             document.addEventListener('DOMContentLoaded', mainInit);
         } else {
             mainInit();
+            
         }
-
+        
     })();
     </script>
 </body>
