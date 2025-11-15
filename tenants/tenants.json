@@ -129,20 +129,20 @@
   "logoUrl": null,
   "tagline": "Sistemas de Rescate y Seguridad Industrial",
   "description": "Accede a tu plataforma de capacitación en seguridad industrial y rescate.",
-  
-  "bgPage": "#1C1348",
-  "textPage": "#ffffff",
+
+  "bgPage": "#F4F6F8",
+  "textPage": "#1C1348",
   "primaryColor": "#Fc6327",
   "secondaryColor": "#E05A24",
   
   "bgBrand": "#ffffff",
   "textBrand": "#1C1348",
   
-  "bgForm": "rgba(0, 0, 0, 0.1)",
+  "bgForm": "#ffffff",
   "textForm": "#1C1348",
   "inputTheme": "light",
   
-  "backgroundImage": "linear-gradient(to bottom, #1C1348, #100A2E)",
+  "backgroundImage": "linear-gradient(to bottom, #F4F6F8, #FFFFFF)",
   "animatedBackground": false,
   
   "labels": {
