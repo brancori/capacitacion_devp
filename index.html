@@ -462,9 +462,12 @@ if (!username) {
 
     try {
         // 1. INTENTO DE LOGIN ESTÁNDAR
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: username,
-          password: password,
+        await supabase.from('registration_requests').insert({
+          email: regEmail,
+          name: regName,
+          area: regArea,
+          worker_id: idUser,
+          tenant_id: window.__appConfig.tenantUUID
         });
 
         // 2. MANEJO DE FALLO DE LOGIN
@@ -570,244 +573,259 @@ if (authError || !authData.user) {
     // MODAL SYSTEM
     // ═══════════════════════════════════════════════════════════
 function showModal(title, message, type = 'info', callback = null) {
-      const modalRoot = $('#modalRoot');
-      if (!modalRoot) return;
+  const modalRoot = $('#modalRoot');
+  if (!modalRoot) return;
 
-      const icons = {
-        success: '✓',
-        error: '✕',
-        info: 'ℹ'
-      };
+  const icons = {
+    success: '✓',
+    error: '✕',
+    info: 'ℹ'
+  };
 
-      const modal = document.createElement('div');
-      modal.className = 'modal-overlay';
-      modal.innerHTML = `
-        <div class="modal-content">
-          <div class="modal-icon ${type}">
-            ${icons[type] || icons.info}
-          </div>
-          <h3 class="modal-title">${title}</h3>
-          <p class="modal-text">${message}</p>
-          <button class="btn btn-primary" id="modalClose">Aceptar</button>
-        </div>
-      `;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-icon ${type}">
+        ${icons[type] || icons.info}
+      </div>
+      <h3 class="modal-title">${title}</h3>
+      <p class="modal-text">${message}</p>
+      <button class="btn btn-primary" id="modalClose">Aceptar</button>
+    </div>
+  `;
 
+  modalRoot.innerHTML = '';
+  modalRoot.appendChild(modal);
+
+  const closeModal = () => {
+    modal.style.animation = 'fadeOut 200ms ease-out forwards';
+    setTimeout(() => {
       modalRoot.innerHTML = '';
-      modalRoot.appendChild(modal);
+      if (callback) callback();
+    }, 200);
+  };
 
-      const closeModal = () => {
-          modal.style.animation = 'fadeOut 200ms ease-out forwards';
-          setTimeout(() => {
-              modalRoot.innerHTML = '';
-              if (callback) callback(); // Ejecutar callback
-          }, 200);
-      };
-      
-      // 🐛 CORRECCIÓN: Buscamos el botón dentro del nuevo elemento modal
-      const modalCloseBtn = modal.querySelector('#modalClose');
-      
-      if (modalCloseBtn) {
-          modalCloseBtn.addEventListener('click', closeModal);
-      }
-      // Se mantiene el resto de listeners (overlay y escape)
-      modal.addEventListener('click', (e) => {
-          if (e.target === modal) closeModal();
-      });
+  const modalCloseBtn = modal.querySelector('#modalClose');
+  if (modalCloseBtn) {
+    modalCloseBtn.addEventListener('click', closeModal);
+  }
 
-      const escapeHandler = (e) => {
-          if (e.key === 'Escape') {
-              closeModal();
-              document.removeEventListener('keydown', escapeHandler);
-          }
-      };
-      document.addEventListener('keydown', escapeHandler);
-    }
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
 
-    // ═══════════════════════════════════════════════════════════
-    // REGISTRATION MODAL
-    // ═══════════════════════════════════════════════════════════
-    function showRegistrationModal() {
-      const modalRoot = $('#modalRoot');
-      if (!modalRoot) return;
-      
-      const config = window.__appConfig || DEFAULTS;
-      const companyName = config.companyName || 'Tu Compañía';
-
-      const modal = document.createElement('div');
-      modal.className = 'modal-overlay';
-      modal.innerHTML = `
-        <div class="modal-content modal-form">
-          <h3 class="modal-title">Solicitar Registro</h3>
-          
-          <div class="modal-body">
-            <form id="registrationForm">
-              <div class="form-group">
-                <label class="form-label" for="regName">Nombre Completo</label>
-                <input type="text" id="regName" class="form-input" placeholder="Tu nombre" required>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="regCompany">Compañía</label>
-                <input type="text" id="regCompany" class="form-input" value="${companyName}" readonly>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="regArea">Área o Departamento</label>
-                <input type="text" id="regArea" class="form-input" placeholder="Ej. Mantenimiento" required>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="regEmail">Correo Electrónico</label>
-                <input type="email" id="regEmail" class="form-input" placeholder="tu@correo.com" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="idUser">ID Usuario</label>
-                <input type="text" id="idUser" class="form-input" placeholder="ID Trabajador" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="regPassword">Crear Contraseña</label>
-                <input type="password" id="regPassword" class="form-input" placeholder="••••••••" required>
-                <ul class="password-rules">
-                  <li id="rule-length">8+ Caracteres</li>
-                  <li id="rule-number">1 Número</li>
-                  <li id="rule-letter">1 Letra</li>
-                </ul>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label" for="regConfirmPassword">Confirmar Contraseña</label>
-                <input type="password" id="regConfirmPassword" class="form-input" placeholder="••••••••" required>
-                <ul class="password-rules">
-                   <li id="rule-match">Las contraseñas coinciden</li>
-                </ul>
-              </div>
-            </form>
-          </div>
-          
-          <div class="modal-actions">
-            <button class="btn btn-secondary" id="modalCancel">Cancelar</button>
-            <button class="btn btn-primary" id="modalSubmit">Enviar Solicitud</button>
-          </div>
-        </div>
-      `;
-
-      modalRoot.innerHTML = '';
-      modalRoot.appendChild(modal);
-
-      const closeModal = () => {
-        modal.style.animation = 'fadeOut 200ms ease-out forwards';
-        setTimeout(() => {
-          modalRoot.innerHTML = '';
-        }, 200);
-      };
-
-      // --- Lógica de Validación de Password ---
-      const passInput = modal.querySelector('#regPassword');
-      const confirmInput = modal.querySelector('#regConfirmPassword');
-      const rules = {
-        length: modal.querySelector('#rule-length'),
-        number: modal.querySelector('#rule-number'),
-        letter: modal.querySelector('#rule-letter'),
-        match: modal.querySelector('#rule-match')
-      };
-      
-      const validatePassword = () => {
-        const pass = passInput.value;
-        const confirm = confirmInput.value;
-        
-        const isLength = pass.length >= 8;
-        const hasNumber = /\d/.test(pass);
-        const hasLetter = /[a-zA-Z]/.test(pass);
-        const isMatch = pass.length > 0 && pass === confirm;
-        
-        rules.length.classList.toggle('valid', isLength);
-        rules.number.classList.toggle('valid', hasNumber);
-        rules.letter.classList.toggle('valid', hasLetter);
-        rules.match.classList.toggle('valid', isMatch);
-        
-        return isLength && hasNumber && hasLetter && isMatch;
-      };
-      
-      passInput.addEventListener('input', validatePassword);
-      confirmInput.addEventListener('input', validatePassword);
-      
-      // --- Acciones del Modal ---
-      $('#modalCancel').addEventListener('click', closeModal);
-
-$('#modalSubmit').addEventListener('click', async () => {
-    const form = modal.querySelector('#registrationForm');
-    const submitBtn = $('#modalSubmit');
-
-    if (!form.checkValidity()) {
-      showModal('Error', 'Por favor completa todos los campos requeridos.', 'error');
-      return;
-    }
-    
-    if (!validatePassword()) {
-      showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla los requisitos.', 'error');
-      return;
-    }
-    
-    try {
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Enviando...';
-
-      const regName = $('#regName').value.trim();
-      const regArea = $('#regArea').value.trim();
-      const regEmail = $('#regEmail').value.trim();
-      const regPassword = $('#regPassword').value;
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: regEmail,
-        password: regPassword
-      });
-
-      if (authError) {
-        throw authError; 
-      }
-
-      if (!authData.user) {
-         throw new Error('No se pudo crear el usuario, por favor intente de nuevo.');
-      }
-
-      const { error: profileError } = await supabase.from('profiles')
-        .update({
-          nombre: regName,
-          area_departamento: regArea,
-          tenant_id: window.__appConfig.tenantUUID
-        })
-        .eq('user_id', authData.user.id);
-
-      if (profileError) {
-        throw profileError;
-      }
-
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape') {
       closeModal();
-      setTimeout(() => {
-         showModal(
-          'Solicitud Enviada',
-          'Tu solicitud ha sido enviada para autorización. Recibirás una notificación por correo.',
-          'success'
-        );
-      }, 250);
-              
-    } catch (error) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Enviar Solicitud';
-      
-      let userMessage = 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';
-      
-      if (error.message.includes('User already registered')) {
-          userMessage = 'Este correo electrónico ya está registrado.';
-      } else if (error.message.includes('password should be') || error.message.includes('Password should be')) {
-          userMessage = 'La contraseña es muy débil. Debe tener al menos 6 caracteres.';
-      } else if (error.message.includes('email') || error.message.includes('Email')) {
-          userMessage = 'El formato del correo no es válido.';
-      }
-      
-      showModal('Error en el Registro', userMessage, 'error');
+      document.removeEventListener('keydown', escapeHandler);
     }
-})();
+  };
+  document.addEventListener('keydown', escapeHandler);
+}
+
+// ═══════════════════════════════════════════════════════════
+// REGISTRATION MODAL
+// ═══════════════════════════════════════════════════════════
+function showRegistrationModal() {
+  const modalRoot = $('#modalRoot');
+  if (!modalRoot) return;
+
+  const config = window.__appConfig || DEFAULTS;
+  const companyName = config.companyName || 'Tu Compañía';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content modal-form">
+      <h3 class="modal-title">Solicitar Registro</h3>
+      
+      <div class="modal-body">
+        <form id="registrationForm">
+          <div class="form-group">
+            <label class="form-label" for="regName">Nombre Completo</label>
+            <input type="text" id="regName" class="form-input" placeholder="Tu nombre" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="regCompany">Compañía</label>
+            <input type="text" id="regCompany" class="form-input" value="${companyName}" readonly>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="regArea">Área o Departamento</label>
+            <input type="text" id="regArea" class="form-input" placeholder="Ej. Mantenimiento" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="regEmail">Correo Electrónico</label>
+            <input type="email" id="regEmail" class="form-input" placeholder="tu@correo.com" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="idUser">ID Usuario</label>
+            <input type="text" id="idUser" class="form-input" placeholder="ID Trabajador" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regPassword">Crear Contraseña</label>
+            <input type="password" id="regPassword" class="form-input" placeholder="••••••••" required>
+            <ul class="password-rules">
+              <li id="rule-length">8+ Caracteres</li>
+              <li id="rule-number">1 Número</li>
+              <li id="rule-letter">1 Letra</li>
+            </ul>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="regConfirmPassword">Confirmar Contraseña</label>
+            <input type="password" id="regConfirmPassword" class="form-input" placeholder="••••••••" required>
+            <ul class="password-rules">
+              <li id="rule-match">Las contraseñas coinciden</li>
+            </ul>
+          </div>
+        </form>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="modalCancel">Cancelar</button>
+        <button class="btn btn-primary" id="modalSubmit">Enviar Solicitud</button>
+      </div>
+    </div>
+  `;
+
+  // Insertamos el modal en el DOM ANTES de buscar elementos
+  modalRoot.innerHTML = '';
+  modalRoot.appendChild(modal);
+
+  const closeModal = () => {
+    modal.style.animation = 'fadeOut 200ms ease-out forwards';
+    setTimeout(() => {
+      modalRoot.innerHTML = '';
+    }, 200);
+  };
+
+  // --- Lógica de Validación de Password ---
+  const passInput = modal.querySelector('#regPassword');
+  const confirmInput = modal.querySelector('#regConfirmPassword');
+  const rules = {
+    length: modal.querySelector('#rule-length'),
+    number: modal.querySelector('#rule-number'),
+    letter: modal.querySelector('#rule-letter'),
+    match: modal.querySelector('#rule-match')
+  };
+
+  const validatePassword = () => {
+    const pass = passInput ? passInput.value : '';
+    const confirm = confirmInput ? confirmInput.value : '';
+
+    const isLength = pass.length >= 8;
+    const hasNumber = /\d/.test(pass);
+    const hasLetter = /[a-zA-Z]/.test(pass);
+    const isMatch = pass.length > 0 && pass === confirm;
+
+    if (rules.length) rules.length.classList.toggle('valid', isLength);
+    if (rules.number) rules.number.classList.toggle('valid', hasNumber);
+    if (rules.letter) rules.letter.classList.toggle('valid', hasLetter);
+    if (rules.match) rules.match.classList.toggle('valid', isMatch);
+
+    return isLength && hasNumber && hasLetter && isMatch;
+  };
+
+  if (passInput) passInput.addEventListener('input', validatePassword);
+  if (confirmInput) confirmInput.addEventListener('input', validatePassword);
+
+  // --- Acciones del Modal ---
+  const cancelBtn = modal.querySelector('#modalCancel');
+  const submitBtn = modal.querySelector('#modalSubmit');
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeModal();
+    });
+  }
+
+  if (submitBtn) {
+    submitBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      const form = modal.querySelector('#registrationForm');
+      if (!form || !form.checkValidity()) {
+        showModal('Error', 'Por favor completa todos los campos requeridos.', 'error');
+        return;
+      }
+
+      if (!validatePassword()) {
+        showModal('Contraseña Inválida', 'Por favor revisa que tu contraseña cumpla los requisitos.', 'error');
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+
+        const regName = (modal.querySelector('#regName') as HTMLInputElement)?.value.trim();
+        const regArea = (modal.querySelector('#regArea') as HTMLInputElement)?.value.trim();
+        const regEmail = (modal.querySelector('#regEmail') as HTMLInputElement)?.value.trim();
+        const regPassword = (modal.querySelector('#regPassword') as HTMLInputElement)?.value;
+        const idUser = (modal.querySelector('#idUser') as HTMLInputElement)?.value.trim();
+
+        // ⬇️ Aquí sigue tu lógica actual (signUp + update profile)
+        // Si luego migramos a registration_requests, este bloque cambia.
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: regEmail,
+          password: regPassword
+        });
+
+        if (authError) {
+          throw authError;
+        }
+
+        if (!authData.user) {
+          throw new Error('No se pudo crear el usuario, por favor intente de nuevo.');
+        }
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            nombre: regName,
+            area_departamento: regArea,
+            tenant_id: window.__appConfig.tenantUUID
+          })
+          .eq('user_id', authData.user.id);
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        closeModal();
+        setTimeout(() => {
+          showModal(
+            'Solicitud Enviada',
+            'Tu solicitud ha sido enviada para autorización. Recibirás una notificación por correo.',
+            'success'
+          );
+        }, 250);
+      } catch (error) {
+        console.error(error);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar Solicitud';
+
+        let userMessage = 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';
+
+        if (error.message?.includes('User already registered')) {
+          userMessage = 'Este correo electrónico ya está registrado.';
+        } else if (error.message?.includes('password should be') || error.message?.includes('Password should be')) {
+          userMessage = 'La contraseña es muy débil. Debe tener al menos 6 caracteres.';
+        } else if (error.message?.includes('email') || error.message?.includes('Email')) {
+          userMessage = 'El formato del correo no es válido.';
+        }
+
+        showModal('Error en el Registro', userMessage, 'error');
+      }
+    });
+  }
 }
  // ← 🔹 ESTA llave cierra correctamente showRegistrationModal()
 
