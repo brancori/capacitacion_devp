@@ -126,23 +126,23 @@
   "siresi": {
   "companyName": "Sistemas de Rescate y Seguridad Industrial",
   "logoText": "SR",
-  "logoUrl": null,
-  "tagline": "Sistemas de Rescate y Seguridad Industrial",
-  "description": "Accede a tu plataforma de capacitación en seguridad industrial y rescate.",
+  "logoUrl": "./tenants/siresi/assets/siresi_logo.jpg",
+  "tagline": "¡Bienvenido!",
+  "description": "Plataforma de capacitación en seguridad industrial y rescate.",
 
-  "bgPage": "#F4F6F8",
-  "textPage": "#1C1348",
+  "bgPage": "#1C1348",
+  "textPage": "#ffffff",
   "primaryColor": "#Fc6327",
   "secondaryColor": "#E05A24",
   
-  "bgBrand": "#ffffff",
+  "bgBrand": "#Fc6327",
   "textBrand": "#1C1348",
   
-  "bgForm": "#ffffff",
+  "bgForm": "rgba(255, 255, 255, 0.95)",
   "textForm": "#1C1348",
   "inputTheme": "light",
   
-  "backgroundImage": "linear-gradient(to bottom, #F4F6F8, #FFFFFF)",
+  "backgroundImage": "linear-gradient(to bottom, #100A2E, #1C1348)",
   "animatedBackground": false,
   
   "labels": {
