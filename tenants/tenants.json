@@ -132,17 +132,17 @@
 
   "bgPage": "#C5BAAA",
   "textPage": "#2C2C2C",
-  "primaryColor": "#EE7828",
+  "primaryColor": "#2C2C2C",
   "secondaryColor": "#806D61",
   
-  "bgBrand": "#EE7828",
-  "textBrand": "#ffffff",
+  "bgBrand": "#ffffff",
+  "textBrand": "#2C2C2C",
   
-  "bgForm": "#ffffff",
-  "textForm": "#2C2C2C",
+  "bgForm": "#EE7828",
+  "textForm": "#ffffff",
   "inputTheme": "light",
   
-  "backgroundImage": "linear-gradient(to bottom, #C5BAAA, #EFEAE3)",
+  "backgroundImage": "linear-gradient(to bottom, #EFEAE3, #C5BAAA)",
   "animatedBackground": false,
   
   "labels": {
