@@ -131,18 +131,18 @@
   "description": "Plataforma de capacitación en seguridad industrial y rescate.",
 
   "bgPage": "#C5BAAA",
-  "textPage": "#2C2C2C",
-  "primaryColor": "#2C2C2C",
-  "secondaryColor": "#806D61",
+  "textPage": "#1C1348",
+  "primaryColor": "#EE7828",
+  "secondaryColor": "#Fc6327",
   
   "bgBrand": "#ffffff",
-  "textBrand": "#2C2C2C",
+  "textBrand": "#1C1348",
   
-  "bgForm": "#EE7828",
-  "textForm": "#2C2C2C",
+  "bgForm": "#ffffff",
+  "textForm": "#1C1348",
   "inputTheme": "light",
   
-  "backgroundImage": "linear-gradient(to bottom, #EFEAE3, #C5BAAA)",
+  "backgroundImage": "linear-gradient(to bottom, #EFEAE3, #EFEAE3)",
   "animatedBackground": false,
   
   "labels": {
