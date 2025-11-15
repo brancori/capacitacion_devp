@@ -393,6 +393,42 @@
       initializeInteractions();
     }
 
+
+function showModal(title, message, type = 'info', callback = null) {
+  const modalRoot = $('#modalRoot');
+  if (!modalRoot) return;
+
+  const iconMap = {
+    success: '✓',
+    error: '✕',
+    info: 'ℹ'
+  };
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-icon ${type}">${iconMap[type] || '!'}</div>
+      <h3 class="modal-title">${title}</h3>
+      <p class="modal-text">${message}</p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="modalOk">Aceptar</button>
+      </div>
+    </div>
+  `;
+
+  modalRoot.innerHTML = '';
+  modalRoot.appendChild(modal);
+
+  const okBtn = modal.querySelector('#modalOk');
+  okBtn.addEventListener('click', () => {
+    modal.style.animation = 'fadeOut 200ms ease-out forwards';
+    setTimeout(() => {
+      modalRoot.innerHTML = '';
+      if (callback) callback();
+    }, 200);
+  });
+}
     // ═══════════════════════════════════════════════════════════
     // TAB SYSTEM
     // ═══════════════════════════════════════════════════════════
