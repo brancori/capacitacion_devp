@@ -1,5 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "shared/cors.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 // *** NOTA: ¡Implementación de crypto NO incluida en la documentación! ***
 // Necesitarás importar y usar una librería o API nativa de Deno.
 // import { encrypt } from "../_shared/crypto.ts";

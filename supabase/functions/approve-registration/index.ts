@@ -1,7 +1,7 @@
 // supabase/functions/approve-registration/index.ts
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "shared/cors.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 // *** NOTA: ¡Implementación de crypto NO incluida en la documentación! ***
 // import { decrypt } from "../_shared/crypto.ts";
 

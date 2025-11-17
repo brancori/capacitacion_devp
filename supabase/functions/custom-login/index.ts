@@ -1,7 +1,7 @@
 // supabase/functions/custom-login/index.ts
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "shared/cors.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
