@@ -258,3 +258,91 @@ input:checked + .slider:before {
     gap: 10px;
     justify-content: center;
 }
+
+@media (max-width: 768px) {
+
+    /* Ocultar encabezados de tabla en móvil */
+    .user-table .header,
+    .request-table .header {
+        display: none;
+    }
+
+    /* Eliminar el ancho mínimo que fuerza el scroll horizontal */
+    .user-table {
+        min-width: 100%;
+        grid-template-columns: 1fr; /* Apilar filas */
+    }
+    
+    .request-table {
+        grid-template-columns: 1fr; /* Apilar filas */
+    }
+
+    /* Convertir filas en tarjetas */
+    .user-row,
+    .request-row {
+        display: block; /* Dejar de ser 'display: contents' */
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        box-shadow: 0 2px 4px var(--shadow);
+    }
+
+    /* Ajustar las celdas de datos */
+    .user-row > div,
+    .request-row > div {
+        display: grid;
+        grid-template-columns: 120px 1fr; /* Columna para etiqueta, columna para valor */
+        gap: 1rem;
+        padding: 0.8rem 0.5rem;
+        text-align: left;
+        border-bottom: 1px dashed var(--border);
+    }
+    
+    .user-row > div:last-child,
+    .request-row > div:last-child {
+        border-bottom: none;
+    }
+
+    /* Insertar la etiqueta desde el atributo data-label */
+    .user-row > div[data-label]::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--primaryColor);
+        text-align: right;
+    }
+    
+    /* Insertar la etiqueta para las solicitudes (requiere HTML modificado) */
+    .request-row > div[data-label]::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary); /* Un color diferente para distinguirlas */
+        text-align: right;
+    }
+
+    /* Centrar elementos que deben seguir centrados */
+    .user-row > div.text-center,
+    .request-row > div.text-center {
+        display: block;
+        text-align: center;
+    }
+
+    /* Ajustar botones de acción para Fitt's Law */
+    .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding-top: 0.5rem;
+    }
+
+    .actions .btn {
+        width: 100%;
+        font-size: 1rem; /* Más grande para tocar */
+        padding: 0.75rem 1rem; /* Mayor área táctil */
+    }
+    
+    /* Ocultar columna de Tenant si está vacía (en vista de admin/supervisor) */
+    .user-row > div[data-label="Tenant"]:not(:has(*)) {
+        display: none;
+    }
+}

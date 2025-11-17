@@ -373,12 +373,15 @@
         requests.forEach(req => {
             const row = document.createElement('div');
             row.className = 'request-row';
+            
+            // --- INICIO DE LA MODIFICACIÓN ---
+            // Añadir atributos data-label para el diseño responsivo
             row.innerHTML = `
-                <div>${req.full_name || 'Sin nombre'}</div>
-                <div>${req.email}</div>
-                <div>${req.user_type}</div>
-                <div>${new Date(req.created_at).toLocaleDateString()}</div>
-                <div class="actions">
+                <div data-label="Nombre">${req.full_name || 'Sin nombre'}</div>
+                <div data-label="Email">${req.email}</div>
+                <div data-label="Tipo">${req.user_type}</div>
+                <div data-label="Fecha">${new Date(req.created_at).toLocaleDateString()}</div>
+                <div data-label="Acciones" class="actions text-center">
                     <button class="btn btn-primary btn-approve" data-id="${req.id}" data-email="${req.email}">
                         <i class="fas fa-check"></i> Aprobar
                     </button>
