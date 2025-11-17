@@ -1020,6 +1020,12 @@
     .recommendations-grid {
         grid-template-columns: 1fr;
     }
+    .top-navbar {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center
+    }
 }
 /* Estilos para el panel de control de la demo */
     .demo-controls {
