@@ -394,6 +394,31 @@
         });
     }
 
+    // Configurar suscripción a cambios en pending_registrations
+function setupRealtimeSubscription(adminRole, adminTenantId, tenantSlug) {
+    const channel = window.supabase
+        .channel('pending-requests-changes')
+        .on(
+            'postgres_changes',
+            {
+                event: '*', // INSERT, UPDATE, DELETE
+                schema: 'public',
+                table: 'pending_registrations'
+            },
+            (payload) => {
+                console.log('🔔 Cambio detectado en pending_registrations:', payload);
+                
+                // Recargar la lista automáticamente
+                loadPendingRequests(adminRole, adminTenantId, tenantSlug);
+            }
+        )
+        .subscribe();
+
+    console.log('✅ Suscripción a Realtime activada');
+    
+    // Retornar el canal para poder desuscribirse después si es necesario
+    return channel;
+}
 async function handleApproveRequest(requestId, requestEmail) {
     try {
         const confirmed = await showModalConfirm(
@@ -755,6 +780,9 @@ async function handleApproveRequest(requestId, requestEmail) {
         // 4. Cargar solicitudes pendientes
         await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
         console.log('✅ Solicitudes pendientes cargadas');
+
+        // 4.5 Activar Realtime para solicitudes pendientes
+        setupRealtimeSubscription(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
 
         // 5. Cargar lista de usuarios autorizados
         await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
