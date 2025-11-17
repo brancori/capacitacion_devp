@@ -1,12 +1,21 @@
 // supabase/functions/custom-login/index.ts
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+
+// --- IMPORTANTE: Headers de CORS movidos aquí ---
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+// ---------------------------------------------
 
 Deno.serve(async (req) => {
+  // --- MANEJO DE CORS (PREFLIGHT) ---
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+  // ----------------------------------
 
   try {
     const { email, password, tenant_slug } = await req.json();
@@ -20,7 +29,6 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
     // 1. Crear cliente Admin (Service Role) para bypassear RLS
-    // Lo usaremos para leer tablas internas de forma segura
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // 2. Buscar el ID del tenant basado en el slug (ej: 'demo' -> uuid)
@@ -31,11 +39,19 @@ Deno.serve(async (req) => {
       .single();
 
     if (tenantError || !tenant) {
-      throw new Error("Tenant no encontrado o inválido.");
+      // Si el slug no existe, comprobamos si el que llama es 'master'
+      const { data: userByEmail } = await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("email", email)
+        .single();
+      
+      if (userByEmail?.role !== 'master') {
+         throw new Error("Tenant no encontrado o inválido.");
+      }
     }
 
     // 3. Autenticar al usuario (validar email y contraseña)
-    // Usamos el cliente 'anon' estándar para esto
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { data: authData, error: authError } = await supabase.auth
       .signInWithPassword({
@@ -48,10 +64,9 @@ Deno.serve(async (req) => {
     }
 
     // 4. (Éxito de Auth) Ahora verificamos el *estado* en 'profiles'
-    // Usamos el cliente Admin otra vez
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("status, tenant_id")
+      .select("status, tenant_id, role")
       .eq("id", authData.user.id)
       .single();
 
@@ -61,14 +76,17 @@ Deno.serve(async (req) => {
 
     // 5. REGLAS DE NEGOCIO (Manifiesto)
     
-    // Regla 1: ¿El usuario pertenece a este tenant?
-    if (profile.tenant_id !== tenant.id) {
-      throw new Error("Acceso denegado. El usuario no pertenece a este tenant.");
+    // Regla 0: Si es 'master', saltar validación de tenant
+    if (profile.role !== 'master') {
+      // Regla 1: ¿El usuario pertenece a este tenant?
+      // Comprobamos que tenant.id exista antes de comparar
+      if (!tenant || profile.tenant_id !== tenant.id) {
+        throw new Error("Acceso denegado. El usuario no pertenece a este tenant.");
+      }
     }
 
     // Regla 2: ¿El usuario está pendiente?
     if (profile.status === 'pending') {
-      // Este 'error_code' especial es detectado por index2.js
       return new Response(
         JSON.stringify({
           error: "Cuenta pendiente de autorización. Contacta a tu administrador.",
@@ -101,11 +119,6 @@ Deno.serve(async (req) => {
     }
 
     // 6. ¡ÉXITO TOTAL!
-    // El usuario está autenticado, pertenece al tenant y está activo.
-    // Devolvemos el JWT que nos dio signInWithPassword.
-    // Ese JWT ya tiene los claims (role, tenant_id) porque
-    // los pusimos en 'app_metadata' durante 'approve-registration'.
-    
     return new Response(
       JSON.stringify({
         success: true,
