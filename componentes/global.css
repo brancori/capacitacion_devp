@@ -74,6 +74,11 @@ body {
     
     /* El color de texto principal se hereda del color primario del tenant */
     color: var(--primaryColor);
+
+    /* --- CAMBIO: Ocultar para prevenir FOUC y transición --- */
+    opacity: 0; /* OCULTAR POR DEFECTO */
+    transition: opacity 0.3s ease-in-out; 
+    /* ----------------------------------------------------- */
 }
 
 /* Dependencia global de iconos (Font Awesome) */
