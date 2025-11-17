@@ -119,10 +119,34 @@ Deno.serve(async (req) => {
     }
 
     // 6. ¡ÉXITO TOTAL!
+// 6. ¡ÉXITO TOTAL! - ACTUALIZAR APP_METADATA EN EL JWT
+    
+    // Actualizar el app_metadata del usuario con rol y tenant_id
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      authData.user.id,
+      {
+        app_metadata: {
+          role: profile.role,
+          tenant_id: profile.tenant_id
+        }
+      }
+    );
+
+    if (updateError) {
+      console.error('Error actualizando app_metadata:', updateError);
+    }
+
+    // Generar un nuevo JWT con el app_metadata actualizado
+    const { data: refreshData } = await supabaseAdmin.auth.refreshSession({
+      refresh_token: authData.session.refresh_token
+    });
+
+    const finalToken = refreshData?.session?.access_token || authData.session.access_token;
+
     return new Response(
       JSON.stringify({
         success: true,
-        jwt: authData.session.access_token,
+        jwt: finalToken,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
