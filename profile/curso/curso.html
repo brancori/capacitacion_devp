@@ -4,55 +4,58 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Curso</title>
-
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      font-family: Arial, sans-serif;
-      background: #f7f7f7;
-    }
-
-    #courseContainer {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
-    }
-
-    button {
-      padding: 10px 15px;
-      margin-top: 20px;
-      border: none;
-      background: #007bff;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #0056b3;
-    }
-  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../componentes/global.css">
+  <link rel="stylesheet" href="curso.css">
 </head>
 
 <body>
-  <div id="courseContainer">Cargando curso...</div>
+  <!-- Contenedor principal de la plataforma de curso -->
+  <div class="course-platform">
+    
+    <!-- 1. Barra superior -->
+    <header class="course-header">
+      <h1 id="courseTitle">Cargando Título...</h1>
+      <div class="header-actions">
+        <!-- Botón para cerrar y volver al perfil (ruta relativa correcta) -->
+        <a href="../profile.html" class="btn btn-outline"><i class="fas fa-times"></i> Cerrar</a>
+      </div>
+    </header>
 
+    <!-- 2. Contenido Principal (Sidebar + Área de Contenido) -->
+    <main class="course-main">
+      
+      <!-- Panel de Navegación/Páginas (Sidebar) -->
+      <aside class="course-sidebar" id="pageNavigation">
+        <h2>Índice del Curso</h2>
+        <div id="sidebarList">Cargando páginas...</div>
+      </aside>
+
+      <!-- Área de Visualización del Contenido -->
+      <section class="course-content-area">
+        <div id="pageContent">
+          <p>Cargando Contenido del Curso...</p>
+        </div>
+      </section>
+      
+    </main>
+
+    <!-- 3. Controles Inferiores (Anterior/Siguiente) -->
+    <footer class="course-footer">
+        <button id="prevPageBtn" class="btn btn-secondary" disabled>
+            <i class="fas fa-arrow-left"></i> Anterior
+        </button>
+        <div id="footerMessage">Página 0 de 0</div>
+        <button id="nextPageBtn" class="btn btn-primary" disabled>
+            Siguiente <i class="fas fa-arrow-right"></i>
+        </button>
+    </footer>
+
+  </div>
+  
+  <!-- Scripts de dependencia (rutas relativas correctas) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../componentes/supabase-client.js"></script> 
   <script src="curso.js"></script>
-
-  <script>
-    // Simulamos cargar un curso (esto después lo conectas a Supabase)
-    const params = new URLSearchParams(location.search);
-const courseId = params.get("id");
-
-supabase
-  .from("courses")
-  .select("content_json")
-  .eq("id", courseId)
-  .single()
-  .then(({ data }) => loadCourse(data.content_json));
-
-  </script>
 </body>
 </html>

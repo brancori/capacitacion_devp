@@ -33,9 +33,9 @@
     --danger: #dc3545;
 
     /* Paleta de grises y neutros del sistema */
-    --light-gray: #f4f4f4;  /* Para fondos claros, "casi blanco" */
+    --light-gray: #f4f4f4;/* Para fondos claros, "casi blanco" */
     --border: #e2e2e2;      /* Bordes de inputs, cards, etc. */
-    --text-secondary: #6e7883; /* Texto secundario, placeholders */
+    --text-secondary: #555; /* Texto secundario, placeholders */
     --card-bg: #ffffff;     /* Color de fondo estándar para tarjetas */
 
     /* Efectos de UI (Refactoring UI p. 180) */
