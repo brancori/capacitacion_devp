@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curso</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+    }
+
+    #courseContainer {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+    }
+
+    button {
+      padding: 10px 15px;
+      margin-top: 20px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="courseContainer">Cargando curso...</div>
+
+  <script src="curso.js"></script>
+
+  <script>
+    // Simulamos cargar un curso (esto después lo conectas a Supabase)
+    const params = new URLSearchParams(location.search);
+const courseId = params.get("id");
+
+supabase
+  .from("courses")
+  .select("content_json")
+  .eq("id", courseId)
+  .single()
+  .then(({ data }) => loadCourse(data.content_json));
+
+  </script>
+</body>
+</html>

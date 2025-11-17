@@ -268,12 +268,9 @@ input:checked + .slider:before {
     }
 
     /* Eliminar el ancho mínimo que fuerza el scroll horizontal */
-    .user-table {
-        min-width: 100%;
-        grid-template-columns: 1fr; /* Apilar filas */
-    }
-    
+    .user-table,
     .request-table {
+        min-width: 100%;
         grid-template-columns: 1fr; /* Apilar filas */
     }
 
@@ -288,15 +285,19 @@ input:checked + .slider:before {
         box-shadow: 0 2px 4px var(--shadow);
     }
 
-    /* Ajustar las celdas de datos */
+    /* --- INICIO DE CELDAS AJUSTADAS --- */
+
+    /* 1. Regla general para todas las celdas: Layout de Grid */
     .user-row > div,
     .request-row > div {
         display: grid;
-        grid-template-columns: 120px 1fr; /* Columna para etiqueta, columna para valor */
+        /* AJUSTE: Usar % para fluidez en 390px. (35% etiqueta, 65% valor) */
+        grid-template-columns: 35% 1fr;
         gap: 1rem;
         padding: 0.8rem 0.5rem;
-        text-align: left;
+        text-align: left; /* <-- CORRECCIÓN: Alinear el VALOR a la izquierda */
         border-bottom: 1px dashed var(--border);
+        align-items: center; /* Centrar verticalmente etiqueta y valor */
     }
     
     .user-row > div:last-child,
@@ -304,45 +305,60 @@ input:checked + .slider:before {
         border-bottom: none;
     }
 
-    /* Insertar la etiqueta desde el atributo data-label */
-    .user-row > div[data-label]::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: var(--primaryColor);
-        text-align: right;
-    }
-    
-    /* Insertar la etiqueta para las solicitudes (requiere HTML modificado) */
+    /* 2. Regla general para todas las etiquetas (::before) */
+    .user-row > div[data-label]::before,
     .request-row > div[data-label]::before {
         content: attr(data-label);
         font-weight: 600;
-        color: var(--text-secondary); /* Un color diferente para distinguirlas */
-        text-align: right;
+        color: var(--primaryColor);
+        text-align: right; /* <-- La ETIQUETA se alinea a la derecha */
     }
 
-    /* Centrar elementos que deben seguir centrados */
-    .user-row > div.text-center,
-    .request-row > div.text-center {
-        display: block;
-        text-align: center;
+    /* 3. Excepción ÚNICA para la celda de ACCIONES */
+    /* Queremos que esta celda rompa el grid para que los botones usen todo el ancho */
+    .user-row > div[data-label="Acciones"],
+    .request-row > div[data-label="Acciones"] {
+        display: block; /* Sobrescribir el display: grid */
+        padding-top: 1rem;
     }
 
-    /* Ajustar botones de acción para Fitt's Law */
-    .actions {
+    /* 4. Regla para los botones DENTRO de la celda de Acciones */
+    /* Esta regla ahora es más específica y aplica flexbox correctamente */
+    .user-row .actions,
+    .request-row .actions {
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
-        padding-top: 0.5rem;
+        width: 100%; /* Asegurar que ocupe todo */
     }
-
+    
     .actions .btn {
         width: 100%;
-        font-size: 1rem; /* Más grande para tocar */
-        padding: 0.75rem 1rem; /* Mayor área táctil */
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+        box-sizing: border-box; 
     }
+
+    /* * NOTA: La celda "Estado" ahora usará automáticamente la Regla 1 (display: grid).
+     * Su etiqueta "Estado" se alineará a la derecha y el "toggle-switch" 
+     * se alineará a la izquierda en la columna de valor, corrigiendo el centrado.
+     */
     
     /* Ocultar columna de Tenant si está vacía (en vista de admin/supervisor) */
     .user-row > div[data-label="Tenant"]:not(:has(*)) {
         display: none;
+    }
+    .logo-section h2{
+        font-size: 1rem;
+    }
+    .top-navbar{
+        display: flex;
+        flex-direction: column;
+        gap: 1rem ;
+    }
+    .user-row > div[data-label="Acciones"] {
+        padding-top: 0.5rem;
+        display: flex;
+        flex-direction: row;
     }
 }
