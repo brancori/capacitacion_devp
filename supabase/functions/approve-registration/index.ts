@@ -1,9 +1,5 @@
-// supabase/functions/approve-registration/index.ts
-
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
-// *** NOTA: ¡Implementación de crypto NO incluida en la documentación! ***
-// import { decrypt } from "../_shared/crypto.ts";
+import { corsHeaders } from "../_shared/cors.ts"; // <-- Ruta relativa correcta
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,7 +8,6 @@ Deno.serve(async (req) => {
 
   try {
     // 1. OBTENER EL CONTEXTO DE AUTENTICACIÓN DEL ADMIN
-    // Esto es crucial para la seguridad. [cite: 225, 233]
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("Se requiere autorización (Admin/Master)");
@@ -27,17 +22,16 @@ Deno.serve(async (req) => {
       global: {
         headers: { Authorization: authHeader },
       },
-    }); [cite: 225]
+    });
 
     // 2. VERIFICAR PERMISOS DEL ADMIN
-    // Obtenemos el usuario (admin) que hace la llamada [cite: 227]
+    // Obtenemos el usuario (admin) que hace la llamada
     const { data: { user: adminUser } } = await supabaseClient.auth.getUser();
     if (!adminUser) {
       throw new Error("Token de admin inválido");
     }
 
     // Leemos el rol del admin desde su perfil
-    // (RLS permite a los usuarios leer su propio perfil)
     const { data: adminProfile } = await supabaseClient
       .from("profiles")
       .select("role, tenant_id")
@@ -55,7 +49,6 @@ Deno.serve(async (req) => {
     }
 
     // 4. CREAR CLIENTE ADMIN (SERVICE ROLE)
-    // Este cliente bypassea RLS 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // 5. OBTENER EL REGISTRO PENDIENTE
@@ -94,10 +87,7 @@ Deno.serve(async (req) => {
     }
 
     // *** 8. PLACEHOLDER DE DESCIFRADO (NO DOCUMENTADO) ***
-    // const ENCRYPTION_SECRET = Deno.env.get("ENCRYPTION_SECRET");
-    // const decryptedPassword = await decrypt(pending.encrypted_password, ENCRYPTION_SECRET);
-    //
-    // **** PLACEHOLDER - ¡REEMPLAZAR! ****
+    // ¡¡¡REEMPLAZAR ANTES DE PRODUCIR!!!
     const decryptedPassword = pending.encrypted_password.replace("PLAINTEXT:", "");
     // ¡¡¡REEMPLAZAR ARRIBA!!!
 
@@ -105,8 +95,7 @@ Deno.serve(async (req) => {
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: pending.email,
       password: decryptedPassword,
-      email_confirm: true, // Se recomienda, aunque el manifiesto no lo pide
-      // AQUÍ ESTÁ LA MAGIA: Seteamos los claims del JWT [cite: 68, 179]
+      email_confirm: true,
       app_metadata: {
         role: assign_role,
         tenant_id: tenant.id,
@@ -126,12 +115,11 @@ Deno.serve(async (req) => {
       tenant_id: tenant.id,
       role: assign_role,
       user_type: pending.user_type,
-      status: 'active', // Aprobado = activo
+      status: 'active',
       metadata: pending.meta
     });
 
     if (profileError) {
-      // Rollback: si falla el perfil, borrar el usuario de Auth
       await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
       throw new Error(`Error al crear perfil: ${profileError.message}`);
     }
