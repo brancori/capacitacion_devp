@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="../componentes/global.css">
     <link rel="stylesheet" href="./profile.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../componentes/supabase-client.js"></script>
 </head>
 <body>
 
@@ -663,281 +662,284 @@
 // ═══════════════════════════════════════════════════════════
 (async () => {
 
-  // --- Lógica del Tenant (Tu código original) ---
-  const setStyle = (prop, value) => {
-    if (value) document.documentElement.style.setProperty(prop, value);
-  };
+  // --- Lógica del Tenant (Tu código original) ---
+  const setStyle = (prop, value) => {
+    if (value) document.documentElement.style.setProperty(prop, value);
+  };
 
-  /**
-   * CORREGIDO: Esta es la versión de index.html que sí
-   * maneja '127.0.0.1' correctamente.
-   */
-  const detectTenant = () => {
-    const host = location.hostname || 'localhost';
+  const detectTenant = () => {
+    const host = location.hostname || 'localhost';
 
-    if (host === 'localhost') {
-      return 'demo';
+    if (host === 'localhost') {
+      return 'demo';
+    }
+    if (host === '127.0.0.1') {
+      return 'default';
+    }
+    const parts = host.split('.');
+    
+    if (parts.length > 2 && parts[0] !== 'www') {
+      return parts[0];
+    }
+    
+    return 'default';
+  };
+
+  async function loadTenantConfig() {
+    const tenantId = detectTenant();
+    console.log(`🔍 Detectando tenant: ${tenantId}`);
+    try {
+      const response = await fetch('../tenants/tenants.json', {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) throw new Error('No se pudo cargar tenants.json');
+      const data = await response.json();
+      return data[tenantId] || data['default'] || {};
+    } catch (error) {
+      console.warn('⚠️ Error al cargar configuración del tenant:', error);
+      return {};
+    }
+  }
+
+  function applyConfiguration(config) {
+    if (!config) return;
+    
+    // Colores
+    setStyle('--primaryColor', config.primaryColor);
+    setStyle('--secondaryColor', config.secondaryColor);
+
+    // Nombre de la compañía
+    const companyNameEl = document.getElementById('companyName');
+    if (companyNameEl && config.companyName) {
+      const icon = companyNameEl.querySelector('i');
+      companyNameEl.innerHTML = '';
+      if (icon) companyNameEl.appendChild(icon);
+      companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
+    }
+    console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
+  }
+
+  // --- Lógica de Permisos (NUEVA) ---
+  const manageUsersBtn = document.getElementById('manageUsersBtn');
+
+  /**
+   * Muestra u oculta elementos basados en el rol del usuario.
+   */
+  function updateProfileView(profile) {
+    // Actualizar el nombre
+    const profileNameEl = document.getElementById('profileName');
+    if (profileNameEl) {
+      // *** CORREGIDO ***
+      profileNameEl.textContent = profile.full_name || 'Usuario';
+    }
+
+    // Lógica de permisos existente
+    // *** CORREGIDO (para incluir 'supervisor') ***
+    const allowedRoles = ['master', 'admin', 'supervisor'];
+    if (allowedRoles.includes(profile.role)) {
+      if (manageUsersBtn) manageUsersBtn.style.display = 'flex';
+    } else {
+      if (manageUsersBtn) manageUsersBtn.style.display = 'none';
+    }
+  }
+
+  /**
+   * Carga el perfil del usuario desde Supabase y actualiza la vista.
+   */
+async function loadUserProfile() {
+  try {
+    // ✅ CAMBIO AQUÍ
+    const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+    if (authError || !user) {
+      console.error('No hay sesión activa, redirigiendo al login.');
+      window.location.href = '../index.html';
+      return;
     }
-    if (host === '127.0.0.1') {
-      return 'default';
-    }
-    const parts = host.split('.');
-    
-    if (parts.length > 2 && parts[0] !== 'www') {
-      return parts[0];
-    }
-    
-    return 'default';
-  };
 
-  async function loadTenantConfig() {
-    const tenantId = detectTenant();
-    console.log(`🔍 Detectando tenant: ${tenantId}`);
-    try {
-      const response = await fetch('../tenants/tenants.json', {
-        cache: 'no-store',
-        headers: { 'Accept': 'application/json' }
-      });
-      if (!response.ok) throw new Error('No se pudo cargar tenants.json');
-      const data = await response.json();
-      return data[tenantId] || data['default'] || {};
-    } catch (error) {
-      console.warn('⚠️ Error al cargar configuración del tenant:', error);
-      return {};
-    }
-  }
+    // ✅ CAMBIO AQUÍ
+    const { data: profile, error: profileError } = await window.supabase
+      .from('profiles')
+      .select('role, full_name')
+      .eq('id', user.id)
+      .single();
 
-  function applyConfiguration(config) {
-    if (!config) return;
-    
-    // Colores
-    setStyle('--primaryColor', config.primaryColor);
-    setStyle('--secondaryColor', config.secondaryColor);
+    if (profileError) throw profileError;
 
-    // Nombre de la compañía
-    const companyNameEl = document.getElementById('companyName');
-    if (companyNameEl && config.companyName) {
-      const icon = companyNameEl.querySelector('i');
-      companyNameEl.innerHTML = '';
-      if (icon) companyNameEl.appendChild(icon);
-      companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
-    }
-    console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
-  }
-
-  // --- Lógica de Permisos (NUEVA) ---
-  const manageUsersBtn = document.getElementById('manageUsersBtn');
-
-  /**
-   * Muestra u oculta elementos basados en el rol del usuario.
-   */
-  function updateProfileView(profile) {
-    // Actualizar el nombre
-    const profileNameEl = document.getElementById('profileName');
-    if (profileNameEl) {
-      profileNameEl.textContent = profile.nombre || 'Usuario';
-    }
-
-    // Lógica de permisos existente
-    if (profile.role === 'admin' || profile.role === 'master') {
-      if (manageUsersBtn) manageUsersBtn.style.display = 'flex';
+    if (profile) {
+      updateProfileView(profile);
     } else {
-      if (manageUsersBtn) manageUsersBtn.style.display = 'none';
+      console.warn('Usuario autenticado pero sin perfil.');
+      updateProfileView({ role: 'user', full_name: 'Usuario' });
     }
+  } catch (error) {
+    console.error('Error al cargar el perfil del usuario:', error.message);
+    updateProfileView({ role: 'user', full_name: 'Usuario' });
   }
+}
 
-  /**
-   * Carga el perfil del usuario desde Supabase y actualiza la vista.
-   */
-  async function loadUserProfile() {
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        console.error('No hay sesión activa, redirigiendo al login.');
-        window.location.href = '../index.html';
-        return;
-      }
+  // --- Lógica de UI (Modales, Tabs, Filtros) ---
+  function initUI() {
+    // ... (Todo tu código de UI original va aquí, sin cambios) ...
+    // --- Modal general ---
+    const modal = document.getElementById('modal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalClose = document.getElementById('modalClose');
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, nombre')
-        .eq('user_id', user.id)
-        .single();
+    function showModal(title, message, type = 'success') {
+      modalTitle.textContent = title;
+      modalMessage.textContent = message;
+      modalIcon.className = `modal-icon ${type}`;
+      modalIcon.innerHTML = type === 'success'
+        ? '<i class="fas fa-check-circle"></i>'
+        : '<i class="fas fa-info-circle"></i>';
+      modal.classList.add('show');
+    }
+    function closeModal() {
+      modal.classList.remove('show');
+    }
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
 
-      if (profileError) throw profileError;
+    // --- Tabs ---
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(tc => tc.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
 
-      if (profile) {
-        updateProfileView(profile);
-      } else {
-        console.warn('Usuario autenticado pero sin perfil.');
-        updateProfileView({ role: 'user', nombre: 'Usuario' }); // Oculta por seguridad
-      }
-    } catch (error) {
-      console.error('Error al cargar el perfil del usuario:', error.message);
-      updateProfileView({ role: 'user', nombre: 'Usuario' }); // Oculta por seguridad
-    }
-  }
+    // --- Filtros ---
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const courseCards = document.querySelectorAll('.course-card[data-status]');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.dataset.filter;
+        courseCards.forEach(card => {
+          card.style.display = (filter === 'all' || card.dataset.status === filter) ? 'flex' : 'none';
+        });
+      });
+    });
 
-  // --- Lógica de UI (Modales, Tabs, Filtros) ---
-  function initUI() {
-    // --- Modal general ---
-    const modal = document.getElementById('modal');
-    const modalIcon = document.getElementById('modalIcon');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalMessage = document.getElementById('modalMessage');
-    const modalClose = document.getElementById('modalClose');
+    // --- Buscador ---
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      document.querySelectorAll('.course-card').forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        card.style.display = title.includes(searchTerm) ? 'flex' : 'none';
+      });;
+    });
 
-    function showModal(title, message, type = 'success') {
-      modalTitle.textContent = title;
-      modalMessage.textContent = message;
-      modalIcon.className = `modal-icon ${type}`;
-      modalIcon.innerHTML = type === 'success'
-        ? '<i class="fas fa-check-circle"></i>'
-        : '<i class="fas fa-info-circle"></i>';
-      modal.classList.add('show');
-    }
-    function closeModal() {
-      modal.classList.remove('show');
-    }
-    modalClose.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
+    // --- Botones de acción ---
+    document.querySelectorAll('.btn-enroll').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const courseName = btn.dataset.course;
+        showModal('¡Inscripción Exitosa!', `Te has inscrito al curso "${courseName}".`, 'success');
+      });
+    });
+    document.querySelectorAll('.btn-download').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const certName = btn.dataset.cert;
+        showModal('Generando Certificado', `Tu certificado "${certName}" se está generando...`, 'success');
+      });
+    });
+    document.querySelectorAll('.btn-reminder').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const courseName = btn.dataset.course;
+        showModal('Recordatorio Activado', `Recibirás notificaciones del curso "${courseName}"`, 'info');
+      });
+    });
 
-    // --- Tabs ---
-    const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tabContents.forEach(tc => tc.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab).classList.add('active');
-      });
-    });
+    // --- Notificaciones ---
+    const notificationBtn = document.getElementById('notificationBtn');
+    const notificationPanel = document.getElementById('notificationPanel');
+    const notificationClose = document.getElementById('notificationClose');
+    const markAllRead = document.getElementById('markAllRead');
+    if (notificationBtn && notificationPanel) {
+      notificationBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notificationPanel.classList.toggle('show');
+      });
+      notificationClose?.addEventListener('click', () => notificationPanel.classList.remove('show'));
+      markAllRead?.addEventListener('click', () => {
+        showModal('Notificaciones Actualizadas', 'Todas fueron marcadas como leídas', 'info');
+        document.querySelector('.notification-badge').textContent = '0';
+        setTimeout(() => notificationPanel.classList.remove('show'), 1500);
+      });
+      document.addEventListener('click', (e) => {
+        if (!notificationPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
+          notificationPanel.classList.remove('show');
+        }
+      });
+    }
 
-    // --- Filtros ---
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const courseCards = document.querySelectorAll('.course-card[data-status]');
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const filter = btn.dataset.filter;
-        courseCards.forEach(card => {
-          card.style.display = (filter === 'all' || card.dataset.status === filter) ? 'flex' : 'none';
-        });
-      });
-    });
+    // --- Modal de insignias ---
+    const badgeModal = document.getElementById('badgeModal');
+    const viewBadgesBtn = document.getElementById('viewBadgesBtn');
+    const badgeModalClose = document.getElementById('badgeModalClose');
+    if (viewBadgesBtn && badgeModal && badgeModalClose) {
+      viewBadgesBtn.addEventListener('click', () => badgeModal.classList.add('show'));
+      badgeModalClose.addEventListener('click', () => badgeModal.classList.remove('show'));
+      badgeModal.addEventListener('click', (e) => {
+        if (e.target === badgeModal) badgeModal.classList.remove('show');
+      });
+    }
 
-    // --- Buscador ---
-    const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      document.querySelectorAll('.course-card').forEach(card => {
-        const title = card.querySelector('h3').textContent.toLowerCase();
-        card.style.display = title.includes(searchTerm) ? 'flex' : 'none';
-      });
-    });
+    // --- Botón de tema ---
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle?.addEventListener('click', () => {
+      showModal('Cambio de Tema', 'El modo oscuro estará disponible próximamente', 'info');
+    });
 
-    // --- Botones de acción ---
-    document.querySelectorAll('.btn-enroll').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const courseName = btn.dataset.course;
-        showModal('¡Inscripción Exitosa!', `Te has inscrito al curso "${courseName}".`, 'success');
-      });
-    });
-    document.querySelectorAll('.btn-download').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const certName = btn.dataset.cert;
-        showModal('Generando Certificado', `Tu certificado "${certName}" se está generando...`, 'success');
-      });
-    });
-    document.querySelectorAll('.btn-reminder').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const courseName = btn.dataset.course;
-        showModal('Recordatorio Activado', `Recibirás notificaciones del curso "${courseName}"`, 'info');
-      });
-    });
+    // --- Animación de barras ---
+    const progressBars = document.querySelectorAll('.progress-bar-fill');
+    progressBars.forEach(bar => {
+      const width = bar.style.width;
+      bar.style.width = '0%';
+      setTimeout(() => {
+        bar.style.width = width;
+      }, 100);
+    });
+  }
 
-    // --- Notificaciones ---
-    const notificationBtn = document.getElementById('notificationBtn');
-    const notificationPanel = document.getElementById('notificationPanel');
-    const notificationClose = document.getElementById('notificationClose');
-    const markAllRead = document.getElementById('markAllRead');
-    if (notificationBtn && notificationPanel) {
-      notificationBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        notificationPanel.classList.toggle('show');
-      });
-      notificationClose?.addEventListener('click', () => notificationPanel.classList.remove('show'));
-      markAllRead?.addEventListener('click', () => {
-        showModal('Notificaciones Actualizadas', 'Todas fueron marcadas como leídas', 'info');
-        document.querySelector('.notification-badge').textContent = '0';
-        setTimeout(() => notificationPanel.classList.remove('show'), 1500);
-      });
-      document.addEventListener('click', (e) => {
-        if (!notificationPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
-          notificationPanel.classList.remove('show');
-        }
-      });
-    }
+  // ═══════════════════════════════════════════════════════════
 
-    // --- Modal de insignias ---
-    const badgeModal = document.getElementById('badgeModal');
-    const viewBadgesBtn = document.getElementById('viewBadgesBtn');
-    const badgeModalClose = document.getElementById('badgeModalClose');
-    if (viewBadgesBtn && badgeModal && badgeModalClose) {
-      viewBadgesBtn.addEventListener('click', () => badgeModal.classList.add('show'));
-      badgeModalClose.addEventListener('click', () => badgeModal.classList.remove('show'));
-      badgeModal.addEventListener('click', (e) => {
-        if (e.target === badgeModal) badgeModal.classList.remove('show');
-      });
-    }
+  // FUNCIÓN PRINCIPAL DE ARRANQUE
+  // ═══════════════════════════════════════════════════════════
+  async function mainInit() {
+    // 1. Carga la config del tenant
+    const config = await loadTenantConfig();
+    applyConfiguration(config);
+    console.log('✅ Tenant listo');
 
-    // --- Botón de tema ---
-    const themeToggle = document.getElementById('themeToggle');
-    themeToggle?.addEventListener('click', () => {
-      showModal('Cambio de Tema', 'El modo oscuro estará disponible próximamente', 'info');
-    });
+    // 2. Carga el perfil de usuario (para permisos)
+    await loadUserProfile();
+    console.log('✅ Perfil de usuario cargado');
 
-    // --- Animación de barras ---
-    const progressBars = document.querySelectorAll('.progress-bar-fill');
-    progressBars.forEach(bar => {
-      const width = bar.style.width;
-      bar.style.width = '0%';
-      setTimeout(() => {
-        bar.style.width = width;
-      }, 100);
-    });
-  }
+    initUI();
+    console.log('✅ UI inicializada');
+  }
 
-  // ═══════════════════════════════════════════════════════════
-  // FUNCIÓN PRINCIPAL DE ARRANQUE
-  // ═══════════════════════════════════════════════════════════
-  async function mainInit() {
-    // 1. Carga la config del tenant
-    const config = await loadTenantConfig();
-    applyConfiguration(config);
-    console.log('✅ Tenant listo');
-
-    // 2. Carga el perfil de usuario (para permisos)
-    await loadUserProfile();
-    console.log('✅ Perfil de usuario cargado');
-
-    // 3. Inicia toda la UI (modales, tabs, etc.)
-    initUI();
-    console.log('✅ UI inicializada');
-  }
-
-  // --- Disparador de Carga ---
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mainInit);
-  } else {
-    mainInit();
-  }
+  // --- Disparador de Carga ---
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mainInit);
+  } else {
+    mainInit();
+  }
 
 })();
 </script>
+<script src="../componentes/supabase-client.js"></script>
 </body>
 </html>

@@ -1,42 +1,25 @@
-<!--Falta implementar la lógica de los usuarios master pueden ver todo ( pero los usuarios  que son los que tienen acceso aquí, que son los administradores de estos tenants solo deben ver su propio tenant) que son: 
-Owner
-Supevisor
-) -->
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión y</title>
-    <!-- Reutilizamos los iconos -->
+    <title>Gestión de Usuarios</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- ================================================== -->
-    <!--          ENLACES DE ESTILOS ACTUALIZADOS           -->
-    <!-- ================================================== -->
-    
-    <!-- 1. Cargar estilos GLOBALES primero -->
     <link rel="stylesheet" href="./global.css">
-    
-    
-    <!-- 2. Cargar estilos ESPECÍFICOS de admin (limpios) -->
     <link rel="stylesheet" href="./users.css">
-
-
+    
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./supabase-client.js"></script>
 </head>
 <body>
 
-    <!-- Navbar (Reutilizada) -->
+    <!-- Navbar -->
     <nav class="top-navbar">
         <div class="logo-section">
             <h2 id="companyName"><i class="fas fa-graduation-cap"></i> Cargando...</h2>
         </div>
         <div class="nav-actions">
-            <!-- Enlace para volver al perfil -->
             <a href="../profile/profile.html" class="btn btn-outline">
                 <i class="fas fa-user-circle"></i> Volver al Perfil
             </a>
@@ -47,27 +30,20 @@ Supevisor
     </nav>
 
     <div class="container">
-        
-        <!-- Contenedor principal de la lista -->
         <div class="user-list-container">
             <header class="list-header">
-
-                <!-- ================================================ -->
-                <!--  SECCIÓN NUEVA — SOLICITUDES PENDIENTES       -->
-                <!-- ================================================ -->
+                <!-- SOLICITUDES PENDIENTES -->
                 <div class="pending-requests-container">
                     <h2><i class="fas fa-user-plus"></i> Solicitudes Pendientes</h2>
-
                     <div class="request-table-wrapper">
                         <div class="request-table">
                             <div class="request-row header">
                                 <div>Nombre</div>
                                 <div>Email</div>
-                                <div>Área</div>
+                                <div>Tipo</div>
                                 <div>Fecha</div>
                                 <div class="text-center">Acciones</div>
                             </div>
-
                             <div id="request-list-body">
                                 <div class="loading-row">
                                     <i class="fas fa-spinner fa-spin"></i> Cargando solicitudes...
@@ -76,43 +52,38 @@ Supevisor
                         </div>
                     </div>
                 </div>
+
+                <!-- USUARIOS AUTORIZADOS -->
                 <h1><i class="fas fa-users-cog"></i> Gestión de Usuarios</h1>
                 <div class="filter-bar">
                     <div class="search-box">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchInput" placeholder="Buscar por nombre, correo o área...">
+                        <input type="text" id="searchInput" placeholder="Buscar por nombre, correo...">
                     </div>
                 </div>
             </header>
 
-            <!-- Wrapper para scroll horizontal en móvil -->
             <div class="user-table-wrapper">
-                <!-- Tabla de Usuarios (CSS Grid) -->
                 <div class="user-table">
-                    <!-- Cabecera de la tabla -->
                     <div class="user-row header">
                         <div>Nombre</div>
                         <div>Email</div>
-                        <div>Área / Depto.</div>
-                        <div id="tenant-header-col">Tenant</div> <!-- Oculto por defecto, visible para 'master' -->
-                        <div class="text-center">Autorizado</div>
+                        <div>Rol</div>
+                        <div id="tenant-header-col">Tenant</div>
+                        <div class="text-center">Estado</div>
                         <div class="text-center">Acciones</div>
                     </div>
-
-                    <!-- Contenedor de la lista de usuarios (se rellena con JS) -->
                     <div id="user-list-body">
-                        <!-- Fila de carga -->
                         <div class="loading-row" id="loadingRow">
                             <i class="fas fa-spinner fa-spin"></i> Cargando usuarios...
                         </div>
                     </div>
                 </div>
-            </div> <!-- Fin de .user-table-wrapper -->
+            </div>
         </div>
+    </div>
 
-    </div> <!-- Fin de .container -->
-
-    <!-- Modal (Reutilizado) -->
+    <!-- Modal General -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <div class="modal-icon" id="modalIcon"></div>
@@ -121,7 +92,9 @@ Supevisor
             <button class="btn btn-primary" id="modalClose" style="width: 100%;">Aceptar</button>
         </div>
     </div>
-<div class="modal" id="editModal">
+
+    <!-- Modal de Edición -->
+    <div class="modal" id="editModal">
         <div class="modal-content">
             <h3>Editar Usuario</h3>
             <form id="editForm">
@@ -138,14 +111,17 @@ Supevisor
                 </div>
 
                 <div class="form-group">
-                    <label for="editArea">Área / Departamento</label>
-                    <input type="text" id="editArea" class="form-control">
+                    <label for="editRole">Rol</label>
+                    <select id="editRole" class="form-control">
+                        <option value="user">Usuario</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="admin">Admin</option>
+                    </select>
                 </div>
 
                 <div class="form-group" id="tenant-select-wrapper" style="display: none;">
                     <label for="editTenantSelect">Tenant</label>
-                    <select id="editTenantSelect" class="form-control">
-                        </select>
+                    <select id="editTenantSelect" class="form-control"></select>
                 </div>
 
                 <div class="modal-actions">
@@ -155,478 +131,283 @@ Supevisor
             </form>
         </div>
     </div>
-<div class="modal" id="modal">
-    <div class="modal-content">
-        <div class="modal-icon" id="modalIcon"></div>
-        <h3 id="modalTitle"></h3>
-        <p id="modalMessage"></p>
-        <button class="btn btn-primary" id="modalClose" style="width: 100%;">Aceptar</button>
-    </div>
-</div>
+
 <script>
+(async () => {
+    // ═══════════════════════════════════════════════════════════
+    // VARIABLES GLOBALES
+    // ═══════════════════════════════════════════════════════════
+    let currentAdmin = null;
+    let searchTerm = '';
+    let allTenants = [];
+
+    // Referencias del DOM
+    const userListBody = document.getElementById('user-list-body');
+    const loadingRow = document.getElementById('loadingRow');
+    const searchInput = document.getElementById('searchInput');
+    const tenantHeaderCol = document.getElementById('tenant-header-col');
+
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const editUserId = document.getElementById('editUserId');
+    const editNombre = document.getElementById('editNombre');
+    const editEmail = document.getElementById('editEmail');
+    const editRole = document.getElementById('editRole');
+    const tenantSelectWrapper = document.getElementById('tenant-select-wrapper');
+    const editTenantSelect = document.getElementById('editTenantSelect');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const saveEditBtn = document.getElementById('saveEditBtn');
+
     const modal = document.getElementById('modal');
-const modalIcon = document.getElementById('modalIcon');
-const modalTitle = document.getElementById('modalTitle');
-const modalMessage = document.getElementById('modalMessage');
-const modalClose = document.getElementById('modalClose');
-
-function showModal(title, message, type = "success") {
-    modalTitle.textContent = title;
-    modalMessage.textContent = message;
-
-    modalIcon.className = `modal-icon ${type}`;
-
-    modalIcon.innerHTML =
-        type === "success" ? '<i class="fas fa-check-circle"></i>' :
-        type === "error"   ? '<i class="fas fa-exclamation-triangle"></i>' :
-                             '<i class="fas fa-info-circle"></i>';
-
-    modal.classList.add("show");
-}
-
-function closeModal() {
-    modal.classList.remove("show");
-}
-
-modalClose.addEventListener("click", closeModal);
-    (async () => {
-
-        // --- Almacén de estado ---
-        let currentAdmin = null;
-        let searchTerm = ''; // Estado para la búsqueda
-        let allTenants = []; // [NUEVO] Caché para tenants
-
-        // --- Referencias del DOM ---
-        const userListBody = document.getElementById('user-list-body');
-        const loadingRow = document.getElementById('loadingRow');
-        const searchInput = document.getElementById('searchInput');
-        const tenantHeaderCol = document.getElementById('tenant-header-col');
-
-        // [NUEVO] Referencias del Modal de Edición
-        const editModal = document.getElementById('editModal');
-        const editForm = document.getElementById('editForm');
-        const editUserId = document.getElementById('editUserId');
-        const editNombre = document.getElementById('editNombre');
-        const editEmail = document.getElementById('editEmail');
-        const editArea = document.getElementById('editArea');
-        const tenantSelectWrapper = document.getElementById('tenant-select-wrapper');
-        const editTenantSelect = document.getElementById('editTenantSelect');
-        const cancelEditBtn = document.getElementById('cancelEditBtn');
-        const saveEditBtn = document.getElementById('saveEditBtn'); // Referencia para deshabilitar
-
-        // --- Lógica del Tenant (Reutilizada) ---
-        // (Tu código de setStyle, detectTenant, loadTenantConfig, applyConfiguration)
-        // ... (sin cambios) ...
-        const setStyle = (prop, value) => {
-            if (value) document.documentElement.style.setProperty(prop, value);
-        };
-
-        const detectTenant = () => {
-            const host = location.hostname || 'localhost';
-            if (host === 'localhost') return 'demo';
-            if (host === '127.0.0.1') return 'default';
-            const parts = host.split('.');
-            if (parts.length > 2 && parts[0] !== 'www') return parts[0];
-            return 'default';
-        };
-
-        async function loadTenantConfig() {
-            const tenantId = detectTenant();
-            try {
-                const response = await fetch('../tenants/tenants.json', { cache: 'no-store' });
-                if (!response.ok) throw new Error('No se pudo cargar tenants.json');
-                const data = await response.json();
-                const config = data[tenantId] || data['default'] || {};
-                
-                const { data: tenantDB, error } = await supabase
-                    .from('tenants')
-                    .select('id')
-                    .eq('name', tenantId)
-                    .single();
-                
-                if (error) throw new Error(`Tenant '${tenantId}' no encontrado en BD.`);
-                config.tenantUUID = tenantDB.id;
-                
-                return config;
-            } catch (error) {
-                console.warn('⚠️ Error al cargar configuración del tenant:', error);
-                return {};
-            }
-        }
-
-        function applyConfiguration(config) {
-            setStyle('--primaryColor', config.primaryColor);
-            setStyle('--secondaryColor', config.secondaryColor);
-            const companyNameEl = document.getElementById('companyName');
-            if (companyNameEl && config.companyName) {
-                const icon = companyNameEl.querySelector('i');
-                companyNameEl.innerHTML = '';
-                if (icon) companyNameEl.appendChild(icon);
-                companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
-            }
-        }
-
-
-        // --- Lógica de Modales (Reutilizada) ---
-        const modal = document.getElementById('modal');
-        const modalIcon = document.getElementById('modalIcon');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const modalClose = document.getElementById('modalClose');
-
-        function showModal(title, message, type = 'success') {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            modalIcon.className = `modal-icon ${type}`;
-            modalIcon.innerHTML = type === 'success' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-info-circle"></i>';
-            if (type === 'error') modalIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-            modal.classList.add('show');
-        }
-
-        
-        function closeModal() { modal.classList.remove('show'); }
-        modalClose.addEventListener('click', closeModal);
-
-
-// ═══════════════════════════════════════════════════════════
-// FUNCIÓN PARA MODAL DE CONFIRMACIÓN (SÍ/NO)
-// ═══════════════════════════════════════════════════════════
-function showModalConfirm(title, message) {
-    return new Promise((resolve) => {
-        // Usamos las referencias globales del modal simple
-        modalTitle.textContent = title;
-        // La propiedad 'pre-wrap' es importante para ver los saltos de línea (\n)
-        modalMessage.style.whiteSpace = 'pre-wrap'; 
-        modalMessage.textContent = message;
-        
-        modalIcon.className = `modal-icon info`;
-        modalIcon.innerHTML = '<i class="fas fa-question-circle"></i>';
-        
-        // 1. Ocultar el botón original 'Aceptar' y crear un contenedor de acciones
-        modalClose.style.display = 'none';
-
-        const actionContainer = document.createElement('div');
-        actionContainer.className = 'modal-actions-confirm';
-        actionContainer.style.marginTop = '1rem';
-        actionContainer.style.display = 'flex';
-        actionContainer.style.justifyContent = 'space-around';
-        actionContainer.style.gap = '1rem';
-        
-        // 2. Botón CANCELAR (NO)
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn btn-outline';
-        cancelBtn.textContent = 'Cancelar';
-        cancelBtn.style.flex = '1';
-        
-        // 3. Botón CONFIRMAR (SÍ)
-        const confirmBtn = document.createElement('button');
-        confirmBtn.className = 'btn btn-primary';
-        confirmBtn.textContent = 'Confirmar';
-        confirmBtn.style.flex = '1';
-
-        // 4. Lógica de cierre y promesa
-        const cleanup = (result) => {
-            modal.classList.remove('show');
-            // Quitar los botones temporales del DOM
-            actionContainer.remove();
-            // Restaurar el botón original de 'Aceptar'
-            modalClose.style.display = 'block';
-            modalMessage.style.whiteSpace = 'normal';
-            resolve(result); // Resuelve la Promesa con true o false
-        };
-
-        cancelBtn.addEventListener('click', () => cleanup(false));
-        confirmBtn.addEventListener('click', () => cleanup(true));
-
-        // Insertar los botones de acción
-        modal.querySelector('.modal-content').appendChild(actionContainer);
-        actionContainer.appendChild(cancelBtn);
-        actionContainer.appendChild(confirmBtn);
-
-        modal.classList.add('show');
-    });
-}
-
-        // --- Lógica de la Página de Administración ---
-
-        async function loadAdminProfile(config) {
-            // ... (sin cambios) ...
-             try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError || !user) {
-                    window.location.href = '../index.html';
-                    return null;
-                }
-
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('role, tenant_id')
-                    .eq('user_id', user.id)
-                    .single();
-
-                if (profileError) throw profileError;
-
-                if (profile.role !== 'admin' && profile.role !== 'master') {
-                    showModal('Acceso Denegado', 'No tienes permisos para ver esta página.', 'error');
-                    setTimeout(() => window.location.href = './profile.html', 2000);
-                    return null;
-                }
-                
-                if (profile.role === 'admin' && profile.tenant_id !== config.tenantUUID) {
-                   showModal('Conflicto de Tenant', 'Tu perfil de admin no coincide con este tenant.', 'error');
-                   setTimeout(() => window.location.href = '../index.html', 2000);
-                   return null;
-                }
-
-                return profile;
-            } catch (error) {
-                console.error('Error al cargar perfil de admin:', error.message);
-                showModal('Error de Seguridad', 'No se pudo verificar tu perfil. Redirigiendo.', 'error');
-                setTimeout(() => window.location.href = '../index.html', 3000);
-                return null;
-            }
-        }
-        
-        // [NUEVO] Carga los tenants en el <select> del modal de edición
-        async function loadTenantsIntoSelect() {
-            try {
-                const { data, error } = await supabase
-                    .from('tenants')
-                    .select('id, name')
-                    .order('name');
-                
-                if (error) throw error;
-                
-                allTenants = data; // Guarda en caché
-                editTenantSelect.innerHTML = ''; // Limpia
-                
-                allTenants.forEach(tenant => {
-                    const option = document.createElement('option');
-                    option.value = tenant.id;
-                    option.textContent = tenant.name;
-                    editTenantSelect.appendChild(option);
-                });
-
-            } catch (error) {
-                console.error('Error al cargar tenants:', error.message);
-                tenantSelectWrapper.innerHTML = '<small>Error al cargar tenants.</small>';
-            }
-        }
-
-        /**
-         * Carga la lista de usuarios (MODIFICADA para búsqueda en servidor)
-         */
-async function loadUserList(adminRole, adminTenantId) {
-    try {
-        let query = supabase
-            .from('profiles')
-            .select(`
-                user_id, nombre, email, area_departamento, role, autorizado,
-                tenant_id, 
-                tenants ( name )
-            `);
-
-        // FILTRO POR ROL (en la aplicación, no en BD)
-        if (adminRole === 'admin') {
-            // Admin solo ve su tenant
-            query = query.eq('tenant_id', adminTenantId);
-            tenantHeaderCol.style.display = 'none';
-        } else if (adminRole === 'master') {
-            // Master ve TODO
-            tenantHeaderCol.style.display = 'block';
-        }
-
-        if (searchTerm) {
-            query = query.or(
-                `nombre.ilike.%${searchTerm}%,` +
-                `email.ilike.%${searchTerm}%,` +
-                `area_departamento.ilike.%${searchTerm}%`
-            );
-        }
-
-        query = query.limit(100);
-
-        const { data: profiles, error } = await query;
-        if (error) throw error;
-
-        console.log(`📊 Cargados ${profiles.length} usuarios (Rol: ${adminRole})`);
-        renderUserList(profiles, adminRole);
-
-    } catch (error) {
-        console.error('Error:', error.message);
-        loadingRow.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: ' + error.message;
-        userListBody.innerHTML = '';
-        userListBody.appendChild(loadingRow);
-    }
-}
-
-        /**
-         * Dibuja la lista de usuarios en el DOM.
-         */
-function renderUserList(profiles, adminRole) {
-            userListBody.innerHTML = ''; // Limpia la lista
-            if (profiles.length === 0) {
-                userListBody.innerHTML = '<div class="loading-row">No se encontraron usuarios.</div>';
-                return;
-            }
-
-            profiles.forEach(profile => {
-                const tenantName = (profile.tenants && profile.tenants.name) ? profile.tenants.name : 'N/A';
-                
-                const row = document.createElement('div');
-                row.className = 'user-row';
-                
-                // [MODIFICADO] Cambiado el botón de reset
-                row.innerHTML = `
-                    <div data-label="Nombre">
-                        <strong>${profile.nombre || 'Sin Nombre'}</strong>
-                        <small>${profile.role}</small>
-                    </div>
-                    <div data-label="Email">${profile.email || 'Sin Email'}</div>
-                    <div data-label="Área">${profile.area_departamento || 'N/A'}</div>
-                    <div data-label="Tenant" class="tenant-col" style="display: ${adminRole === 'master' ? 'flex' : 'none'};">
-                        ${tenantName}
-                    </div>
-                    
-                    <div data-label="Autorizado" class="text-center">
-                        <label class="toggle-switch">
-                            <input 
-                                type="checkbox" 
-                                class="toggle-authorize" 
-                                data-user-id="${profile.user_id}" 
-                                ${profile.autorizado ? 'checked' : ''}
-                            >
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    
-                    <div data-label="Acciones" class="text-center actions">
-                        <button 
-                            class="btn btn-outline btn-edit" 
-                            title="Editar Usuario"
-                            data-user-id="${profile.user_id}"
-                            data-nombre="${profile.nombre || ''}"
-                            data-email="${profile.email || ''}"
-                            data-area="${profile.area_departamento || ''}"
-                            data-tenant-id="${profile.tenant_id || ''}"
-                        >
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button 
-                            class="btn btn-outline btn-reset-pass" 
-                            title="Resetear Contraseña"
-                            data-user-id="${profile.user_id}"
-                            data-user-email="${profile.email || 'Sin Email'}" 
-                        >
-                            <i class="fas fa-key"></i>
-                        </button>
-                    </div>
-                `;
-                userListBody.appendChild(row);
-            });
-        }
-        
-        // [NUEVO] Abre el modal de edición y lo puebla con datos
-        function openEditModal(button) {
-            const data = button.dataset;
-            
-            editUserId.value = data.userId;
-            editNombre.value = data.nombre;
-            editEmail.value = data.email;
-            editArea.value = data.area;
-            
-            // Lógica de visibilidad del Tenant
-            if (currentAdmin.role === 'master') {
-                tenantSelectWrapper.style.display = 'block';
-                editTenantSelect.value = data.tenantId;
-            } else {
-                tenantSelectWrapper.style.display = 'none';
-            }
-            
-            editModal.classList.add('show');
-        }
-
-        // [NUEVO] Cierra el modal de edición
-        function closeEditModal() {
-            editModal.classList.remove('show');
-            editForm.reset(); // Limpia el formulario
-        }
-
-        // [NUEVO] Maneja el envío del formulario de edición
-        async function handleEditFormSubmit(e) {
-            e.preventDefault();
-            saveEditBtn.disabled = true;
-            saveEditBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
-            try {
-                const userId = editUserId.value;
-                const updateData = {
-                    nombre: editNombre.value,
-                    email: editEmail.value,
-                    area_departamento: editArea.value
-                };
-
-                // Solo el 'master' puede cambiar el tenant_id
-                if (currentAdmin.role === 'master') {
-                    updateData.tenant_id = editTenantSelect.value;
-                }
-
-                const { error } = await supabase
-                    .from('profiles')
-                    .update(updateData)
-                    .eq('user_id', userId);
-
-                if (error) throw error;
-
-                closeEditModal();
-                showModal('Éxito', 'Usuario actualizado correctamente.', 'success');
-                // Recarga la lista para mostrar los cambios
-                await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
-
-            } catch (error) {
-                console.error('Error al actualizar usuario:', error.message);
-                showModal('Error', `No se pudo actualizar: ${error.message}`, 'error');
-            } finally {
-                saveEditBtn.disabled = false;
-                saveEditBtn.textContent = 'Guardar Cambios';
-            }
-        }
-async function handlePasswordReset(userId, userEmail) {
-    if (!userId) {
-        showModal('Error', 'No se pudo identificar al usuario.', 'error');
-        return;
-    }
-    
-    const userConfirmed = await showModalConfirm(
-        'Resetear Contraseña', 
-        `¿Estás seguro de resetear la contraseña para ${userEmail}?\n\nSe generará una contraseña temporal que debes compartir con el usuario.`
-    );
-    
-    if (!userConfirmed) return;
-
-    // Mostrar loading
-    const modal = document.getElementById('modal');
+    const modalIcon = document.getElementById('modalIcon');
     const modalTitle = document.getElementById('modalTitle');
     const modalMessage = document.getElementById('modalMessage');
-    const modalIcon = document.getElementById('modalIcon');
-    
-    modalTitle.textContent = 'Procesando...';
-    modalMessage.textContent = 'Reseteando contraseña, por favor espera...';
-    modalIcon.className = 'modal-icon info';
-    modalIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    modal.classList.add('show');
+    const modalClose = document.getElementById('modalClose');
 
-    try {
-        // Obtener sesión actual
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-            throw new Error('No hay sesión activa');
+    // ═══════════════════════════════════════════════════════════
+    // FUNCIONES DE UTILIDAD
+    // ═══════════════════════════════════════════════════════════
+    
+    function showModal(title, message, type = 'success') {
+        modalTitle.textContent = title;
+        modalMessage.textContent = message;
+        modalIcon.className = `modal-icon ${type}`;
+        modalIcon.innerHTML = 
+            type === 'success' ? '<i class="fas fa-check-circle"></i>' :
+            type === 'error' ? '<i class="fas fa-exclamation-triangle"></i>' :
+            '<i class="fas fa-info-circle"></i>';
+        modal.classList.add('show');
+    }
+
+    function closeModal() {
+        modal.classList.remove('show');
+    }
+
+    modalClose.addEventListener('click', closeModal);
+
+    function showModalConfirm(title, message) {
+        return new Promise((resolve) => {
+            modalTitle.textContent = title;
+            modalMessage.style.whiteSpace = 'pre-wrap';
+            modalMessage.textContent = message;
+            modalIcon.className = 'modal-icon info';
+            modalIcon.innerHTML = '<i class="fas fa-question-circle"></i>';
+            modalClose.style.display = 'none';
+
+            const actionContainer = document.createElement('div');
+            actionContainer.className = 'modal-actions-confirm';
+            actionContainer.style.marginTop = '1rem';
+            actionContainer.style.display = 'flex';
+            actionContainer.style.justifyContent = 'space-around';
+            actionContainer.style.gap = '1rem';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-outline';
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.style.flex = '1';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'btn btn-primary';
+            confirmBtn.textContent = 'Confirmar';
+            confirmBtn.style.flex = '1';
+
+            const cleanup = (result) => {
+                modal.classList.remove('show');
+                actionContainer.remove();
+                modalClose.style.display = 'block';
+                modalMessage.style.whiteSpace = 'normal';
+                resolve(result);
+            };
+
+            cancelBtn.addEventListener('click', () => cleanup(false));
+            confirmBtn.addEventListener('click', () => cleanup(true));
+
+            modal.querySelector('.modal-content').appendChild(actionContainer);
+            actionContainer.appendChild(cancelBtn);
+            actionContainer.appendChild(confirmBtn);
+
+            modal.classList.add('show');
+        });
+    }
+
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CONFIGURACIÓN DE TENANT
+    // ═══════════════════════════════════════════════════════════
+    
+    const setStyle = (prop, value) => {
+        if (value) document.documentElement.style.setProperty(prop, value);
+    };
+
+    const detectTenant = () => {
+        const host = location.hostname || 'localhost';
+        if (host === 'localhost') return 'demo';
+        if (host === '127.0.0.1') return 'default';
+        const parts = host.split('.');
+        if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+        return 'default';
+    };
+
+    async function loadTenantConfig() {
+        const tenantId = detectTenant();
+        try {
+            const response = await fetch('../tenants/tenants.json', { cache: 'no-store' });
+            if (!response.ok) throw new Error('No se pudo cargar tenants.json');
+            const data = await response.json();
+            const config = data[tenantId] || data['default'] || {};
+
+            const { data: tenantDB, error } = await window.supabase
+                .from('tenants')
+                .select('id')
+                .eq('slug', tenantId)
+                .single();
+
+            if (error) throw new Error(`Tenant '${tenantId}' no encontrado en BD.`);
+            config.tenantUUID = tenantDB.id;
+            config.tenantSlug = tenantId;
+
+            return config;
+        } catch (error) {
+            console.warn('⚠️ Error al cargar configuración del tenant:', error);
+            return {};
         }
+    }
+
+    function applyConfiguration(config) {
+        setStyle('--primaryColor', config.primaryColor);
+        setStyle('--secondaryColor', config.secondaryColor);
+        const companyNameEl = document.getElementById('companyName');
+        if (companyNameEl && config.companyName) {
+            const icon = companyNameEl.querySelector('i');
+            companyNameEl.innerHTML = '';
+            if (icon) companyNameEl.appendChild(icon);
+            companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // AUTENTICACIÓN Y PERMISOS
+    // ═══════════════════════════════════════════════════════════
+    
+    async function loadAdminProfile(config) {
+        try {
+            const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+            if (authError || !user) {
+                window.location.href = '../index.html';
+                return null;
+            }
+
+            const { data: profile, error: profileError } = await window.supabase
+                .from('profiles')
+                .select('role, tenant_id')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError) throw profileError;
+
+            const allowedRoles = ['master', 'admin', 'supervisor'];
+            if (!allowedRoles.includes(profile.role)) {
+                showModal('Acceso Denegado', 'No tienes permisos para ver esta página.', 'error');
+                setTimeout(() => window.location.href = '../profile/profile.html', 2000);
+                return null;
+            }
+
+            if ((profile.role === 'admin' || profile.role === 'supervisor') && profile.tenant_id !== config.tenantUUID) {
+                showModal('Conflicto de Tenant', 'Tu perfil no coincide con este tenant.', 'error');
+                setTimeout(() => window.location.href = '../index.html', 2000);
+                return null;
+            }
+
+            return profile;
+        } catch (error) {
+            console.error('Error al cargar perfil de admin:', error.message);
+            showModal('Error de Seguridad', 'No se pudo verificar tu perfil.', 'error');
+            setTimeout(() => window.location.href = '../index.html', 3000);
+            return null;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // GESTIÓN DE SOLICITUDES PENDIENTES
+    // ═══════════════════════════════════════════════════════════
+    
+    async function loadPendingRequests(adminRole, adminTenantId, tenantSlug) {
+        try {
+            let query = window.supabase
+                .from('pending_registrations')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            // Admin/Supervisor solo ve su tenant
+            if (adminRole === 'admin' || adminRole === 'supervisor') {
+                query = query.eq('tenant_slug', tenantSlug);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            renderPendingRequests(data);
+        } catch (error) {
+            console.error('Error cargando solicitudes:', error.message);
+            document.getElementById('request-list-body').innerHTML =
+                '<div class="loading-row">Error al cargar solicitudes.</div>';
+        }
+    }
+
+    function renderPendingRequests(requests) {
+        const body = document.getElementById('request-list-body');
+        body.innerHTML = '';
+
+        if (requests.length === 0) {
+            body.innerHTML = '<div class="loading-row">No hay solicitudes pendientes.</div>';
+            return;
+        }
+
+        requests.forEach(req => {
+            const row = document.createElement('div');
+            row.className = 'request-row';
+            row.innerHTML = `
+                <div>${req.full_name || 'Sin nombre'}</div>
+                <div>${req.email}</div>
+                <div>${req.user_type}</div>
+                <div>${new Date(req.created_at).toLocaleDateString()}</div>
+                <div class="actions">
+                    <button class="btn btn-primary btn-approve" data-id="${req.id}" data-email="${req.email}">
+                        <i class="fas fa-check"></i> Aprobar
+                    </button>
+                    <button class="btn btn-outline btn-reject" data-id="${req.id}">
+                        <i class="fas fa-times"></i> Rechazar
+                    </button>
+                </div>
+            `;
+            body.appendChild(row);
+        });
+    }
+
+async function handleApproveRequest(requestId, requestEmail) {
+    try {
+        const confirmed = await showModalConfirm(
+            'Aprobar Solicitud',
+            `¿Estás seguro de aprobar el registro de ${requestEmail}?\n\nEsto creará su cuenta en el sistema.`
+        );
+
+        if (!confirmed) return;
+
+        // Obtener sesión para el token
+        const { data: { session } } = await window.supabase.auth.getSession();
+        
+        if (!session) throw new Error('No hay sesión activa');
 
         // Llamar a la Edge Function
         const response = await fetch(
-            `https://hvwygpnuunuuylzondxt.supabase.co/functions/v1/reset-password`,
+            'https://hvwygpnuunuuylzondxt.supabase.co/functions/v1/approve-registration',
             {
                 method: 'POST',
                 headers: {
@@ -634,485 +415,361 @@ async function handlePasswordReset(userId, userEmail) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: userId
+                    pending_id: requestId,
+                    assign_role: 'user'
                 })
             }
         );
 
         const result = await response.json();
+        if (!result.success) throw new Error(result.error);
 
-        if (!result.success) {
-            throw new Error(result.error || 'Error al resetear contraseña');
-        }
-
-        // Cerrar modal de loading
-        modal.classList.remove('show');
+        showModal('Solicitud Aprobada', `${requestEmail} ha sido autorizado.`, 'success');
         
-        // Mostrar contraseña con opción de copiar
-        setTimeout(() => {
-            showModalWithCopy(
-                'Contraseña Reseteada',
-                `Nueva contraseña temporal para ${userEmail}:\n\n${result.tempPassword}\n\n⚠️ El usuario debe cambiarla en su próximo inicio de sesión.`,
-                'success',
-                result.tempPassword
-            );
-        }, 300);
-
-        // Recargar lista
+        await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
         await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
 
     } catch (error) {
-        console.error('Error al resetear contraseña:', error);
-        modal.classList.remove('show');
-        setTimeout(() => {
-            showModal(
-                'Error', 
-                `No se pudo resetear la contraseña: ${error.message}`, 
-                'error'
+        showModal('Error', `No se pudo aprobar: ${error.message}`, 'error');
+    }
+}
+
+    async function handleRejectRequest(requestId) {
+        try {
+            const confirmed = await showModalConfirm(
+                'Rechazar Solicitud',
+                '¿Estás seguro de rechazar esta solicitud?\n\nSe eliminará permanentemente.'
             );
-        }, 300);
-    }
-}
 
-// ═══════════════════════════════════════════════════════════
-// MODAL CON BOTÓN DE COPIAR
-// ═══════════════════════════════════════════════════════════
-function showModalWithCopy(title, message, type, textToCopy) {
-    const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalMessage = document.getElementById('modalMessage');
-    const modalIcon = document.getElementById('modalIcon');
-    const modalClose = document.getElementById('modalClose');
+            if (!confirmed) return;
+
+            const { error } = await window.supabase
+                .from('pending_registrations')
+                .delete()
+                .eq('id', requestId);
+
+            if (error) throw error;
+
+            showModal('Solicitud Rechazada', 'La solicitud ha sido eliminada.', 'info');
+            await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
+
+        } catch (error) {
+            showModal('Error', error.message, 'error');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // GESTIÓN DE USUARIOS AUTORIZADOS
+    // ═══════════════════════════════════════════════════════════
     
-    modalTitle.textContent = title;
-    modalMessage.textContent = message;
-    modalMessage.style.whiteSpace = 'pre-wrap';
-    modalMessage.style.fontFamily = 'monospace';
-    modalMessage.style.fontSize = '0.95rem';
-    modalIcon.className = `modal-icon ${type}`;
-    
-    if (type === 'success') {
-        modalIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-    } else if (type === 'error') {
-        modalIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-    } else {
-        modalIcon.innerHTML = '<i class="fas fa-info-circle"></i>';
-    }
+    async function loadUserList(adminRole, adminTenantId) {
+        try {
+            let query = window.supabase
+                .from('profiles')
+                .select(`
+                    id, full_name, email, role, profile_status,
+                    tenant_id,
+                    tenants ( name )
+                `);
 
-    // Limpiar botón de copiar anterior si existe
-    const existingCopyBtn = document.getElementById('copyPasswordBtn');
-    if (existingCopyBtn) {
-        existingCopyBtn.remove();
-    }
-
-    // Crear botón de copiar
-    if (textToCopy) {
-        const copyBtn = document.createElement('button');
-        copyBtn.id = 'copyPasswordBtn';
-        copyBtn.className = 'btn btn-outline';
-        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copiar Contraseña';
-        copyBtn.style.width = '100%';
-        copyBtn.style.marginBottom = '0.5rem';
-        
-        copyBtn.addEventListener('click', async () => {
-            try {
-                // Intentar usar Clipboard API (moderno)
-                await navigator.clipboard.writeText(textToCopy);
-                
-                // Feedback visual
-                copyBtn.innerHTML = '<i class="fas fa-check"></i> ¡Copiado!';
-                copyBtn.style.background = 'var(--primaryColor)';
-                copyBtn.style.color = 'white';
-                
-                setTimeout(() => {
-                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copiar Contraseña';
-                    copyBtn.style.background = '';
-                    copyBtn.style.color = '';
-                }, 2000);
-                
-            } catch (err) {
-                // Fallback para navegadores antiguos
-                const textArea = document.createElement('textarea');
-                textArea.value = textToCopy;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-999999px';
-                textArea.style.top = '-999999px';
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                
-                try {
-                    document.execCommand('copy');
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i> ¡Copiado!';
-                    copyBtn.style.background = 'var(--primaryColor)';
-                    copyBtn.style.color = 'white';
-                    
-                    setTimeout(() => {
-                        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copiar Contraseña';
-                        copyBtn.style.background = '';
-                        copyBtn.style.color = '';
-                    }, 2000);
-                } catch (err2) {
-                    alert('No se pudo copiar. Por favor, copia manualmente la contraseña.');
-                }
-                
-                document.body.removeChild(textArea);
+            if (adminRole === 'admin' || adminRole === 'supervisor') {
+                query = query.eq('tenant_id', adminTenantId);
+                tenantHeaderCol.style.display = 'none';
+            } else if (adminRole === 'master') {
+                tenantHeaderCol.style.display = 'block';
             }
-        });
-        
-        modalClose.parentNode.insertBefore(copyBtn, modalClose);
+
+            if (searchTerm) {
+                query = query.or(
+                    `full_name.ilike.%${searchTerm}%,` +
+                    `email.ilike.%${searchTerm}%`
+                );
+            }
+
+            query = query.limit(100);
+
+            const { data: profiles, error } = await query;
+            if (error) throw error;
+
+            console.log(`📊 Cargados ${profiles.length} usuarios (Rol: ${adminRole})`);
+            renderUserList(profiles, adminRole);
+
+        } catch (error) {
+            console.error('Error:', error.message);
+            loadingRow.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: ' + error.message;
+            userListBody.innerHTML = '';
+            userListBody.appendChild(loadingRow);
+        }
     }
 
-    modal.classList.add('show');
-}
-
-// ═══════════════════════════════════════════════════════════
-// ACTUALIZAR EL LISTENER DE EVENTOS
-// ═══════════════════════════════════════════════════════════
-// En tu función initUIListeners(), actualiza el listener:
- function initUIListeners() {
-            
-            // Listener para la barra de búsqueda (Server-Side)
-            const debouncedSearch = debounce(async (e) => {
-                searchTerm = e.target.value.toLowerCase().trim();
-                
-                // Mostramos 'loading' dentro del body de la tabla
-                loadingRow.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
-                userListBody.innerHTML = '';
-                userListBody.appendChild(loadingRow);
-                
-                // Vuelve a cargar la lista desde Supabase con el filtro
-                if(currentAdmin) {
-                    await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
-                }
-            }, 400); // Espera 400ms después de teclear
-
-            searchInput.addEventListener('input', debouncedSearch);
-            
-            // [NUEVO] Listeners para el modal de edición
-            cancelEditBtn.addEventListener('click', closeEditModal);
-            editForm.addEventListener('submit', handleEditFormSubmit);
-
-            // Delegación de eventos para la lista de usuarios (Añade esta lógica)
-            userListBody.addEventListener('click', (e) => {
-                document.getElementById('request-list-body').addEventListener('click', async (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-
-    const requestId = btn.dataset.id;
-
-    if (btn.classList.contains('btn-approve')) {
-        await handleApproveRequest(requestId);
-    } 
-    else if (btn.classList.contains('btn-reject')) {
-        await handleRejectRequest(requestId);
-    }
-});
-                const target = e.target.closest('button, input[type="checkbox"]');
-                if (!target) return;
-
-                // 1. Botón de Editar
-                if (target.classList.contains('btn-edit')) {
-                    e.preventDefault();
-                    openEditModal(target);
-                } 
-                // 2. Botón de Resetear Contraseña
-                else if (target.classList.contains('btn-reset-pass')) {
-                    e.preventDefault();
-                    const userId = target.dataset.userId;
-                    const userEmail = target.dataset.userEmail;
-                    handlePasswordReset(userId, userEmail);
-                } 
-                // 3. Toggle de Autorización
-                else if (target.classList.contains('toggle-authorize')) {
-                    const userId = target.dataset.userId;
-                    const newStatus = target.checked;
-                    handleToggleAuthorize(userId, newStatus);
-                }
-                
-            });
-            
-        }
-        
-        // [NUEVO] Helper para cerrar el modal de confirmación
-        function closeModalConfirm(confirmBtn, cancelBtn) {
-            // ... (sin cambios) ...
-            modal.classList.remove('show');
-            confirmBtn.remove(); // Limpiamos el botón extra
-            cancelBtn.textContent = 'Aceptar'; // Restauramos texto
-            // Re-asignamos el listener original
-            cancelBtn.addEventListener('click', closeModal);
-        }
-
-async function handleToggleAuthorize(userId, newStatus) {
-    try {
-        // 1. Validar que el usuario actual tiene permisos
-        if (currentAdmin.role !== 'master' && currentAdmin.role !== 'admin' && currentAdmin.role !== 'supervisor') {
-            showModal('Error', 'No tienes permisos para autorizar usuarios.', 'error');
+    function renderUserList(profiles, adminRole) {
+        userListBody.innerHTML = '';
+        if (profiles.length === 0) {
+            userListBody.innerHTML = '<div class="loading-row">No se encontraron usuarios.</div>';
             return;
         }
 
-        // 2. Si es admin/supervisor, verificar que el usuario está en su tenant
-        if (currentAdmin.role === 'admin' || currentAdmin.role === 'supervisor') {
-            const { data: targetUser } = await supabase
+        profiles.forEach(profile => {
+            const tenantName = (profile.tenants && profile.tenants.name) ? profile.tenants.name : 'N/A';
+            const isActive = profile.profile_status === 'active';
+
+            const row = document.createElement('div');
+            row.className = 'user-row';
+            row.innerHTML = `
+                <div data-label="Nombre">
+                    <strong>${profile.full_name || 'Sin Nombre'}</strong>
+                </div>
+                <div data-label="Email">${profile.email || 'Sin Email'}</div>
+                <div data-label="Rol">${profile.role}</div>
+                <div data-label="Tenant" class="tenant-col" style="display: ${adminRole === 'master' ? 'flex' : 'none'};">
+                    ${tenantName}
+                </div>
+                <div data-label="Estado" class="text-center">
+                    <label class="toggle-switch">
+                        <input 
+                            type="checkbox" 
+                            class="toggle-status" 
+                            data-user-id="${profile.id}" 
+                            ${isActive ? 'checked' : ''}
+                        >
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div data-label="Acciones" class="text-center actions">
+                    <button 
+                        class="btn btn-outline btn-edit" 
+                        title="Editar Usuario"
+                        data-user-id="${profile.id}"
+                        data-nombre="${profile.full_name || ''}"
+                        data-email="${profile.email || ''}"
+                        data-role="${profile.role}"
+                        data-tenant-id="${profile.tenant_id || ''}"
+                    >
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button 
+                        class="btn btn-outline btn-reset-pass" 
+                        title="Resetear Contraseña"
+                        data-user-id="${profile.id}"
+                        data-user-email="${profile.email || 'Sin Email'}"
+                    >
+                        <i class="fas fa-key"></i>
+                    </button>
+                </div>
+            `;
+            userListBody.appendChild(row);
+        });
+    }
+
+    async function handleToggleStatus(userId, newStatus) {
+        try {
+            const status = newStatus ? 'active' : 'inactive';
+
+            const { error } = await window.supabase
                 .from('profiles')
-                .select('tenant_id')
-                .eq('user_id', userId)
-                .single();
+                .update({ profile_status: status })
+                .eq('id', userId);
 
-            if (targetUser.tenant_id !== currentAdmin.tenant_id) {
-                showModal('Error', 'No puedes autorizar usuarios de otro tenant.', 'error');
-                return;
-            }
-        }
+            if (error) throw error;
 
-        // 3. Actualizar el estado de autorización
-        const { error } = await supabase
-            .from('profiles')
-            .update({ autorizado: newStatus })
-            .eq('user_id', userId);
-
-        if (error) throw error;
-
-        console.log(`✅ Usuario ${userId} actualizado a autorizado: ${newStatus}`);
-        
-        // 4. Recargar la lista
-        await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
-
-    } catch (error) {
-        console.error('Error en handleToggleAuthorize:', error);
-        showModal('Error', `No se pudo actualizar el estado: ${error.message}`, 'error');
-    }
-}
-        
-        // [NUEVO] Helper Debounce
-function debounce(func, delay) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), delay);
-            };
-        }
-
-function initUIListeners() {
-            
-            // Listener para la barra de búsqueda (Server-Side)
-            const debouncedSearch = debounce(async (e) => {
-                searchTerm = e.target.value.toLowerCase().trim();
-                
-                // Mostramos 'loading' dentro del body de la tabla
-                loadingRow.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
-                userListBody.innerHTML = '';
-                userListBody.appendChild(loadingRow);
-                
-                // Vuelve a cargar la lista desde Supabase con el filtro
-                if(currentAdmin) {
-                    await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
-                }
-            }, 400); // Espera 400ms después de teclear
-
-            searchInput.addEventListener('input', debouncedSearch);
-            
-            // [NUEVO] Listeners para el modal de edición
-            cancelEditBtn.addEventListener('click', closeEditModal);
-            editForm.addEventListener('submit', handleEditFormSubmit);
-
-            // Delegación de eventos para la lista de usuarios (AÑADIDO)
-            userListBody.addEventListener('click', (e) => {
-                const target = e.target.closest('button, input[type="checkbox"]');
-                if (!target) return;
-
-                // 1. Botón de Editar
-                if (target.classList.contains('btn-edit')) {
-                    e.preventDefault();
-                    openEditModal(target);
-                } 
-                // 2. Botón de Resetear Contraseña (Edge Function)
-                else if (target.classList.contains('btn-reset-pass')) {
-                    e.preventDefault();
-                    const userId = target.dataset.userId;
-                    const userEmail = target.dataset.userEmail;
-                    handlePasswordReset(userId, userEmail);
-                } 
-                // 3. Toggle de Autorización
-                else if (target.classList.contains('toggle-authorize')) {
-                    const userId = target.dataset.userId;
-                    const newStatus = target.checked;
-                    handleToggleAuthorize(userId, newStatus);
-                }
-            });
-            document.getElementById('request-list-body').addEventListener('click', async (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-
-    const requestId = btn.dataset.id;
-
-    if (btn.classList.contains('btn-approve')) {
-        await handleApproveRequest(requestId);
-    } 
-    else if (btn.classList.contains('btn-reject')) {
-        await handleRejectRequest(requestId);
-    }
-});
-        }
-async function loadPendingRequests(adminRole, adminTenantId) {
-    try {
-        let query = supabase
-            .from('registration_requests')
-            .select('*')
-            .eq('status', 'pending')
-            .order('created_at', { ascending: true });
-
-        // Admin solo ve su tenant
-        if (adminRole === 'admin') {
-            query = query.eq('tenant_id', adminTenantId);
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
-
-        renderPendingRequests(data, adminRole);
-
-    } catch (error) {
-        console.error('Error cargando solicitudes:', error.message);
-        document.getElementById('request-list-body').innerHTML =
-            '<div class="loading-row">Error al cargar solicitudes.</div>';
-    }
-}
-
-function renderPendingRequests(requests, adminRole) {
-    const body = document.getElementById('request-list-body');
-    body.innerHTML = '';
-
-    if (requests.length === 0) {
-        body.innerHTML = '<div class="loading-row">No hay solicitudes pendientes.</div>';
-        return;
-    }
-
-    requests.forEach(req => {
-        const row = document.createElement('div');
-        row.className = 'request-row';
-        row.innerHTML = `
-            <div>${req.nombre}</div>
-            <div>${req.email}</div>
-            <div>${req.area_departamento}</div>
-            <div>${new Date(req.created_at).toLocaleDateString()}</div>
-            <div class="actions">
-                <button class="btn btn-primary btn-approve" data-id="${req.id}">
-                    <i class="fas fa-check"></i>
-                </button>
-                <button class="btn btn-outline btn-reject" data-id="${req.id}">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        body.appendChild(row);
-    });
-}
-
-async function handleApproveRequest(requestId) {
-    try {
-        const { data: reqData, error: reqError } = await supabase
-            .from('registration_requests')
-            .select('*')
-            .eq('id', requestId)
-            .single();
-
-        if (reqError) throw reqError;
-
-        // 1️⃣ Encontrar el perfil del usuario (ya existe)
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('email', reqData.email)
-            .single();
-
-        if (profileError) {
-            throw new Error('Usuario no encontrado en el sistema');
-        }
-
-        // 2️⃣ AUTORIZAR el perfil
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ autorizado: true })
-            .eq('user_id', profile.user_id);
-
-        if (updateError) throw updateError;
-
-        // 3️⃣ Marcar solicitud como aprobada
-        await supabase
-            .from('registration_requests')
-            .update({ status: 'approved' })
-            .eq('id', requestId);
-
-        showModal(
-            'Solicitud Aprobada',
-            `${reqData.email} ha sido autorizado. Ya puede acceder al sistema.`,
-            'success'
-        );
-
-        await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id);
-        await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
-
-    } catch (error) {
-        console.error('Error:', error);
-        showModal("Error", error.message, "error");
-    }
-}
-
-
-async function handleRejectRequest(requestId) {
-    try {
-        await supabase
-            .from('registration_requests')
-            .update({ status: 'rejected' })
-            .eq('id', requestId);
-
-        showModal("Solicitud Rechazada", "La solicitud ha sido marcada como rechazada.", "info");
-        await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id);
-
-    } catch (error) {
-        showModal("Error", error.message, "error");
-    }
-}
-
-        // --- Función Principal de Arranque ---
-        async function mainInit() {
-            // 1. Cargar config del Tenant (para colores y UUID)
-            const config = await loadTenantConfig();
-            applyConfiguration(config);
-            console.log('✅ Tenant listo');
-
-            // 2. Cargar perfil del Admin (para seguridad)
-            currentAdmin = await loadAdminProfile(config);
-            if (!currentAdmin) return;
-            console.log(`✅ Admin verificado (Rol: ${currentAdmin.role})`);
-
-            // [NUEVO] 3. Cargar tenants si es 'master'
-            if (currentAdmin.role === 'master') {
-                await loadTenantsIntoSelect();
-                console.log('✅ Tenants cargados en el modal');
-            }
-
-            // 4. Cargar la lista de usuarios
+            console.log(`✅ Usuario ${userId} actualizado a: ${status}`);
             await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
-            await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id);
-            console.log('✅ Lista de usuarios cargada');
-            
-            
-            // 5. Iniciar listeners de la UI
-            initUIListeners();
+
+        } catch (error) {
+            console.error('Error:', error);
+            showModal('Error', `No se pudo actualizar: ${error.message}`, 'error');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MODAL DE EDICIÓN
+    // ═══════════════════════════════════════════════════════════
+    
+    async function loadTenantsIntoSelect() {
+        try {
+            const { data, error } = await window.supabase
+                .from('tenants')
+                .select('id, name')
+                .order('name');
+
+            if (error) throw error;
+
+            allTenants = data;
+            editTenantSelect.innerHTML = '';
+
+            allTenants.forEach(tenant => {
+                const option = document.createElement('option');
+                option.value = tenant.id;
+                option.textContent = tenant.name;
+                editTenantSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.error('Error al cargar tenants:', error.message);
+        }
+    }
+
+    function openEditModal(button) {
+        const data = button.dataset;
+
+        editUserId.value = data.userId;
+        editNombre.value = data.nombre;
+        editEmail.value = data.email;
+        editRole.value = data.role;
+
+        if (currentAdmin.role === 'master') {
+            tenantSelectWrapper.style.display = 'block';
+            editTenantSelect.value = data.tenantId;
+        } else {
+            tenantSelectWrapper.style.display = 'none';
         }
 
-        // --- Disparador de Carga ---
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', mainInit);
-        } else {
-            mainInit();
-            
+        editModal.classList.add('show');
+    }
+
+    function closeEditModal() {
+        editModal.classList.remove('show');
+        editForm.reset();
+    }
+
+    async function handleEditFormSubmit(e) {
+        e.preventDefault();
+        saveEditBtn.disabled = true;
+        saveEditBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+        try {
+            const userId = editUserId.value;
+            const updateData = {
+                full_name: editNombre.value,
+                email: editEmail.value,
+                role: editRole.value
+            };
+
+            if (currentAdmin.role === 'master') {
+                updateData.tenant_id = editTenantSelect.value;
+            }
+
+            const { error } = await window.supabase
+                .from('profiles')
+                .update(updateData)
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            closeEditModal();
+            showModal('Éxito', 'Usuario actualizado correctamente.', 'success');
+            await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
+
+        } catch (error) {
+            console.error('Error:', error.message);
+            showModal('Error', `No se pudo actualizar: ${error.message}`, 'error');
+        } finally {
+            saveEditBtn.disabled = false;
+            saveEditBtn.textContent = 'Guardar Cambios';
         }
-        
-    })();
-    </script>
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LISTENERS DE UI
+    // ═══════════════════════════════════════════════════════════
+    
+    function initUIListeners() {
+        // Búsqueda con debounce
+        const debouncedSearch = debounce(async (e) => {
+            searchTerm = e.target.value.toLowerCase().trim();
+            loadingRow.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+            userListBody.innerHTML = '';
+            userListBody.appendChild(loadingRow);
+
+            if (currentAdmin) {
+                await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
+            }
+        }, 400);
+
+        searchInput.addEventListener('input', debouncedSearch);
+
+        // Modal de edición
+        cancelEditBtn.addEventListener('click', closeEditModal);
+        editForm.addEventListener('submit', handleEditFormSubmit);
+
+        // Delegación de eventos - Lista de usuarios
+        userListBody.addEventListener('click', (e) => {
+            const target = e.target.closest('button, input[type="checkbox"]');
+            if (!target) return;
+
+            if (target.classList.contains('btn-edit')) {
+                e.preventDefault();
+                openEditModal(target);
+            } else if (target.classList.contains('btn-reset-pass')) {
+                e.preventDefault();
+                const userId = target.dataset.userId;
+                const userEmail = target.dataset.userEmail;
+                showModal('Función no disponible', 'La función de reseteo de contraseña requiere una Edge Function.', 'info');
+            } else if (target.classList.contains('toggle-status')) {
+                const userId = target.dataset.userId;
+                const newStatus = target.checked;
+                handleToggleStatus(userId, newStatus);
+            }
+        });
+
+        // Delegación de eventos - Solicitudes pendientes
+        document.getElementById('request-list-body').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+
+            const requestId = btn.dataset.id;
+            const requestEmail = btn.dataset.email;
+
+            if (btn.classList.contains('btn-approve')) {
+                await handleApproveRequest(requestId, requestEmail);
+            } else if (btn.classList.contains('btn-reject')) {
+                await handleRejectRequest(requestId);
+            }
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INICIALIZACIÓN
+    // ═══════════════════════════════════════════════════════════
+    
+    async function mainInit() {
+        // 1. Cargar config del Tenant
+        window.tenantConfig = await loadTenantConfig();
+        applyConfiguration(window.tenantConfig);
+        console.log('✅ Tenant listo');
+
+        // 2. Verificar permisos del Admin
+        currentAdmin = await loadAdminProfile(window.tenantConfig);
+        if (!currentAdmin) return;
+        console.log(`✅ Admin verificado (Rol: ${currentAdmin.role})`);
+
+        // 3. Cargar tenants si es master
+        if (currentAdmin.role === 'master') {
+            await loadTenantsIntoSelect();
+            console.log('✅ Tenants cargados en el modal');
+        }
+
+        // 4. Cargar solicitudes pendientes
+        await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
+        console.log('✅ Solicitudes pendientes cargadas');
+
+        // 5. Cargar lista de usuarios autorizados
+        await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
+        console.log('✅ Lista de usuarios cargada');
+
+        // 6. Iniciar listeners de la UI
+        initUIListeners();
+        console.log('✅ UI inicializada');
+    }
+
+    // Disparador de carga
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mainInit);
+    } else {
+        mainInit();
+    }
+
+})();
+</script>
 </body>
 </html>
