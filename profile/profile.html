@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil de Capacitación PRO</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../componentes/global.css">
     <link rel="stylesheet" href="./profile.css">
+    <link rel="stylesheet" href="../componentes/global.css">
 </head>
 <body>
 
@@ -398,6 +398,35 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../componentes/supabase-client.js"></script>
 <script>
+(function() {
+        try {
+          // 1. Obtener el slug actual SÍNCRONAMENTE
+          const host = location.hostname || 'localhost';
+          const parts = host.split('.');
+          const currentSlug = parts.length > 2 && parts[0] !== 'www' ? parts[0] : 'default';
+
+          // 2. Intentar cargar el tema cacheado
+          const cachedTheme = localStorage.getItem('tenantTheme');
+          const cachedSlug = localStorage.getItem('tenantSlug');
+
+          // 3. Validar y aplicar el tema
+          if (cachedTheme && cachedSlug === currentSlug) {
+            const theme = JSON.parse(cachedTheme);
+            const root = document.documentElement;
+            
+            // Aplicar estilos, asumiendo que el caché guarda primaryColor y secondaryColor
+            if (theme.primaryColor) root.style.setProperty('--primaryColor', theme.primaryColor);
+            if (theme.secondaryColor) root.style.setProperty('--secondaryColor', theme.secondaryColor);
+            
+            // Mostrar la página inmediatamente ya que el tema es correcto
+            document.body.style.opacity = 1;
+          }
+        } catch (e) {
+          console.error('Error aplicando tema cacheado', e);
+          // Si hay error, la página se quedará oculta y la lógica principal la mostrará
+        }
+      })();
+
 // ═══════════════════════════════════════════════════════════
 // BLOQUE ÚNICO DE INICIALIZACIÓN
 // ═══════════════════════════════════════════════════════════
@@ -443,7 +472,7 @@
     }
   }
 
-  function applyConfiguration(config) {
+function applyConfiguration(config) {
     if (!config) return;
     
     // Colores
@@ -459,6 +488,16 @@
       companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
     }
     console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
+
+    // --- CAMBIO: Guardar la configuración en localStorage ---
+    try {
+        const tenantSlug = detectTenant();
+        localStorage.setItem('tenantTheme', JSON.stringify(config));
+        localStorage.setItem('tenantSlug', tenantSlug);
+        console.log('💾 Configuración de tenant guardada en caché.');
+    } catch (e) {
+        console.warn('Advertencia: No se pudo guardar el tema en localStorage.', e);
+    }
   }
 
   // --- Lógica de Permisos (NUEVA) ---
@@ -631,6 +670,7 @@ async function loadUserProfile() {
     applyConfiguration(config);
     console.log('✅ Tenant listo');
 
+    document.body.style.opacity = 1;
     // 2. Carga el perfil de usuario (para permisos)
     await loadUserProfile();
     console.log('✅ Perfil de usuario cargado');
