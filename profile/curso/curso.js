@@ -17,6 +17,44 @@ const courseTitleEl = document.getElementById("courseTitle");
 const footerMessageEl = document.getElementById("footerMessage");
 
 
+// Función de utilidad para aplicar estilos CSS
+function setStyle(prop, value) {
+  if (value) document.documentElement.style.setProperty(prop, value);
+}
+
+// Función para aplicar TODOS los estilos del tenant, no solo primary/secondary
+function applyTenantStyles(metadata) {
+    if (!metadata || !metadata.colors) return;
+    
+    // Asume la misma estructura de metadatos que usa index.js
+    const config = metadata; 
+    
+    // Aplicar los colores principales
+    setStyle('--primaryColor', config.colors.primary);
+    setStyle('--secondaryColor', config.colors.secondary);
+
+    // Aplicar otros estilos de UI del tenant
+    setStyle('--bgPage', config.bgPage);
+    setStyle('--textPage', config.textPage);
+    setStyle('--bgBrand', config.bgBrand);
+    setStyle('--textBrand', config.textBrand);
+    setStyle('--bgForm', config.bgForm);
+    setStyle('--textForm', config.textForm);
+    setStyle('--bgSuccess', config.bgSuccess);
+    setStyle('--bgError', config.bgError);
+    setStyle('--bgOverlay', config.bgOverlay);
+
+    // Aplicar fondo animado si existe
+    if (config.backgroundImage) {
+        // Asumiendo que hay un elemento .course-platform o similar para el fondo
+        const platformEl = document.querySelector('.course-platform');
+        if (platformEl) {
+            platformEl.style.background = config.backgroundImage;
+        }
+    }
+}
+
+
 // Función para renderizar el contenido de una página específica (Video, Texto, etc.)
 function renderPage(index) {
   // LOG: Muestra si la función se detiene por datos inválidos.
@@ -135,7 +173,7 @@ if (!courseId) {
     // Definimos el bloque de carga como asíncrono y auto-ejecutable
     (async () => {
         try {
-            // 1. obtener tenant y rol
+            // 1. obtener tenant y rol del usuario
             const { data: userData, error: authError } = await supabase.auth.getUser();
             if (authError || !userData?.user) {
                 pageContentEl.innerHTML = "<p>Error de autenticación. Por favor, vuelve a iniciar sesión.</p>";
@@ -144,7 +182,7 @@ if (!courseId) {
             const myTenantId = userData.user.user_metadata.tenant_id;
             const myRole = userData.user.user_metadata.role;
             
-            // 2. cargar curso desde la tabla 'articles'
+            // 2. cargar curso y su tenant_id
             let query = supabase
                 .from("articles") 
                 .select("title, content_json, tenant_id")
@@ -155,24 +193,53 @@ if (!courseId) {
                 query = query.eq("tenant_id", myTenantId);
             }
             
-            const { data, error } = await query.single();
+            const { data: courseData, error: courseError } = await query.single();
             
-            if (error) {
-                // Log detallado
-                console.error("❌ Error al obtener el curso:", error.message, error.details);
+            if (courseError) {
+                console.error("❌ Error al obtener el curso:", courseError.message, courseError.details);
                 pageContentEl.innerHTML =
-                    `<p>Error de carga: No se pudo verificar el acceso al curso (Código: ${error.code}).</p>`;
-            } else if (!data) {
-                 // RLS bloqueó la fila
+                    `<p>Error de carga: No se pudo verificar el acceso al curso (Código: ${courseError.code}).</p>`;
+            } else if (!courseData) {
                  console.warn(`⚠️ Curso no encontrado o acceso denegado para ID: ${courseId}`);
                  pageContentEl.innerHTML =
                     "<p>No tienes acceso a este curso o no existe en tu inventario.</p>";
             } else {
-                // Éxito: Pasamos el título y el contenido a la función de renderizado
-                loadCourse(data.title, data.content_json);
-                console.log(`✅ Curso '${data.title}' cargado con éxito.`);
                 
-                // SOLUCIÓN: Mostrar el contenido después de una carga exitosa
+                // 3. Obtener metadatos del tenant (incluyendo colores)
+                const tenantId = courseData.tenant_id || myTenantId; // Usar el del curso o el del usuario si el del curso es NULL
+                let tenantData = null;
+                
+                if (tenantId) {
+                    // Consulta SELECT metadata para obtener solo la configuración de UI
+                    const { data: tenantRes, error: tenantError } = await supabase
+                        .from('tenants')
+                        .select('metadata') 
+                        .eq('id', tenantId)
+                        .single();
+                        
+                    if (tenantError) {
+                         console.error("❌ Error al obtener el tenant:", tenantError.message);
+                         // Continuar sin colores de tenant si hay error
+                    } else {
+                        tenantData = tenantRes;
+                    }
+                }
+
+                // 4. Aplicar los estilos del tenant.
+                if (tenantData && tenantData.metadata) {
+                    const tenantConfig = tenantData.metadata;
+                    
+                    // Asegurar que 'colors' exista en la configuración para applyTenantStyles
+                    if (!tenantConfig.colors) {
+                        tenantConfig.colors = {};
+                    }
+                    
+                    applyTenantStyles(tenantConfig);
+                }
+                
+                // 5. Renderizar el curso y mostrar el cuerpo
+                loadCourse(courseData.title, courseData.content_json);
+                console.log(`✅ Curso '${courseData.title}' cargado con éxito.`);
                 document.body.style.opacity = '1';
             }
         } catch (e) {
