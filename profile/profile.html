@@ -623,18 +623,25 @@ if (authError || !authData?.user) {
 }
 const userId = authData.user.id;
 
-    // 3. Carga de cursos según tenant y rol
-// El tenant REAL está en la tabla profiles, no en metadata
-const { data: profileRow } = await window.supabase
+// Obtener profile (tenant + role)
+const { data: profileRow, error: profileRowError } = await window.supabase
   .from("profiles")
   .select("tenant_id, role")
   .eq("id", userId)
   .single();
 
+if (profileRowError) {
+  console.error("❌ Error al leer profileRow:", profileRowError);
+  return;
+}
+
 const myTenant = profileRow?.tenant_id;
 const myRole   = profileRow?.role;
 
 console.log("🧭 Tenant usado en consulta:", myTenant, "Role:", myRole);
+console.log("DEBUG authData:", authData);
+console.log("DEBUG profileRow:", profileRow);
+console.log("DEBUG myTenant, myRole:", myTenant, myRole);
 // Query base
 let q = window.supabase
   .from("articles")
