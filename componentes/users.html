@@ -467,10 +467,10 @@ async function handleApproveRequest(requestId, requestEmail) {
             let query = window.supabase
                 .from('profiles')
                 .select(`
-                    id, full_name, email, role, profile_status,
+                    id, full_name, email, role, status,
                     tenant_id,
                     tenants ( name )
-                `);
+                `)
 
             if (adminRole === 'admin' || adminRole === 'supervisor') {
                 query = query.eq('tenant_id', adminTenantId);
@@ -511,7 +511,7 @@ async function handleApproveRequest(requestId, requestEmail) {
 
         profiles.forEach(profile => {
             const tenantName = (profile.tenants && profile.tenants.name) ? profile.tenants.name : 'N/A';
-            const isActive = profile.profile_status === 'active';
+            const isActive = profile.status === 'active';
 
             const row = document.createElement('div');
             row.className = 'user-row';
@@ -567,7 +567,7 @@ async function handleApproveRequest(requestId, requestEmail) {
 
             const { error } = await window.supabase
                 .from('profiles')
-                .update({ profile_status: status })
+                .update({ status: status })
                 .eq('id', userId);
 
             if (error) throw error;
