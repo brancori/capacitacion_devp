@@ -740,6 +740,8 @@ if (myRole !== "master") {
 }
 
 const { data: courses, error: coursesError } = await q;
+console.log("📦 Datos recibidos desde Supabase:", courses);
+console.log("🔎 Error:", coursesError);
 
 if (coursesError) {
   console.error("Error al cargar cursos:", coursesError.message);
@@ -748,15 +750,21 @@ if (coursesError) {
   const container = document.getElementById("courseCardsContainer");
 
   if (container) {
-    container.innerHTML = courses
-      .map(c => `
-        <div class="course-card" data-status="${c.status}">
-          <img src="${c.thumbnail_url || '../img/default-course.png'}" />
-          <h3>${c.title}</h3>
-          <a href="../curso.html?id=${c.id}" class="btn-enroll">Abrir</a>
-        </div>
-      `)
-      .join("");
+    console.log("🎨 Renderizando tarjetas en", container);
+
+        container.innerHTML = courses
+        .map(c => {
+            const status = c.status || "pending"; // 👈 valor por defecto
+            return `
+            <div class="course-card" data-status="${status}" style="background:white; border:1px solid #ddd;">
+                <img src="${c.thumbnail_url || '../img/default-course.png'}"
+                    style="width:100%; height:120px; object-fit:cover; border-radius:6px;" />
+                <h3 style="margin-top:10px;">${c.title}</h3>
+                <a href="../curso.html?id=${c.id}" class="btn-enroll">Abrir</a>
+            </div>
+            `;
+        })
+        .join("");    
   }
 }
 
