@@ -550,7 +550,7 @@ function getDueDateStatus(dueDate) {
 async function loadUserProfile() {
   try {
     // ✅ CAMBIO AQUÍ
-    const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('No hay sesión activa, redirigiendo al login.');
       window.location.href = '../index.html';
@@ -558,7 +558,7 @@ async function loadUserProfile() {
     }
 
     // ✅ CAMBIO AQUÍ
-    const { data: profile, error: profileError } = await window.supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, full_name')
       .eq('id', user.id)
@@ -676,7 +676,7 @@ async function loadUserProfile() {
     console.log('✅ Perfil de usuario cargado');
 
 // 🔐 Obtener usuario autenticado (LO QUE TE FALTABA)
-const { data: authData, error: authError } = await window.supabase.auth.getUser();
+const { data: authData, error: authError } = await supabase.auth.getUser();
 if (authError || !authData?.user) {
   console.error("❌ No hay sesión activa", authError);
   return;
@@ -684,7 +684,7 @@ if (authError || !authData?.user) {
 const userId = authData.user.id;
 
 // Obtener profile (tenant + role)
-const { data: profileRow, error: profileRowError } = await window.supabase
+const { data: profileRow, error: profileRowError } = await supabase
   .from("profiles")
   .select("tenant_id, role")
   .eq("id", userId)
@@ -715,7 +715,7 @@ if (myRole !== "master") {
 const { data: courses, error: coursesError } = await q;
 */
 
-const { data: assignments, error: coursesError } = await window.supabase
+const { data: assignments, error: coursesError } = await supabase
   .from("user_course_assignments")
   .select(`
     progress,
@@ -728,7 +728,7 @@ const { data: assignments, error: coursesError } = await window.supabase
       instructor_name,
       duration_text
     )
-  `); // La RLS "Los usuarios pueden ver sus propias asignaciones" filtra esto por ti
+  `);// La RLS "Los usuarios pueden ver sus propias asignaciones" filtra esto por ti
 
 if (coursesError) {
   console.error("Error al cargar asignaciones:", coursesError.message);
