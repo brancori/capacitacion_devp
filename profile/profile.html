@@ -718,12 +718,20 @@ async function loadUserProfile() {
     await loadUserProfile();
     console.log('✅ Perfil de usuario cargado');
 
+// 🔐 Obtener usuario autenticado (LO QUE TE FALTABA)
+const { data: authData, error: authError } = await window.supabase.auth.getUser();
+if (authError || !authData?.user) {
+  console.error("❌ No hay sesión activa", authError);
+  return;
+}
+const userId = authData.user.id;
+
     // 3. Carga de cursos según tenant y rol
 // El tenant REAL está en la tabla profiles, no en metadata
 const { data: profileRow } = await window.supabase
   .from("profiles")
   .select("tenant_id, role")
-  .eq("id", userData.user.id)
+  .eq("id", userId)
   .single();
 
 const myTenant = profileRow?.tenant_id;
