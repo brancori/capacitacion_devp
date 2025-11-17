@@ -728,7 +728,7 @@ const myRole = userData.user.user_metadata.role;
 
 // Query base
 let q = window.supabase
-  .from("courses")
+  .from("articles")
   .select("id, title, thumbnail_url, status, tenant_id");
 
 // Si NO es master → filtrar por tenant
