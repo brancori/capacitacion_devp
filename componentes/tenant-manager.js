@@ -32,12 +32,19 @@ class TenantManager {
   }
 
   // Detecta el tenant desde el hostname o parámetros
-  detectTenant() {
+detectTenant() {
     const host = location.hostname || 'localhost';
-    if (host === 'localhost') return 'demo';
-    if (host === '127.0.0.1') return 'default';
+
+    // 1. FORZAR SIRESI EN LOCALHOST PARA PRUEBAS
+    if (host === 'localhost' || host === '127.0.0.1') {
+       console.log('🔧 Modo Desarrollo: Forzando tenant "siresi"');
+       return 'siresi'; // <--- AQUÍ ESTA EL CAMBIO. Antes decía 'demo' o 'default'
+    }
+
+    // 2. Lógica normal para Producción (subdominios)
     const parts = host.split('.');
     if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+    
     return 'default';
   }
 
