@@ -24,6 +24,8 @@
   // 1. CONFIGURACIÓN E INICIALIZACIÓN DE SUPABASE
   // -----------------------------------------------------------------
   const CURRENT_ORIGIN = window.location.origin;
+  
+  // IMPORTANTE: Ahora apuntamos a nuestro proxy en Hostinger
   const SUPABASE_URL = `${CURRENT_ORIGIN}/api`;
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
 
