@@ -168,26 +168,25 @@ async function initCourse() {
                 pageContentEl.innerHTML =
                     "<p>No tienes acceso a este curso o no existe en tu inventario.</p>";
             } else {
-                
-                // 3. Obtener metadatos del tenant (incluyendo colores)
-            const tenantId = courseData.tenant_id || myTenantId;
-
-            console.log('🔍 DEBUG Tenant ID detectado:', tenantId);
-            console.log('🔍 DEBUG myTenantId:', myTenantId);
-
-            if (tenantId) {
-                console.log('📥 Cargando tenant desde base de datos...');
-                const config = await window.tenantManager.loadFromDatabase(tenantId);
-                console.log('📦 Configuración cargada:', config);
-                window.tenantManager.applyStyles();
-                console.log('✅ Estilos aplicados desde BD');
-            } else {
-                console.log('📥 Cargando tenant desde JSON (fallback)...');
-                const config = await window.tenantManager.loadFromJson();
-                console.log('📦 Configuración cargada:', config);
-                window.tenantManager.applyStyles();
-                console.log('✅ Estilos aplicados desde JSON');
-            }
+    // 3. Cargar y aplicar estilos del tenant usando TenantManager
+    const tenantId = courseData.tenant_id || myTenantId;
+    
+    console.log('🔍 DEBUG Tenant ID detectado:', tenantId);
+    console.log('🔍 DEBUG myTenantId:', myTenantId);
+    
+    if (tenantId) {
+        console.log('📥 Cargando tenant desde base de datos...');
+        const config = await window.tenantManager.loadFromDatabase(tenantId);
+        console.log('📦 Configuración cargada:', config);
+        window.tenantManager.applyStyles();
+        console.log('✅ Estilos aplicados desde BD');
+    } else {
+        console.log('📥 Cargando tenant desde JSON (fallback)...');
+        const config = await window.tenantManager.loadFromJson();
+        console.log('📦 Configuración cargada:', config);
+        window.tenantManager.applyStyles();
+        console.log('✅ Estilos aplicados desde JSON');
+    }
                 
                 // 5. Renderizar el curso y mostrar el cuerpo
                 loadCourse(courseData.title, courseData.content_json);
