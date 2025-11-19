@@ -96,36 +96,41 @@ detectTenant() {
   }
 
   // Aplica los estilos CSS del tenant
-  applyStyles(config = null) {
-    const cfg = config || this.currentConfig || TENANT_DEFAULTS;
-    
-    // Normalización de colores
-    const primary = cfg.colors?.primary || cfg.primaryColor || TENANT_DEFAULTS.colors.primary;
-    const secondary = cfg.colors?.secondary || cfg.secondaryColor || TENANT_DEFAULTS.colors.secondary;
-
-    this.setStyle('--primaryColor', primary);
-    this.setStyle('--secondaryColor', secondary);
-    this.setStyle('--bgPage', cfg.bgPage);
-    this.setStyle('--textPage', cfg.textPage);
-    this.setStyle('--bgBrand', cfg.bgBrand);
-    this.setStyle('--textBrand', cfg.textBrand);
-    this.setStyle('--bgForm', cfg.bgForm);
-    this.setStyle('--textForm', cfg.textForm);
-    this.setStyle('--bgSuccess', cfg.bgSuccess);
-    this.setStyle('--bgError', cfg.bgError);
-    this.setStyle('--bgOverlay', cfg.bgOverlay);
-
-    // Aplicar fondo animado o imagen si existe
-    if (cfg.backgroundImage) {
-      // Intenta aplicarlo al body para asegurar cobertura total
-      document.body.style.background = cfg.backgroundImage;
+async loadFromJson() {
+    try {
+      this.tenantSlug = this.detectTenant();
       
-      // También a elementos específicos si existen
-      const platformEl = document.querySelector('.course-platform');
-      if (platformEl) platformEl.style.background = cfg.backgroundImage;
-    }
+      // ✅ USAR RUTA ABSOLUTA: Esto busca siempre desde la raíz del dominio
+      const jsonPath = `${window.location.origin}/tenants/tenants.json`;
+      
+      console.log(`🔍 Buscando config en: ${jsonPath}`);
 
-    console.log('🎨 Estilos del tenant aplicados correctamente');
+      const response = await fetch(jsonPath, {
+        cache: 'no-store'
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const data = await response.json();
+      const tenantConfig = data[this.tenantSlug] || data['default'] || {};
+
+      this.currentConfig = {
+        ...TENANT_DEFAULTS,
+        ...tenantConfig,
+        colors: {
+          ...TENANT_DEFAULTS.colors,
+          ...(tenantConfig.colors || {})
+        }
+      };
+
+      this.currentConfig.tenantSlug = this.tenantSlug;
+      
+      return this.currentConfig;
+    } catch (error) {
+      console.warn('⚠️ Error al cargar tenant config:', error);
+      this.currentConfig = { ...TENANT_DEFAULTS, tenantSlug: 'default' };
+      return this.currentConfig;
+    }
   }
 
   // ✅ NUEVA FUNCIÓN: Aplica Logo y Textos automáticamente en el HTML
