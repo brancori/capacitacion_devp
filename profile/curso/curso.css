@@ -4,19 +4,6 @@
    VARIABLES CSS POR DEFECTO (Fallbacks)
    Estas se sobreescriben con tenant-manager.js
    ============================================ */
-:root {
-    --primaryColor: #007bff;
-    --secondaryColor: #0056b3;
-    --bgPage: #f4f7f9;
-    --textPage: #333;
-    --bgBrand: #ffffff;
-    --textBrand: #333;
-    --bgForm: #ffffff;
-    --textForm: #333;
-    --bgSuccess: #28a745;
-    --bgError: #dc3545;
-    --bgOverlay: rgba(0, 0, 0, 0.5);
-}
 
 /* ============================================
    ESTRUCTURA PRINCIPAL
