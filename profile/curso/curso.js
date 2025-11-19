@@ -83,7 +83,7 @@ async function initCourse() {
         if (!courseData.pages || courseData.pages.length === 0) {
             sidebarListEl.innerHTML = "<p>Sin contenido.</p>";
             return;
-        }
+        } 
         
         sidebarListEl.innerHTML = courseData.pages.map((page, index) => {
             const titleText = page.title || `Página ${index + 1}`; 
