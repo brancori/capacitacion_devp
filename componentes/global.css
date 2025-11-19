@@ -69,7 +69,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     
     /* Fondo global de la aplicación */
-    background: linear-gradient(135deg, #f4f4f4 0%, #e8eef3 100%);
+    background: var(--bgPage);
     min-height: 100vh;
     
     /* El color de texto principal se hereda del color primario del tenant */
