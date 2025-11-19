@@ -1,5 +1,7 @@
 // Función de inicialización principal
 async function initCourse() {
+     console.log('🚀 === INICIANDO CURSO ===');
+    console.log('🔍 Tenant Manager disponible?', !!window.tenantManager);
     const params = new URLSearchParams(location.search);
     const courseId = params.get("id");
 
@@ -170,13 +172,21 @@ async function initCourse() {
                 // 3. Obtener metadatos del tenant (incluyendo colores)
             const tenantId = courseData.tenant_id || myTenantId;
 
+            console.log('🔍 DEBUG Tenant ID detectado:', tenantId);
+            console.log('🔍 DEBUG myTenantId:', myTenantId);
+
             if (tenantId) {
-                await window.tenantManager.loadFromDatabase(tenantId);
+                console.log('📥 Cargando tenant desde base de datos...');
+                const config = await window.tenantManager.loadFromDatabase(tenantId);
+                console.log('📦 Configuración cargada:', config);
                 window.tenantManager.applyStyles();
+                console.log('✅ Estilos aplicados desde BD');
             } else {
-                // Fallback: cargar desde tenants.json
-                await window.tenantManager.loadFromJson();
+                console.log('📥 Cargando tenant desde JSON (fallback)...');
+                const config = await window.tenantManager.loadFromJson();
+                console.log('📦 Configuración cargada:', config);
                 window.tenantManager.applyStyles();
+                console.log('✅ Estilos aplicados desde JSON');
             }
                 
                 // 5. Renderizar el curso y mostrar el cuerpo
