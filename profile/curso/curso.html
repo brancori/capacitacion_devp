@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curso</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../componentes/global.css">
+  <link rel="stylesheet" href="curso.css">
+</head>
+
+<body>
+  <!-- Contenedor principal de la plataforma de curso -->
+  <div class="course-platform">
+    
+    <!-- 1. Barra superior -->
+    <header class="course-header">
+      <h1 id="courseTitle">Cargando Título...</h1>
+      <div class="header-actions">
+        <!-- Botón para cerrar y volver al perfil (ruta relativa correcta) -->
+        <a href="../profile.html" class="btn btn-outline"><i class="fas fa-times"></i> Cerrar</a>
+      </div>
+    </header>
+
+    <!-- 2. Contenido Principal (Sidebar + Área de Contenido) -->
+    <main class="course-main">
+      
+      <!-- Panel de Navegación/Páginas (Sidebar) -->
+      <aside class="course-sidebar" id="pageNavigation">
+        <h2>Índice del Curso</h2>
+        <div id="sidebarList">Cargando páginas...</div>
+      </aside>
+
+      <!-- Área de Visualización del Contenido -->
+      <section class="course-content-area">
+        <div id="pageContent">
+          <p>Cargando Contenido del Curso...</p>
+        </div>
+      </section>
+      
+    </main>
+
+    <!-- 3. Controles Inferiores (Anterior/Siguiente) -->
+    <footer class="course-footer">
+        <button id="prevPageBtn" class="btn btn-secondary" disabled>
+            <i class="fas fa-arrow-left"></i> Anterior
+        </button>
+        <div id="footerMessage">Página 0 de 0</div>
+        <button id="nextPageBtn" class="btn btn-primary" disabled>
+            Siguiente <i class="fas fa-arrow-right"></i>
+        </button>
+    </footer>
+
+  </div>
+  
+  
+  <!-- Scripts de dependencia (rutas relativas correctas) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../componentes/supabase-client.js"></script>
+  <script src="../../componentes/tenant-manager.js?v=final"></script>
+  <script src="curso.js"></script>
+</body>
+</html>
