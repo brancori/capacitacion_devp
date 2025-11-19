@@ -1,6 +1,7 @@
 // Función de inicialización principal
 async function initCourse() {
-    console.log('🚀 === INICIANDO CURSO (v2 Tenant) ===');
+    console.log('🚀 === INICIANDO CURSO - VERSIÓN ACTUALIZADA ===');
+    console.log('🔍 Tenant Manager:', window.tenantManager);
     
     // 1. CARGA INMEDIATA DEL TENANT (Prioridad Visual)
     // Esto se ejecuta antes de pedir datos a la BD para evitar "flicker"
@@ -159,9 +160,19 @@ try {
             console.error("Error curso:", courseError);
             pageContentEl.innerHTML = "<p>No tienes acceso a este curso.</p>";
         } else {
-            // Ya cargamos el tenant visualmente al inicio, solo cargamos datos ahora
-            loadCourse(fetchedCourse.title, fetchedCourse.content_json);
-        }
+    
+    // 3. Cargar estilos del tenant desde JSON (igual que index.js)
+    console.log('📥 Cargando tenant desde tenants.json...');
+    const config = await window.tenantManager.loadFromJson();
+    console.log('📦 Configuración cargada:', config);
+    console.log('🎨 Colores aplicados:', config.colors);
+    window.tenantManager.applyStyles();
+    
+    // 4. Renderizar el curso y mostrar el cuerpo
+    loadCourse(courseData.title, courseData.content_json);
+    console.log(`✅ Curso '${courseData.title}' cargado con éxito.`);
+    document.body.style.opacity = '1';
+}
 
     } catch (e) {
         console.error('Error crítico:', e);
