@@ -26,8 +26,11 @@
   const CURRENT_ORIGIN = window.location.origin;
   
   // IMPORTANTE: Ahora apuntamos a nuestro proxy en Hostinger
+  // La URL debe terminar SIN barra para que Supabase agregue las rutas correctamente
   const SUPABASE_URL = `${CURRENT_ORIGIN}/api`;
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
+
+  console.log('🔧 Inicializando Supabase con proxy:', SUPABASE_URL);
 
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
