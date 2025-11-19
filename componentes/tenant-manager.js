@@ -48,7 +48,7 @@ class TenantManager {
       
       // ✅ CORRECCIÓN CRÍTICA: Ruta Absoluta
       // Esto asegura que funcione tanto en /index.html como en /pages/curso/curso.html
-      const jsonPath = `${window.location.origin}../tenants/tenants.json`;
+      const jsonPath = `${window.location.origin}/tenants/tenants.json`;
       console.log(`🔍 Buscando config de tenant en: ${jsonPath}`); // Log para depurar
 
       const response = await fetch(jsonPath, {
