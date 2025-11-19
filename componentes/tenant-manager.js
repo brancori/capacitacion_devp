@@ -45,7 +45,7 @@ class TenantManager {
   async loadFromJson() {
     try {
       this.tenantSlug = this.detectTenant();
-      const response = await fetch('./tenants/tenants.json', {
+      const response = await fetch('../tenants/tenants.json', {
         cache: 'no-store'
       });
       
