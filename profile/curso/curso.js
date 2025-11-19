@@ -95,6 +95,7 @@ async function initCourse() {
         renderPage(0);
     }
 
+    
     // Eventos de Navegación
     prevPageBtn.addEventListener('click', () => {
         if (currentPageIndex > 0) renderPage(currentPageIndex - 1);
