@@ -1,14 +1,10 @@
-// tenant-manager.js - VERSIÓN AGRESIVA (DEBUG & FORCE)
+// tenant-manager.js - VERSIÓN FUERZA BRUTA
 
 const TENANT_DEFAULTS = {
   companyName: "Aula Corporativa",
-  colors: { primary: "#234B95", secondary: "#1F3F7A" },
+  colors: { primary: "#234B95", secondary: "#1F3F7A" }, // Azul default
   bgPage: "#141E30",
-  textPage: "#ffffff",
-  bgBrand: "#ffffff",
-  textBrand: "#33374d",
-  bgForm: "rgba(0, 0, 0, 0.3)",
-  textForm: "#ffffff"
+  textPage: "#ffffff"
 };
 
 class TenantManager {
@@ -19,23 +15,13 @@ class TenantManager {
 
   detectTenant() {
     const host = location.hostname;
-    console.log(`🕵️‍♂️ Host detectado: "${host}"`);
-
-    // 1. FORZAR SIRESI EN LOCALHOST
-    if (host === 'localhost' || host === '127.0.0.1') {
-       console.warn('🔧 MODO LOCAL: Forzando tenant "siresi"');
-       return 'siresi'; 
-    }
-
-    // 2. PRODUCCIÓN (Subdominios)
-    const parts = host.split('.');
-    // Ej: siresi.aulacorporativa.com -> parts[0] = 'siresi'
-    if (parts.length > 2 && parts[0] !== 'www') {
-        console.log(`🌍 Subdominio detectado: "${parts[0]}"`);
-        return parts[0];
-    }
+    // Forzar siresi en local
+    if (host === 'localhost' || host === '127.0.0.1') return 'siresi';
     
-    console.warn('⚠️ No se detectó subdominio, usando "default"');
+    // Producción
+    const parts = host.split('.');
+    if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+    
     return 'default';
   }
 
@@ -43,90 +29,93 @@ class TenantManager {
     try {
       this.tenantSlug = this.detectTenant();
       
-      // RUTA ABSOLUTA CONFIRMADA
+      // RUTA ABSOLUTA
       const jsonPath = `${window.location.origin}/tenants/tenants.json`;
-      console.log(`📥 Descargando configuración de: ${jsonPath}`);
+      console.log(`🔥 [TenantManager] Descargando: ${jsonPath}`);
 
-      const response = await fetch(jsonPath, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const response = await fetch(jsonPath, { cache: 'reload' });
+      if (!response.ok) throw new Error('Error HTTP ' + response.status);
 
       const data = await response.json();
       
-      // Verificar si existe el tenant
-      if (!data[this.tenantSlug]) {
-          console.error(`❌ EL TENANT "${this.tenantSlug}" NO EXISTE EN EL JSON. Usando default.`);
-          this.tenantSlug = 'default';
-      } else {
-          console.log(`✅ CONFIGURACIÓN ENCONTRADA para: "${this.tenantSlug}"`);
-      }
+      // Si no encuentra el tenant, usa default
+      const config = data[this.tenantSlug] || data['default'];
+      
+      console.log(`✅ [TenantManager] Config cargada para: ${this.tenantSlug}`, config);
 
-      const tenantConfig = data[this.tenantSlug] || data['default'];
-
+      // Unificar estructura
       this.currentConfig = {
         ...TENANT_DEFAULTS,
-        ...tenantConfig,
-        colors: { ...TENANT_DEFAULTS.colors, ...(tenantConfig.colors || {}) },
-        // Compatibilidad si los colores vienen sueltos
-        ...(tenantConfig.primaryColor ? { 
-            colors: { 
-                primary: tenantConfig.primaryColor, 
-                secondary: tenantConfig.secondaryColor || tenantConfig.primaryColor 
-            } 
+        ...config,
+        colors: { ...TENANT_DEFAULTS.colors, ...(config.colors || {}) },
+        // Soporte para JSON plano (sin objeto colors)
+        ...(config.primaryColor ? { 
+             colors: { primary: config.primaryColor, secondary: config.secondaryColor } 
         } : {})
       };
       
       return this.currentConfig;
-    } catch (error) {
-      console.error('💀 ERROR FATAL CARGANDO TENANT:', error);
-      this.currentConfig = { ...TENANT_DEFAULTS, tenantSlug: 'default' };
+    } catch (e) {
+      console.error('❌ [TenantManager] Error fatal:', e);
+      this.currentConfig = { ...TENANT_DEFAULTS };
       return this.currentConfig;
     }
   }
 
   applyStyles() {
-    const cfg = this.currentConfig || TENANT_DEFAULTS;
-    const root = document.documentElement;
+    const cfg = this.currentConfig;
+    if (!cfg) return;
 
-    console.group("🎨 APLICANDO ESTILOS (Modo Agresivo)");
-    console.log("Primary Color:", cfg.colors.primary);
-    console.log("Background:", cfg.bgPage);
+    console.log("🎨 [TenantManager] Inyectando estilos FUERZA BRUTA...");
     
-    // 1. INYECTAR VARIABLES (Con !important por si acaso)
-    root.style.setProperty('--primaryColor', cfg.colors.primary);
-    root.style.setProperty('--secondaryColor', cfg.colors.secondary);
-    root.style.setProperty('--bgPage', cfg.bgPage);
-    root.style.setProperty('--textPage', cfg.textPage);
-    
-    // 2. FUERZA BRUTA: Sobreescribir estilos directos al body
-    // Esto vence a cualquier archivo CSS que tenga estilos "duros"
-    document.body.style.background = cfg.bgPage;
-    document.body.style.color = cfg.textPage;
-    document.body.style.fontFamily = "'Segoe UI', sans-serif";
-
-    // 3. Aplicar Logo y Textos
-    this.applyBrandingUI(cfg);
-    
-    console.log("✨ Estilos aplicados forzosamente.");
-    console.groupEnd();
-  }
-
-  applyBrandingUI(cfg) {
-    const logoIcon = document.getElementById('logoIcon');
+    // 1. Aplicar textos y logo
     const logoText = document.getElementById('logoText');
-    
-    if (logoIcon) {
-      if (cfg.logoUrl) {
-           logoIcon.innerHTML = `<img src="${cfg.logoUrl}" alt="Logo" style="max-width:100%; height: auto;" />`;
-           logoIcon.style.background = "transparent"; 
-           logoIcon.style.border = "none";
-      } else {
-           logoIcon.textContent = cfg.logoText || 'AC';
-      }
-    }
+    const logoIcon = document.getElementById('logoIcon');
     if (logoText) logoText.textContent = cfg.companyName;
-    document.title = `${cfg.companyName} - Curso`;
+    if (logoIcon && cfg.logoUrl) {
+        logoIcon.innerHTML = `<img src="${cfg.logoUrl}" style="max-width:100%">`;
+        logoIcon.style.background = 'transparent';
+        logoIcon.style.border = 'none';
+    }
+
+    // 2. INYECCIÓN CSS AGRESIVA (Overrides)
+    // Creamos un <style> dinámico para ganar la guerra de especificidad
+    const styleId = 'tenant-styles-override';
+    let styleTag = document.getElementById(styleId);
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = styleId;
+        document.head.appendChild(styleTag);
+    }
+
+    // Definimos las variables con !important
+    const cssRules = `
+        :root {
+            --primaryColor: ${cfg.colors.primary} !important;
+            --secondaryColor: ${cfg.colors.secondary} !important;
+            --bgPage: ${cfg.bgPage} !important;
+            --textPage: ${cfg.textPage} !important;
+            --bgBrand: ${cfg.bgBrand || '#fff'} !important;
+            --textBrand: ${cfg.textBrand || '#333'} !important;
+        }
+        /* Forzar fondo del body */
+        body {
+            background: ${cfg.bgPage} !important;
+            color: ${cfg.textPage} !important;
+        }
+        /* Borde de depuración para confirmar que cargó (opcional) */
+        body::before {
+            content: 'Tenant: ${this.tenantSlug}';
+            position: fixed; top: 0; left: 0; 
+            background: red; color: white; z-index: 99999; padding: 5px;
+            font-size: 10px; opacity: 0.7;
+        }
+    `;
+    
+    styleTag.innerHTML = cssRules;
+    console.log("✨ Estilos inyectados con éxito.");
   }
 }
 
-const tenantManager = new TenantManager();
-window.tenantManager = tenantManager;
+// Inicializar
+window.tenantManager = new TenantManager();f
