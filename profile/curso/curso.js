@@ -19,44 +19,6 @@ async function initCourse() {
     const footerMessageEl = document.getElementById("footerMessage");
 
 
-    // Función de utilidad para aplicar estilos CSS
-    function setStyle(prop, value) {
-        if (value) document.documentElement.style.setProperty(prop, value);
-    }
-
-    // Función para aplicar TODOS los estilos del tenant, no solo primary/secondary
-    function applyTenantStyles(metadata) {
-        if (!metadata || !metadata.colors) return;
-        
-        // Asume la misma estructura de metadatos que usa index.js
-        const config = metadata; 
-        
-        // Aplicar los colores principales
-        setStyle('--primaryColor', config.colors.primary);
-        setStyle('--secondaryColor', config.colors.secondary);
-
-        // Aplicar otros estilos de UI del tenant
-        setStyle('--bgPage', config.bgPage);
-        setStyle('--textPage', config.textPage);
-        setStyle('--bgBrand', config.bgBrand);
-        setStyle('--textBrand', config.textBrand);
-        setStyle('--bgForm', config.bgForm);
-        setStyle('--textForm', config.textForm);
-        setStyle('--bgSuccess', config.bgSuccess);
-        setStyle('--bgError', config.bgError);
-        setStyle('--bgOverlay', config.bgOverlay);
-
-        // Aplicar fondo animado si existe
-        if (config.backgroundImage) {
-            // Asumiendo que hay un elemento .course-platform o similar para el fondo
-            const platformEl = document.querySelector('.course-platform');
-            if (platformEl) {
-                platformEl.style.background = config.backgroundImage;
-            }
-        }
-    }
-
-
     // Función para renderizar el contenido de una página específica (Video, Texto, etc.)
     function renderPage(index) {
         // LOG: Muestra si la función se detiene por datos inválidos.
@@ -206,36 +168,16 @@ async function initCourse() {
             } else {
                 
                 // 3. Obtener metadatos del tenant (incluyendo colores)
-                const tenantId = courseData.tenant_id || myTenantId; // Usar el del curso o el del usuario si el del curso es NULL
-                let tenantData = null;
-                
-                if (tenantId) {
-                    // Consulta SELECT metadata para obtener solo la configuración de UI
-                    const { data: tenantRes, error: tenantError } = await supabase
-                        .from('tenants')
-                        .select('metadata') 
-                        .eq('id', tenantId)
-                        .single();
-                        
-                    if (tenantError) {
-                            console.error("❌ Error al obtener el tenant:", tenantError.message);
-                            // Continuar sin colores de tenant si hay error
-                    } else {
-                        tenantData = tenantRes;
-                    }
-                }
+            const tenantId = courseData.tenant_id || myTenantId;
 
-                // 4. Aplicar los estilos del tenant.
-                if (tenantData && tenantData.metadata) {
-                    const tenantConfig = tenantData.metadata;
-                    
-                    // Asegurar que 'colors' exista en la configuración para applyTenantStyles
-                    if (!tenantConfig.colors) {
-                        tenantConfig.colors = {};
-                    }
-                    
-                    applyTenantStyles(tenantConfig);
-                }
+            if (tenantId) {
+                await window.tenantManager.loadFromDatabase(tenantId);
+                window.tenantManager.applyStyles();
+            } else {
+                // Fallback: cargar desde tenants.json
+                await window.tenantManager.loadFromJson();
+                window.tenantManager.applyStyles();
+            }
                 
                 // 5. Renderizar el curso y mostrar el cuerpo
                 loadCourse(courseData.title, courseData.content_json);
