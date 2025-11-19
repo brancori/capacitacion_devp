@@ -1,22 +1,21 @@
-// Función de inicialización principal
 async function initCourse() {
-    console.log('🚀 === INICIANDO CURSO - VERSIÓN ACTUALIZADA ===');
-    console.log('🔍 Tenant Manager:', window.tenantManager);
+    console.log('🚀 === INICIANDO CURSO - VERSIÓN FINAL ===');
     
     // 1. CARGA INMEDIATA DEL TENANT (Prioridad Visual)
-    // Esto se ejecuta antes de pedir datos a la BD para evitar "flicker"
-if (window.tenantManager) {
+    if (window.tenantManager) {
+        // Carga configuración usando la ruta absoluta corregida en tenant-manager.js
         const config = await window.tenantManager.loadFromJson();
         
-        // 🔍 AGREGA ESTO PARA VER LA VERDAD EN LA CONSOLA:
         console.log("🕵️‍♂️ TENANT DETECTADO:", window.tenantManager.tenantSlug);
-        console.log("🎨 COLOR PRIMARIO CARGADO:", config.colors?.primary || config.primaryColor);
+        console.log("🎨 COLOR:", config.colors?.primary || config.primaryColor);
         
         window.tenantManager.applyStyles();
+        
+        // Muestra la página suavemente
         document.body.style.opacity = '1'; 
     } else {
         console.error("❌ TenantManager no cargado en el HTML");
-        document.body.style.opacity = '1'; // Mostrar igual por seguridad
+        document.body.style.opacity = '1';
     }
 
     // 2. Lógica original de obtención de datos
@@ -33,12 +32,9 @@ if (window.tenantManager) {
     const courseTitleEl = document.getElementById("courseTitle");
     const footerMessageEl = document.getElementById("footerMessage");
 
-
-    // Función para renderizar el contenido de una página específica (Video, Texto, etc.)
+    // Función renderPage
     function renderPage(index) {
-        // LOG: Muestra si la función se detiene por datos inválidos.
         if (!courseData || !courseData.pages || index < 0 || index >= courseData.pages.length) {
-            console.warn(`DEBUG-RENDER: renderPage terminó temprano. Índice: ${index}, Páginas: ${courseData?.pages?.length || 'No definido'}`);
             return;
         }
 
@@ -46,42 +42,30 @@ if (window.tenantManager) {
         const page = courseData.pages[currentPageIndex];
         pageContentEl.innerHTML = ''; 
 
-        // LOG: Loguea el tipo de contenido y el ID que se va a inyectar
-        console.log(`DEBUG-RENDER: Renderizando página ${index + 1} (ID: ${page.id}) de tipo: ${page.type}`); 
+        console.log(`DEBUG-RENDER: Renderizando página ${index + 1} (${page.type})`); 
 
-        // 1. Renderizar contenido según el tipo de página
         switch (page.type) {
             case 'video':
                 let videoUrl = page.payload.url;
-
-                // SOLUCIÓN: Si es la URL de prueba o una URL no segura, usar un video de ejemplo
                 if (videoUrl.includes('cdn.com/intro.mp4')) {
-                    videoUrl = 'https://www.youtube.com/embed/M7lc1UVf-VE'; // Video de ejemplo seguro (YouTube)
-                    console.warn(`⚠️ DEBUG-RENDER: URL de video de prueba detectada. Usando URL de YouTube segura: ${videoUrl}`);
+                    videoUrl = 'https://www.youtube.com/embed/M7lc1UVf-VE'; 
                 }
                 
-                // Se utiliza tanto iframe (para embeds como YouTube/Vimeo) como <video> (para archivos mp4 directos)
                 const videoHtml = videoUrl.includes('youtube.com') || videoUrl.includes('vimeo.com')
-                    ? `<iframe width="100%" height="500" src="${videoUrl}" title="Embedded Course Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
-                    : `<video controls width="100%" height="500" src="${videoUrl}"><p>Tu navegador no soporta videos HTML5.</p></video>`;
+                    ? `<iframe width="100%" height="500" src="${videoUrl}" title="Video" frameborder="0" allowfullscreen></iframe>`
+                    : `<video controls width="100%" height="500" src="${videoUrl}"></video>`;
                 
                 pageContentEl.innerHTML = `<div class="page-video">${videoHtml}</div>`;
-                // LOG: Muestra la URL de la fuente que se intenta cargar
-                console.log(`DEBUG-RENDER: URL de Video: ${videoUrl}`);
                 break;
             
             case 'text':
-                // Se asume que el payload contiene el HTML del texto
                 pageContentEl.innerHTML = `<div class="page-text">${page.payload.html}</div>`;
-                // LOG: Muestra una parte del HTML cargado
-                console.log(`DEBUG-RENDER: Contenido de Texto cargado: ${page.payload.html.substring(0, 50)}...`);
                 break;
                 
             default:
-                pageContentEl.innerHTML = `<p>Tipo de contenido no soportado: <strong>${page.type}</strong></p>`;
+                pageContentEl.innerHTML = `<p>Tipo no soportado: ${page.type}</p>`;
         }
 
-        // 2. Actualizar estado de los botones y barra lateral
         prevPageBtn.disabled = currentPageIndex === 0;
         nextPageBtn.disabled = currentPageIndex === courseData.pages.length - 1;
         footerMessageEl.textContent = `Página ${currentPageIndex + 1} de ${courseData.pages.length}`;
@@ -91,9 +75,8 @@ if (window.tenantManager) {
         });
     }
 
-
-    // Función que se llama después de cargar el JSON del curso
-function loadCourse(title, contentJson) {
+    // Función loadCourse
+    function loadCourse(title, contentJson) {
         courseData = contentJson;
         courseTitleEl.textContent = title;
         
@@ -101,84 +84,65 @@ function loadCourse(title, contentJson) {
             sidebarListEl.innerHTML = "<p>Sin contenido.</p>";
             return;
         }
-        // 1. Renderizar la barra lateral (índice de páginas)
-        sidebarListEl.innerHTML = courseData.pages.map((page, index) => {
-                    const titleText = page.title || `Página ${index + 1}`; 
-                    const icon = page.type === 'video' ? 'fa-video' : 'fa-file-alt';
-                    return `<button class="page-btn" onclick="renderPage(${index})"><i class="fas ${icon}"></i> <span>${titleText}</span></button>`;
-                }).join('');
         
-        // 2. Renderizar la primera página
+        sidebarListEl.innerHTML = courseData.pages.map((page, index) => {
+            const titleText = page.title || `Página ${index + 1}`; 
+            const icon = page.type === 'video' ? 'fa-video' : 'fa-file-alt';
+            return `<button class="page-btn" onclick="renderPage(${index})"><i class="fas ${icon}"></i> <span>${titleText}</span></button>`;
+        }).join('');
+        
         window.renderPage = renderPage;
         renderPage(0);
     }
 
-
-    // --- Inicialización de Eventos de Navegación ---
+    // Eventos de Navegación
     prevPageBtn.addEventListener('click', () => {
-        if (currentPageIndex > 0) {
-            renderPage(currentPageIndex - 1);
-        }
+        if (currentPageIndex > 0) renderPage(currentPageIndex - 1);
     });
 
     nextPageBtn.addEventListener('click', () => {
-        if (currentPageIndex < courseData.pages.length - 1) {
-            renderPage(currentPageIndex + 1);
-        }
+        if (currentPageIndex < courseData.pages.length - 1) renderPage(currentPageIndex + 1);
     });
 
-
-    // ═══════════════════════════════════════════════════════════
-    // BLOQUE DE CARGA DEL CURSO
-    // ═══════════════════════════════════════════════════════════
-
-if (!courseId) {
-    pageContentEl.innerHTML = "<p>Error: no se recibió ID del curso</p>";
-    return;
-}
-
-try {
-    const { data: userData, error: authError } = await supabase.auth.getUser();
-    if (authError || !userData?.user) {
-        pageContentEl.innerHTML = "<p>Debes iniciar sesión.</p>";
+    // 3. Lógica de Carga (Supabase)
+    if (!courseId) {
+        pageContentEl.innerHTML = "<p>Error: no se recibió ID del curso</p>";
         return;
     }
 
-    const myTenantId = userData.user.user_metadata.tenant_id;
-    const myRole = userData.user.user_metadata.role;
+    try {
+        const { data: userData, error: authError } = await supabase.auth.getUser();
+        if (authError || !userData?.user) {
+            pageContentEl.innerHTML = "<p>Debes iniciar sesión.</p>";
+            return;
+        }
 
-    let query = supabase
-        .from("articles") 
-        .select("title, content_json, tenant_id")
-        .eq("id", courseId);
+        const myTenantId = userData.user.user_metadata.tenant_id;
+        const myRole = userData.user.user_metadata.role;
 
-    if (myRole !== "master" && myTenantId) {
-        query = query.eq("tenant_id", myTenantId);
+        let query = supabase
+            .from("articles") 
+            .select("title, content_json, tenant_id")
+            .eq("id", courseId);
+
+        if (myRole !== "master" && myTenantId) {
+            query = query.eq("tenant_id", myTenantId);
+        }
+
+        const { data: fetchedCourse, error: courseError } = await query.single();
+
+        if (courseError || !fetchedCourse) {
+            console.error("Error curso:", courseError);
+            pageContentEl.innerHTML = "<p>No tienes acceso a este curso.</p>";
+        } else {
+            // Ya cargamos el tenant al inicio, aquí solo pintamos el curso
+            loadCourse(fetchedCourse.title, fetchedCourse.content_json);
+            console.log(`✅ Curso cargado.`);
+        }
+
+    } catch (e) {
+        console.error('Error crítico:', e);
     }
-
-    const { data: fetchedCourse, error: courseError } = await query.single();
-
-    if (courseError || !fetchedCourse) {
-        console.error("Error curso:", courseError);
-        pageContentEl.innerHTML = "<p>No tienes acceso a este curso.</p>";
-    } else {
-        
-        // 3. Cargar estilos del tenant desde JSON (igual que index.js)
-        console.log('📥 Cargando tenant desde tenants.json...');
-        const config = await window.tenantManager.loadFromJson();
-        console.log('📦 Configuración cargada:', config);
-        console.log('🎨 Colores aplicados:', config.colors);
-        window.tenantManager.applyStyles();
-        
-        // 4. Renderizar el curso y mostrar el cuerpo
-        loadCourse(fetchedCourse.title, fetchedCourse.content_json);
-        console.log(`✅ Curso '${fetchedCourse.title}' cargado con éxito.`);
-        document.body.style.opacity = '1';
-    }
-
-} catch (e) {
-    console.error('Error crítico:', e);
-}
 }
 
 document.addEventListener('DOMContentLoaded', initCourse);
