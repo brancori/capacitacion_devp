@@ -6,7 +6,6 @@ const TENANT_DEFAULTS = {
   logoText: "AC",
   logoUrl: null,
   tagline: "¡Bienvenido!",
-  description: "Accede a tu plataforma de capacitación corporativa.",
   colors: {
     primary: "#234B95",
     secondary: "#1F3F7A"
@@ -17,12 +16,10 @@ const TENANT_DEFAULTS = {
   textBrand: "#33374d",
   bgForm: "rgba(0, 0, 0, 0.3)",
   textForm: "#ffffff",
-  inputTheme: "dark",
   bgSuccess: "linear-gradient(135deg, #06d6a0, #1b9aaa)",
   bgError: "linear-gradient(135deg, #ef476f, #b30f20)",
   bgOverlay: "rgba(0, 0, 0, 0.7)",
-  backgroundImage: `linear-gradient(to bottom, #141E30, #243B55)`,
-  animatedBackground: false
+  backgroundImage: `linear-gradient(to bottom, #141E30, #243B55)`
 };
 
 class TenantManager {
@@ -31,7 +28,6 @@ class TenantManager {
     this.tenantSlug = null;
   }
 
-  // Detecta el tenant desde el hostname o parámetros
   detectTenant() {
     const host = location.hostname || 'localhost';
     if (host === 'localhost') return 'demo';
@@ -41,84 +37,59 @@ class TenantManager {
     return 'default';
   }
 
-  // Carga configuración del tenant desde tenants.json (para estilos)
   async loadFromJson() {
     try {
       this.tenantSlug = this.detectTenant();
-      const response = await fetch('../tenants/tenants.json', {
-        cache: 'no-store'
-      });
+      
+      // CORRECCIÓN 1: Ruta absoluta usando window.location.origin
+      // Esto asegura que encuentre el archivo sin importar en qué subcarpeta estés.
+      const jsonPath = `${window.location.origin}/tenants/tenants.json`;
+      
+      console.log(`🔍 Buscando config de tenant en: ${jsonPath}`);
+      
+      const response = await fetch(jsonPath, { cache: 'no-store' });
       
       if (!response.ok) throw new Error('Tenant config not found');
 
       const data = await response.json();
       const tenantConfig = data[this.tenantSlug] || data['default'] || {};
 
+      // Merge recursivo simple para colores y defaults
       this.currentConfig = {
         ...TENANT_DEFAULTS,
         ...tenantConfig,
         colors: {
           ...TENANT_DEFAULTS.colors,
-          ...(tenantConfig.colors || {})
-        }
+          ...(tenantConfig.colors || {}) // Prioridad al JSON
+        },
+        // Si el JSON plano tiene primaryColor fuera de 'colors', lo mapeamos también
+        ...(tenantConfig.primaryColor ? { 
+            colors: { 
+                primary: tenantConfig.primaryColor, 
+                secondary: tenantConfig.secondaryColor || tenantConfig.primaryColor 
+            } 
+        } : {})
       };
 
       this.currentConfig.tenantSlug = this.tenantSlug;
-      console.log(`✅ Tenant Configurado (JSON): ${this.currentConfig.companyName}`);
-      
       return this.currentConfig;
     } catch (error) {
-      console.warn('⚠️ Error al cargar tenant config:', error);
+      console.warn('⚠️ Error cargando tenant config (usando defaults):', error);
       this.currentConfig = { ...TENANT_DEFAULTS, tenantSlug: 'default' };
       return this.currentConfig;
     }
   }
 
-  // Carga configuración del tenant desde Supabase (metadata de BD)
-  async loadFromDatabase(tenantId) {
-    try {
-      if (!window.supabase) {
-        throw new Error('Supabase client no disponible');
-      }
-
-      const { data, error } = await window.supabase
-        .from('tenants')
-        .select('metadata, slug, name')
-        .eq('id', tenantId)
-        .single();
-
-      if (error) throw error;
-
-      if (data && data.metadata) {
-        // Combinar con defaults
-        this.currentConfig = {
-          ...TENANT_DEFAULTS,
-          ...data.metadata,
-          companyName: data.name || data.metadata.companyName || TENANT_DEFAULTS.companyName,
-          tenantSlug: data.slug || this.tenantSlug,
-          colors: {
-            ...TENANT_DEFAULTS.colors,
-            ...(data.metadata.colors || {})
-          }
-        };
-        
-        console.log(`✅ Tenant Configurado (DB): ${this.currentConfig.companyName}`);
-        return this.currentConfig;
-      }
-
-      return this.currentConfig || TENANT_DEFAULTS;
-    } catch (error) {
-      console.warn('⚠️ Error al cargar tenant desde DB:', error);
-      return this.currentConfig || TENANT_DEFAULTS;
-    }
-  }
-
-  // Aplica los estilos CSS del tenant
+  // Aplica variables CSS
   applyStyles(config = null) {
     const cfg = config || this.currentConfig || TENANT_DEFAULTS;
     
-    this.setStyle('--primaryColor', cfg.colors?.primary || cfg.primaryColor);
-    this.setStyle('--secondaryColor', cfg.colors?.secondary || cfg.secondaryColor);
+    // Normalizar obtención de colores (por si vienen del JSON plano o del objeto colors)
+    const primary = cfg.colors?.primary || cfg.primaryColor || TENANT_DEFAULTS.colors.primary;
+    const secondary = cfg.colors?.secondary || cfg.secondaryColor || TENANT_DEFAULTS.colors.secondary;
+
+    this.setStyle('--primaryColor', primary);
+    this.setStyle('--secondaryColor', secondary);
     this.setStyle('--bgPage', cfg.bgPage);
     this.setStyle('--textPage', cfg.textPage);
     this.setStyle('--bgBrand', cfg.bgBrand);
@@ -129,42 +100,41 @@ class TenantManager {
     this.setStyle('--bgError', cfg.bgError);
     this.setStyle('--bgOverlay', cfg.bgOverlay);
 
-    // Aplicar fondo animado si existe
     if (cfg.backgroundImage) {
-      const platformEl = document.querySelector('.course-platform') || 
-                         document.querySelector('.bg-animated') ||
-                         document.body;
-      if (platformEl) {
-        platformEl.style.background = cfg.backgroundImage;
+        // Intentar aplicar al body o contenedor principal
+        document.body.style.background = cfg.backgroundImage;
+        const platformEl = document.querySelector('.course-platform');
+        if(platformEl) platformEl.style.background = cfg.backgroundImage;
+    }
+  }
+
+  // NUEVA FUNCIÓN: Aplica Logo y Textos (Igual que index.js)
+  applyBrandingUI() {
+      const cfg = this.currentConfig || TENANT_DEFAULTS;
+      
+      // Buscar elementos comunes de logo
+      const logoIcon = document.getElementById('logoIcon'); // Si existe en curso.html
+      const logoText = document.getElementById('logoText'); // Si existe en curso.html
+      
+      // Lógica de Logo
+      if (logoIcon) {
+        if (cfg.logoUrl) {
+             logoIcon.innerHTML = `<img src="${cfg.logoUrl}" alt="Logo" style="max-width:100%; height: auto;" />`;
+        } else {
+             logoIcon.textContent = cfg.logoText || cfg.logoText || 'AC';
+        }
       }
-    }
 
-    console.log('🎨 Estilos del tenant aplicados');
+      if (logoText) logoText.textContent = cfg.companyName;
+      
+      // Ajustar Favicon dinámicamente si fuera necesario
+      // document.title = `${cfg.companyName} - Curso`;
   }
 
-  // Utilidad para establecer variables CSS
   setStyle(prop, value) {
-    if (value) {
-      document.documentElement.style.setProperty(prop, value);
-    }
-  }
-
-  // Obtiene la configuración actual
-  getConfig() {
-    return this.currentConfig || TENANT_DEFAULTS;
-  }
-
-  // Obtiene el slug del tenant actual
-  getTenantSlug() {
-    return this.tenantSlug || this.detectTenant();
+    if (value) document.documentElement.style.setProperty(prop, value);
   }
 }
 
-// Exportar instancia singleton
 const tenantManager = new TenantManager();
 window.tenantManager = tenantManager;
-
-// Para módulos ES6
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = tenantManager;
-}

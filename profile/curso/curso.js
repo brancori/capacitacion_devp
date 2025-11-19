@@ -1,20 +1,30 @@
 // Función de inicialización principal
 async function initCourse() {
-     console.log('🚀 === INICIANDO CURSO ===');
-    console.log('🔍 Tenant Manager disponible?', !!window.tenantManager);
+    console.log('🚀 === INICIANDO CURSO (v2 Tenant) ===');
+    
+    // 1. CARGA INMEDIATA DEL TENANT (Prioridad Visual)
+    // Esto se ejecuta antes de pedir datos a la BD para evitar "flicker"
+    if (window.tenantManager) {
+        await window.tenantManager.loadFromJson();
+        window.tenantManager.applyStyles();
+        // window.tenantManager.applyBrandingUI(); // Descomentar si agregas logos al HTML de curso
+        
+        // Mostrar el body suavemente una vez aplicados los estilos
+        document.body.style.opacity = '1'; 
+    } else {
+        console.error("❌ TenantManager no cargado en el HTML");
+        document.body.style.opacity = '1'; // Mostrar igual por seguridad
+    }
+
+    // 2. Lógica original de obtención de datos
     const params = new URLSearchParams(location.search);
     const courseId = params.get("id");
+    let courseData = null;
+    let currentPageIndex = 0;
 
-    let courseData = null; // Almacena el JSON del curso
-    let currentPageIndex = 0; // Controla la posición actual
-
-    // Referencias a los elementos del DOM
+    // Referencias DOM
     const pageContentEl = document.getElementById("pageContent");
     const sidebarListEl = document.getElementById("sidebarList");
-    console.log("DEBUG DOM pageContent:", pageContentEl);
-    console.log("DEBUG DOM sidebarList:", sidebarListEl);
-    console.log("DEBUG DOM parent:", pageContentEl?.parentElement);
-    console.log("DEBUG DOM size:", pageContentEl?.offsetWidth, pageContentEl?.offsetHeight);
     const prevPageBtn = document.getElementById("prevPageBtn");
     const nextPageBtn = document.getElementById("nextPageBtn");
     const courseTitleEl = document.getElementById("courseTitle");
@@ -80,37 +90,23 @@ async function initCourse() {
 
 
     // Función que se llama después de cargar el JSON del curso
-    function loadCourse(title, contentJson) {
+function loadCourse(title, contentJson) {
         courseData = contentJson;
+        courseTitleEl.textContent = title;
         
-        courseTitleEl.textContent = title; 
-
-        // LOG: Muestra el número de páginas cargadas.
-        const pageCount = courseData.pages?.length || 0;
-        console.log(`DEBUG-LOAD: Curso '${title}' tiene ${pageCount} páginas de contenido.`);
-
-        // MANEJO DE CURSO VACÍO: Si no hay páginas, muestra un mensaje y detiene el renderizado.
-        if (pageCount === 0) {
-            sidebarListEl.innerHTML = "<p class='text-secondary'>El administrador no ha añadido páginas a este curso.</p>";
-            pageContentEl.innerHTML = "<h2 style='color: var(--warning);'>¡Contenido No Disponible!</h2><p>Por favor, contacta a tu administrador para que agregue contenido a este curso.</p>";
-            prevPageBtn.disabled = true;
-            nextPageBtn.disabled = true;
-            footerMessageEl.textContent = "Página 0 de 0";
-            return; 
+        if (!courseData.pages || courseData.pages.length === 0) {
+            sidebarListEl.innerHTML = "<p>Sin contenido.</p>";
+            return;
         }
-
         // 1. Renderizar la barra lateral (índice de páginas)
         sidebarListEl.innerHTML = courseData.pages.map((page, index) => {
-            const titleText = page.title || `Página ${index + 1}`; 
-            const icon = page.type === 'video' ? 'fa-video' : 'fa-file-alt';
-            
-            return `<button class="page-btn" onclick="renderPage(${index})">
-                <i class="fas ${icon}"></i> 
-                <span>${titleText}</span>
-            </button>`;
-        }).join('');
+                    const titleText = page.title || `Página ${index + 1}`; 
+                    const icon = page.type === 'video' ? 'fa-video' : 'fa-file-alt';
+                    return `<button class="page-btn" onclick="renderPage(${index})"><i class="fas ${icon}"></i> <span>${titleText}</span></button>`;
+                }).join('');
         
         // 2. Renderizar la primera página
+        window.renderPage = renderPage;
         renderPage(0);
     }
 
@@ -133,61 +129,43 @@ async function initCourse() {
     // BLOQUE DE CARGA DEL CURSO
     // ═══════════════════════════════════════════════════════════
 
-    if (!courseId) {
+if (!courseId) {
         pageContentEl.innerHTML = "<p>Error: no se recibió ID del curso</p>";
-    } else {
-        try {
-            // 1. Obtener tenant y rol del usuario
-            const { data: userData, error: authError } = await supabase.auth.getUser();
-            if (authError || !userData?.user) {
-                pageContentEl.innerHTML = "<p>Error de autenticación. Por favor, vuelve a iniciar sesión.</p>";
-                return;
-            }
-            const myTenantId = userData.user.user_metadata.tenant_id;
-            const myRole = userData.user.user_metadata.role;
-            
-            // 2. Cargar curso y su tenant_id
-            let query = supabase
-                .from("articles") 
-                .select("title, content_json, tenant_id")
-                .eq("id", courseId);
-            
-            // APLICAR FILTRO CONDICIONAL: Solo si NO es master Y si el tenant_id existe
-            if (myRole !== "master" && myTenantId) {
-                query = query.eq("tenant_id", myTenantId);
-            }
-            
-            const { data: courseData, error: courseError } = await query.single();
-            
-            if (courseError) {
-                console.error("❌ Error al obtener el curso:", courseError.message, courseError.details);
-                pageContentEl.innerHTML =
-                    `<p>Error de carga: No se pudo verificar el acceso al curso (Código: ${courseError.code}).</p>`;
-            } else if (!courseData) {
-                console.warn(`⚠️ Curso no encontrado o acceso denegado para ID: ${courseId}`);
-                pageContentEl.innerHTML =
-                    "<p>No tienes acceso a este curso o no existe en tu inventario.</p>";
-            } else {
-                
-                // 3. Cargar estilos del tenant desde JSON (igual que index.js)
-                console.log('📥 Cargando tenant desde tenants.json...');
-                const config = await window.tenantManager.loadFromJson();
-                console.log('📦 Configuración cargada:', config);
-                console.log('🎨 Colores aplicados:', config.colors);
-                window.tenantManager.applyStyles();
-                
-                // 4. Renderizar el curso y mostrar el cuerpo
-                loadCourse(courseData.title, courseData.content_json);
-                console.log(`✅ Curso '${courseData.title}' cargado con éxito.`);
-                document.body.style.opacity = '1';
-            }
-        } catch (e) {
-            // Log crítico mejorado
-            console.error('❌ Error crítico en el bloque de carga:', e.message || e);
-            pageContentEl.innerHTML = "<p>Error crítico al cargar la plataforma. Intenta recargar.</p>";
+        return;
+    }
+try {
+        const { data: userData, error: authError } = await supabase.auth.getUser();
+        if (authError || !userData?.user) {
+            // Redirigir si no hay sesión, opcional
+            pageContentEl.innerHTML = "<p>Debes iniciar sesión.</p>";
+            return;
         }
+
+        const myTenantId = userData.user.user_metadata.tenant_id;
+        const myRole = userData.user.user_metadata.role;
+
+        let query = supabase
+            .from("articles") 
+            .select("title, content_json, tenant_id")
+            .eq("id", courseId);
+
+        if (myRole !== "master" && myTenantId) {
+            query = query.eq("tenant_id", myTenantId);
+        }
+
+        const { data: fetchedCourse, error: courseError } = await query.single();
+
+        if (courseError || !fetchedCourse) {
+            console.error("Error curso:", courseError);
+            pageContentEl.innerHTML = "<p>No tienes acceso a este curso.</p>";
+        } else {
+            // Ya cargamos el tenant visualmente al inicio, solo cargamos datos ahora
+            loadCourse(fetchedCourse.title, fetchedCourse.content_json);
+        }
+
+    } catch (e) {
+        console.error('Error crítico:', e);
     }
 }
 
-// Llamar a la función de inicialización cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', initCourse);
