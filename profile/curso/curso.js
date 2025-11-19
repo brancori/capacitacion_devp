@@ -5,12 +5,14 @@ async function initCourse() {
     
     // 1. CARGA INMEDIATA DEL TENANT (Prioridad Visual)
     // Esto se ejecuta antes de pedir datos a la BD para evitar "flicker"
-    if (window.tenantManager) {
-        await window.tenantManager.loadFromJson();
-        window.tenantManager.applyStyles();
-        // window.tenantManager.applyBrandingUI(); // Descomentar si agregas logos al HTML de curso
+if (window.tenantManager) {
+        const config = await window.tenantManager.loadFromJson();
         
-        // Mostrar el body suavemente una vez aplicados los estilos
+        // 🔍 AGREGA ESTO PARA VER LA VERDAD EN LA CONSOLA:
+        console.log("🕵️‍♂️ TENANT DETECTADO:", window.tenantManager.tenantSlug);
+        console.log("🎨 COLOR PRIMARIO CARGADO:", config.colors?.primary || config.primaryColor);
+        
+        window.tenantManager.applyStyles();
         document.body.style.opacity = '1'; 
     } else {
         console.error("❌ TenantManager no cargado en el HTML");
