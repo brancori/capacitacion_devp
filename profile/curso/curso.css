@@ -281,3 +281,86 @@
     border-radius: 8px;
     border-left: 4px solid var(--bgSuccess);
 }
+
+
+/* ... existing code ... */
+
+/* ============================================
+   ESTILOS DEL QUIZ
+   ============================================ */
+.quiz-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.quiz-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+
+.quiz-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.quiz-question-text {
+    color: var(--primaryColor);
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quiz-btn {
+    text-align: left;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    color: var(--textForm);
+}
+
+.quiz-btn:hover:not(:disabled) {
+    background: #e2e6ea;
+    border-color: var(--secondaryColor);
+}
+
+/* Estados de validación */
+.quiz-btn.correct {
+    background-color: #d4edda !important;
+    border-color: #28a745 !important;
+    color: #155724 !important;
+    font-weight: bold;
+}
+
+.quiz-btn.incorrect {
+    background-color: #f8d7da !important;
+    border-color: #dc3545 !important;
+    color: #721c24 !important;
+    opacity: 0.8;
+}
+
+.quiz-btn:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.quiz-feedback {
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    min-height: 20px;
+}
