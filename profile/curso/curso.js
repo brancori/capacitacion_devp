@@ -131,52 +131,52 @@ function loadCourse(title, contentJson) {
     // ═══════════════════════════════════════════════════════════
 
 if (!courseId) {
-        pageContentEl.innerHTML = "<p>Error: no se recibió ID del curso</p>";
-        return;
-    }
-try {
-        const { data: userData, error: authError } = await supabase.auth.getUser();
-        if (authError || !userData?.user) {
-            // Redirigir si no hay sesión, opcional
-            pageContentEl.innerHTML = "<p>Debes iniciar sesión.</p>";
-            return;
-        }
-
-        const myTenantId = userData.user.user_metadata.tenant_id;
-        const myRole = userData.user.user_metadata.role;
-
-        let query = supabase
-            .from("articles") 
-            .select("title, content_json, tenant_id")
-            .eq("id", courseId);
-
-        if (myRole !== "master" && myTenantId) {
-            query = query.eq("tenant_id", myTenantId);
-        }
-
-        const { data: fetchedCourse, error: courseError } = await query.single();
-
-        if (courseError || !fetchedCourse) {
-            console.error("Error curso:", courseError);
-            pageContentEl.innerHTML = "<p>No tienes acceso a este curso.</p>";
-        } else {
-    
-    // 3. Cargar estilos del tenant desde JSON (igual que index.js)
-    console.log('📥 Cargando tenant desde tenants.json...');
-    const config = await window.tenantManager.loadFromJson();
-    console.log('📦 Configuración cargada:', config);
-    console.log('🎨 Colores aplicados:', config.colors);
-    window.tenantManager.applyStyles();
-    
-    // 4. Renderizar el curso y mostrar el cuerpo
-    loadCourse(courseData.title, courseData.content_json);
-    console.log(`✅ Curso '${courseData.title}' cargado con éxito.`);
-    document.body.style.opacity = '1';
+    pageContentEl.innerHTML = "<p>Error: no se recibió ID del curso</p>";
+    return;
 }
 
-    } catch (e) {
-        console.error('Error crítico:', e);
+try {
+    const { data: userData, error: authError } = await supabase.auth.getUser();
+    if (authError || !userData?.user) {
+        pageContentEl.innerHTML = "<p>Debes iniciar sesión.</p>";
+        return;
     }
+
+    const myTenantId = userData.user.user_metadata.tenant_id;
+    const myRole = userData.user.user_metadata.role;
+
+    let query = supabase
+        .from("articles") 
+        .select("title, content_json, tenant_id")
+        .eq("id", courseId);
+
+    if (myRole !== "master" && myTenantId) {
+        query = query.eq("tenant_id", myTenantId);
+    }
+
+    const { data: fetchedCourse, error: courseError } = await query.single();
+
+    if (courseError || !fetchedCourse) {
+        console.error("Error curso:", courseError);
+        pageContentEl.innerHTML = "<p>No tienes acceso a este curso.</p>";
+    } else {
+        
+        // 3. Cargar estilos del tenant desde JSON (igual que index.js)
+        console.log('📥 Cargando tenant desde tenants.json...');
+        const config = await window.tenantManager.loadFromJson();
+        console.log('📦 Configuración cargada:', config);
+        console.log('🎨 Colores aplicados:', config.colors);
+        window.tenantManager.applyStyles();
+        
+        // 4. Renderizar el curso y mostrar el cuerpo
+        loadCourse(fetchedCourse.title, fetchedCourse.content_json);
+        console.log(`✅ Curso '${fetchedCourse.title}' cargado con éxito.`);
+        document.body.style.opacity = '1';
+    }
+
+} catch (e) {
+    console.error('Error crítico:', e);
+}
 }
 
 document.addEventListener('DOMContentLoaded', initCourse);
