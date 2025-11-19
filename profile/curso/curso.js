@@ -137,7 +137,7 @@ async function initCourse() {
         pageContentEl.innerHTML = "<p>Error: no se recibió ID del curso</p>";
     } else {
         try {
-            // 1. obtener tenant y rol del usuario
+            // 1. Obtener tenant y rol del usuario
             const { data: userData, error: authError } = await supabase.auth.getUser();
             if (authError || !userData?.user) {
                 pageContentEl.innerHTML = "<p>Error de autenticación. Por favor, vuelve a iniciar sesión.</p>";
@@ -146,13 +146,13 @@ async function initCourse() {
             const myTenantId = userData.user.user_metadata.tenant_id;
             const myRole = userData.user.user_metadata.role;
             
-            // 2. cargar curso y su tenant_id
+            // 2. Cargar curso y su tenant_id
             let query = supabase
                 .from("articles") 
                 .select("title, content_json, tenant_id")
                 .eq("id", courseId);
             
-            // APLICAR FILTRO CONDICIONAL: Solo si NO es master Y si el tenant_id existe.
+            // APLICAR FILTRO CONDICIONAL: Solo si NO es master Y si el tenant_id existe
             if (myRole !== "master" && myTenantId) {
                 query = query.eq("tenant_id", myTenantId);
             }
@@ -168,27 +168,15 @@ async function initCourse() {
                 pageContentEl.innerHTML =
                     "<p>No tienes acceso a este curso o no existe en tu inventario.</p>";
             } else {
-    // 3. Cargar y aplicar estilos del tenant usando TenantManager
-    const tenantId = courseData.tenant_id || myTenantId;
-    
-    console.log('🔍 DEBUG Tenant ID detectado:', tenantId);
-    console.log('🔍 DEBUG myTenantId:', myTenantId);
-    
-    if (tenantId) {
-        console.log('📥 Cargando tenant desde base de datos...');
-        const config = await window.tenantManager.loadFromDatabase(tenantId);
-        console.log('📦 Configuración cargada:', config);
-        window.tenantManager.applyStyles();
-        console.log('✅ Estilos aplicados desde BD');
-    } else {
-        console.log('📥 Cargando tenant desde JSON (fallback)...');
-        const config = await window.tenantManager.loadFromJson();
-        console.log('📦 Configuración cargada:', config);
-        window.tenantManager.applyStyles();
-        console.log('✅ Estilos aplicados desde JSON');
-    }
                 
-                // 5. Renderizar el curso y mostrar el cuerpo
+                // 3. Cargar estilos del tenant desde JSON (igual que index.js)
+                console.log('📥 Cargando tenant desde tenants.json...');
+                const config = await window.tenantManager.loadFromJson();
+                console.log('📦 Configuración cargada:', config);
+                console.log('🎨 Colores aplicados:', config.colors);
+                window.tenantManager.applyStyles();
+                
+                // 4. Renderizar el curso y mostrar el cuerpo
                 loadCourse(courseData.title, courseData.content_json);
                 console.log(`✅ Curso '${courseData.title}' cargado con éxito.`);
                 document.body.style.opacity = '1';
