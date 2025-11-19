@@ -1,121 +1,178 @@
-// tenant-manager.js - VERSIÓN FUERZA BRUTA
 
-const TENANT_DEFAULTS = {
-  companyName: "Aula Corporativa",
-  colors: { primary: "#234B95", secondary: "#1F3F7A" }, // Azul default
-  bgPage: "#141E30",
-  textPage: "#ffffff"
-};
+(function (global) {
+  'use strict';
 
-class TenantManager {
-  constructor() {
-    this.currentConfig = null;
-    this.tenantSlug = null;
+  // Evitar redefinir si ya existe y es igual
+  if (global.tenantManager && global.tenantManager._isTrusted) {
+    console.log('tenantManager: ya cargado (trusted).');
+    return;
   }
 
-  detectTenant() {
-    const host = location.hostname;
-    // Forzar siresi en local
-    if (host === 'localhost' || host === '127.0.0.1') return 'siresi';
-    
-    // Producción
-    const parts = host.split('.');
-    if (parts.length > 2 && parts[0] !== 'www') return parts[0];
-    
-    return 'default';
-  }
+  const tm = {
+    _isTrusted: true,
+    tenantSlug: 'default',
+    config: null,
 
-  async loadFromJson() {
-    try {
-      this.tenantSlug = this.detectTenant();
-      
-      // RUTA ABSOLUTA
-      const jsonPath = `${window.location.origin}/tenants/tenants.json`;
-      console.log(`🔥 [TenantManager] Descargando: ${jsonPath}`);
+    // Detecta tenant por subdominio o por host
+    detectTenant() {
+      try {
+        const host = location.hostname || 'localhost';
+        if (host === 'localhost') return 'demo';
+        if (host === '127.0.0.1') return 'default';
+        const parts = host.split('.');
+        if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+        return 'default';
+      } catch (e) {
+        console.warn('tenantManager.detectTenant error', e);
+        return 'default';
+      }
+    },
 
-      const response = await fetch(jsonPath, { cache: 'reload' });
-      if (!response.ok) throw new Error('Error HTTP ' + response.status);
+    // Aplica estilos CSS usando variables CSS
+    applyStyles(cfg = null) {
+      try {
+        const config = cfg || this.config;
+        if (!config) return;
+        const root = document.documentElement;
+        const set = (k, v) => { if (v !== undefined && v !== null) root.style.setProperty(k, v); };
 
-      const data = await response.json();
-      
-      // Si no encuentra el tenant, usa default
-      const config = data[this.tenantSlug] || data['default'];
-      
-      console.log(`✅ [TenantManager] Config cargada para: ${this.tenantSlug}`, config);
+        set('--primaryColor', config.primaryColor);
+        set('--secondaryColor', config.secondaryColor);
+        set('--bgPage', config.bgPage);
+        set('--textPage', config.textPage);
+        set('--bgBrand', config.bgBrand);
+        set('--textBrand', config.textBrand);
+        set('--bgForm', config.bgForm);
+        set('--textForm', config.textForm);
 
-      // Unificar estructura
-      this.currentConfig = {
-        ...TENANT_DEFAULTS,
-        ...config,
-        colors: { ...TENANT_DEFAULTS.colors, ...(config.colors || {}) },
-        // Soporte para JSON plano (sin objeto colors)
-        ...(config.primaryColor ? { 
-             colors: { primary: config.primaryColor, secondary: config.secondaryColor } 
-        } : {})
-      };
-      
-      return this.currentConfig;
-    } catch (e) {
-      console.error('❌ [TenantManager] Error fatal:', e);
-      this.currentConfig = { ...TENANT_DEFAULTS };
-      return this.currentConfig;
-    }
-  }
+        // Si hay backgroundImage (puede ser linear-gradient o URL)
+        if (config.backgroundImage) set('--backgroundImage', config.backgroundImage);
 
-  applyStyles() {
-    const cfg = this.currentConfig;
-    if (!cfg) return;
-
-    console.log("🎨 [TenantManager] Inyectando estilos FUERZA BRUTA...");
-    
-    // 1. Aplicar textos y logo
-    const logoText = document.getElementById('logoText');
-    const logoIcon = document.getElementById('logoIcon');
-    if (logoText) logoText.textContent = cfg.companyName;
-    if (logoIcon && cfg.logoUrl) {
-        logoIcon.innerHTML = `<img src="${cfg.logoUrl}" style="max-width:100%">`;
-        logoIcon.style.background = 'transparent';
-        logoIcon.style.border = 'none';
-    }
-
-    // 2. INYECCIÓN CSS AGRESIVA (Overrides)
-    // Creamos un <style> dinámico para ganar la guerra de especificidad
-    const styleId = 'tenant-styles-override';
-    let styleTag = document.getElementById(styleId);
-    if (!styleTag) {
-        styleTag = document.createElement('style');
-        styleTag.id = styleId;
-        document.head.appendChild(styleTag);
-    }
-
-    // Definimos las variables con !important
-    const cssRules = `
-        :root {
-            --primaryColor: ${cfg.colors.primary} !important;
-            --secondaryColor: ${cfg.colors.secondary} !important;
-            --bgPage: ${cfg.bgPage} !important;
-            --textPage: ${cfg.textPage} !important;
-            --bgBrand: ${cfg.bgBrand || '#fff'} !important;
-            --textBrand: ${cfg.textBrand || '#333'} !important;
+        // Nombre de compañía si existe en DOM (opcional)
+        try {
+          const companyNameEl = document.getElementById('companyName');
+          if (companyNameEl && config.companyName) {
+            // preservar iconos dentro del element
+            const icon = companyNameEl.querySelector('i');
+            companyNameEl.innerHTML = '';
+            if (icon) companyNameEl.appendChild(icon);
+            companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
+          }
+        } catch (e) {
+          // no crítico
         }
-        /* Forzar fondo del body */
-        body {
-            background: ${cfg.bgPage} !important;
-            color: ${cfg.textPage} !important;
-        }
-        /* Borde de depuración para confirmar que cargó (opcional) */
-        body::before {
-            content: 'Tenant: ${this.tenantSlug}';
-            position: fixed; top: 0; left: 0; 
-            background: red; color: white; z-index: 99999; padding: 5px;
-            font-size: 10px; opacity: 0.7;
-        }
-    `;
-    
-    styleTag.innerHTML = cssRules;
-    console.log("✨ Estilos inyectados con éxito.");
-  }
-}
 
-// Inicializar
-window.tenantManager = new TenantManager();f
+        console.log('tenantManager: estilos aplicados para', config.companyName || this.tenantSlug);
+      } catch (e) {
+        console.error('tenantManager.applyStyles error', e);
+      }
+    },
+
+    // Carga desde tenants.json (ruta absoluta y con cache-bust)
+    async loadFromJson(opts = {}) {
+      const origin = window.location.origin;
+      // permite sobrescribir path si te interesa
+      const path = opts.path || `${origin}/tenants/tenants.json?v=final`;
+      try {
+        this.tenantSlug = this.detectTenant();
+        console.log('tenantManager: intentando cargar tenants.json desde', path, '-> tenantSlug=', this.tenantSlug);
+
+        const resp = await fetch(path, {
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+        }
+
+        const all = await resp.json();
+        const cfg = all[this.tenantSlug] || all['default'] || null;
+        if (!cfg) {
+          console.warn('tenantManager: no se encontró configuración para', this.tenantSlug);
+        }
+        this.config = cfg || {};
+        // Guardar copia en localStorage (opcional)
+        try {
+          localStorage.setItem('tenantTheme', JSON.stringify(this.config));
+          localStorage.setItem('tenantSlug', this.tenantSlug);
+        } catch (e) { /* noop */ }
+
+        return this.config;
+      } catch (err) {
+        console.warn('tenantManager.loadFromJson fallo:', err);
+        // intento fallback: si existiera un tenants.json en /tenants/tenants.json sin origin
+        if (path.startsWith(window.location.origin)) {
+          try {
+            const fallback = await fetch('/tenants/tenants.json?v=final', { cache: 'no-store' });
+            if (fallback.ok) {
+              const all = await fallback.json();
+              this.config = all[this.tenantSlug] || all['default'] || {};
+              return this.config;
+            }
+          } catch (_) { /* noop */ }
+        }
+        // devolver objeto vacío para que la app no rompa
+        this.config = {};
+        return this.config;
+      }
+    },
+
+    // Intento de cargar desde DB (Supabase). Si no hay Supabase, redirige a loadFromJson
+    // Mantener firma para compatibilidad
+    async loadFromDatabase(opts = {}) {
+      try {
+        if (window.supabase && typeof window.supabase.from === 'function') {
+          console.log('tenantManager: intentando cargar tenant desde Supabase (tabla tenants)');
+          // Suponemos tabla 'tenants' con columna 'slug'
+          const slug = opts.slug || this.detectTenant();
+          const { data, error } = await window.supabase
+            .from('tenants')
+            .select('*')
+            .eq('slug', slug)
+            .limit(1)
+            .single();
+
+          if (error) {
+            console.warn('tenantManager: Supabase error, fallback a JSON', error);
+            return await this.loadFromJson(opts);
+          }
+          // mapear columnas si hace falta
+          this.tenantSlug = slug;
+          this.config = data || {};
+          localStorage.setItem('tenantTheme', JSON.stringify(this.config));
+          return this.config;
+        } else {
+          console.log('tenantManager: supabase no disponible — usando tenants.json');
+          return await this.loadFromJson(opts);
+        }
+      } catch (e) {
+        console.warn('tenantManager.loadFromDatabase fallo, fallback a JSON', e);
+        return await this.loadFromJson(opts);
+      }
+    },
+
+    // utilidad para forzar recarga (útil en debugging)
+    async reload(forceJson = false) {
+      try {
+        if (forceJson) {
+          const cfg = await this.loadFromJson({ path: `${window.location.origin}/tenants/tenants.json?v=${Date.now()}` });
+          this.applyStyles(cfg);
+          return cfg;
+        } else {
+          const cfg = await this.loadFromJson();
+          this.applyStyles(cfg);
+          return cfg;
+        }
+      } catch (e) {
+        console.error('tenantManager.reload error', e);
+        return null;
+      }
+    }
+  };
+
+  // Exponer en global
+  global.tenantManager = tm;
+  console.log('tenantManager inicializado');
+
+})(window);
