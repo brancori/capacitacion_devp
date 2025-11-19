@@ -62,34 +62,27 @@ detectTenant() {
         cache: 'no-store'
       });
       
-      if (!response.ok) throw new Error('Tenant config not found');
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const data = await response.json();
       const tenantConfig = data[this.tenantSlug] || data['default'] || {};
+      console.log(`🎯 Tenant cargado: ${this.tenantSlug} | Config encontrada: ${!!data[this.tenantSlug]}`);
 
       // Merge inteligente de configuración
-      this.currentConfig = {
+this.currentConfig = {
         ...TENANT_DEFAULTS,
         ...tenantConfig,
         colors: {
           ...TENANT_DEFAULTS.colors,
           ...(tenantConfig.colors || {})
-        },
-        // Soporte retrocompatible para cuando el JSON no usa objeto 'colors'
-        ...(tenantConfig.primaryColor ? { 
-            colors: { 
-                primary: tenantConfig.primaryColor, 
-                secondary: tenantConfig.secondaryColor || tenantConfig.primaryColor 
-            } 
-        } : {})
+        }
       };
 
       this.currentConfig.tenantSlug = this.tenantSlug;
-      console.log(`✅ Tenant Configurado (JSON): ${this.currentConfig.companyName}`);
       
       return this.currentConfig;
     } catch (error) {
-      console.warn('⚠️ Error al cargar tenant config:', error);
+      console.error('❌ Error CRÍTICO cargando tenant:', error);
       this.currentConfig = { ...TENANT_DEFAULTS, tenantSlug: 'default' };
       return this.currentConfig;
     }
