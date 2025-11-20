@@ -1003,9 +1003,15 @@
     .stats-grid {
         grid-template-columns: 1fr;
     }
-
+    .logo-section h2{
+        text-align: center;
+    }
     .filter-bar {
         flex-direction: column;
+    }
+    .container{
+        padding: .5rem;
+        margin: 0;
     }
 
     .tabs {
