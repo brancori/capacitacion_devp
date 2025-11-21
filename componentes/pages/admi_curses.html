@@ -197,7 +197,7 @@
         const tenantId = (host === '127' || host === 'www') ? 'default' : host;
         
         try {
-            const resp = await fetch('../tenants/tenants.json');
+            const resp = await fetch('../../tenants/tenants.json');
             const data = await resp.json();
             const config = data[tenantId] || data['default'] || {};
             
