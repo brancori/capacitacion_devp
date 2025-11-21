@@ -9,7 +9,13 @@ if (typeof window.supabase === 'undefined' || typeof window.supabase.createClien
   console.error('❌ La librería de Supabase no está cargada. Asegúrate de incluir el CDN antes de este script.');
 } else {
   // Crear el cliente de Supabase y hacerlo global
-  window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
   console.log('✅ Cliente de Supabase inicializado correctamente');
 }
 

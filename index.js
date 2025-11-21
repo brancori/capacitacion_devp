@@ -26,7 +26,7 @@
   const CURRENT_ORIGIN = window.location.origin;
   
   // IMPORTANTE: URL del proxy (sin barra final)
-  const SUPABASE_URL = `${CURRENT_ORIGIN}/api`;
+  BASE_URL = `${CURRENT_ORIGIN}/api`;
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
 
   console.log('🔧 Inicializando Supabase con proxy:', SUPABASE_URL);
