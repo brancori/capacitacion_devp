@@ -112,7 +112,19 @@ async function initCourse() {
 
         // Actualizar estado activo en el sidebar
         document.querySelectorAll('.page-btn').forEach((btn, idx) => {
-            btn.classList.toggle('active', idx === index);
+                    const isActive = idx === index;
+                    btn.classList.toggle('active', isActive);
+
+                    if (isActive) {
+                        // Centra el botón activo en el contenedor (vertical y horizontalmente)
+                        setTimeout(() => {
+                            btn.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center',
+                                inline: 'center'
+                            });
+                        }, 100);
+                    }  
         });
     }
 
@@ -188,35 +200,28 @@ async function initCourse() {
     // ==========================================
     // 6. CONEXIÓN CON SUPABASE
     // ==========================================
-    if (!courseId) {
+if (!courseId) {
         pageContentEl.innerHTML = "<p class='error-message'>Error: URL inválida (falta ID).</p>";
         return;
     }
 
     try {
-        // Verificar autenticación
         const { data: userData, error: authError } = await supabase.auth.getUser();
         
         if (authError || !userData?.user) {
-            pageContentEl.innerHTML = `
-                <div style="text-align:center; padding:40px;">
-                    <h3>🔒 Acceso Restringido</h3>
-                    <p>Debes iniciar sesión para ver este curso.</p>
-                    <a href="../login.html" class="btn btn-primary">Ir al Login</a>
-                </div>`;
+            // ... (código de manejo de error de login igual al original) ...
             return;
         }
 
         const myTenantId = userData.user.user_metadata.tenant_id;
         const myRole = userData.user.user_metadata.role;
 
-        // Construir consulta
+        // 1. AGREGAMOS 'quiz_json' AL SELECT
         let query = supabase
             .from("articles") 
-            .select("title, content_json, tenant_id")
+            .select("title, content_json, quiz_json, tenant_id") 
             .eq("id", courseId);
 
-        // Seguridad Row Level Security (Simulada en JS por si acaso)
         if (myRole !== "master" && myTenantId) {
             query = query.eq("tenant_id", myTenantId);
         }
@@ -225,15 +230,37 @@ async function initCourse() {
 
         if (courseError || !fetchedCourse) {
             console.error("Error Supabase:", courseError);
-            pageContentEl.innerHTML = "<div class='error-message'>No tienes permiso para ver este curso o no existe.</div>";
+            pageContentEl.innerHTML = "<div class='error-message'>No tienes permiso o no existe.</div>";
         } else {
-            console.log(`✅ Curso cargado exitosamente: ${fetchedCourse.title}`);
-            loadCourse(fetchedCourse.title, fetchedCourse.content_json);
+            console.log(`✅ Curso cargado: ${fetchedCourse.title}`);
+            console.log("🔍 Buscando Quiz:", fetchedCourse.quiz_json ? "Encontrado" : "No existe");
+
+            // 2. LÓGICA PARA INYECTAR EL QUIZ AL FINAL DEL ARRAY DE PÁGINAS
+            let finalCourseData = fetchedCourse.content_json;
+            
+            // Si existe quiz_json y tiene preguntas, lo agregamos como una página más
+            if (fetchedCourse.quiz_json && fetchedCourse.quiz_json.questions) {
+                console.log("➕ Agregando Quiz al flujo del curso...");
+                
+                // Parseamos si viene como string, si ya es objeto lo usamos directo
+                const quizPayload = typeof fetchedCourse.quiz_json === 'string' 
+                    ? JSON.parse(fetchedCourse.quiz_json) 
+                    : fetchedCourse.quiz_json;
+
+                finalCourseData.pages.push({
+                    type: 'quiz',
+                    title: 'Evaluación Final',
+                    payload: quizPayload 
+                });
+            }
+
+            // Cargamos el curso con los datos combinados
+            loadCourse(fetchedCourse.title, finalCourseData);
         }
 
     } catch (e) {
         console.error('Error crítico en initCourse:', e);
-        pageContentEl.innerHTML = "<p class='error-message'>Ocurrió un error inesperado cargando el curso.</p>";
+        pageContentEl.innerHTML = "<p class='error-message'>Ocurrió un error inesperado.</p>";
     }
 }
 

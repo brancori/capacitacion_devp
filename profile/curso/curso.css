@@ -364,3 +364,31 @@
     font-size: 0.9rem;
     min-height: 20px;
 }
+
+#sidebarList {
+    /* Habilita scroll suave y oculta la barra para efecto "limpio" */
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    
+    /* Ocultar scrollbar (Chrome, Safari, Opera) */
+    -webkit-overflow-scrolling: touch;
+}
+
+#sidebarList::-webkit-scrollbar {
+    display: none;
+}
+
+/* Ocultar scrollbar (Firefox, IE, Edge) */
+#sidebarList {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Efecto visual para destacar más el activo */
+#sidebarList button.active {
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-left: 4px solid var(--bgBrand); /* Indicador visual extra */
+    transform: scale(1.02); /* Pequeño zoom */
+}
