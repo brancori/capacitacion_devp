@@ -192,7 +192,7 @@
         // 1. Intentar cargar JSON (Manejando error 404/Sintaxis)
         try {
             // Intentamos buscar en la raíz o subiendo niveles
-            const resp = await fetch('../tenants/tenants.json');
+            const resp = await fetch('../../tenants/tenants.json');
             if (resp.ok) {
                 const data = await resp.json();
                 config = data[tenantId] || data['default'] || {};
