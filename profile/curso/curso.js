@@ -38,107 +38,133 @@ async function initCourse() {
     // ==========================================
     // 3. LÓGICA DE RENDERIZADO (Páginas)
     // ==========================================
-    function renderPage(index) {
-        if (!courseData || !courseData.pages || index < 0 || index >= courseData.pages.length) {
-            return;
-        }
+function renderPage(index) {
+    // 1. PREVENT: Bloquear salida si el examen está activo
+    if (isQuizInProgress) {
+        alert("⚠️ Tienes una evaluación en curso. Debes finalizarla para salir.");
+        return;
+    }
 
-        currentPageIndex = index;
-        const page = courseData.pages[currentPageIndex];
-        pageContentEl.innerHTML = ''; 
+    // Validaciones básicas
+    if (!courseData || !courseData.pages || index < 0 || index >= courseData.pages.length) {
+        return;
+    }
 
-        console.log(`DEBUG-RENDER: Renderizando página ${index + 1} (${page.type})`); 
+    // 2. LIMPIEZA: Ocultar modales residuales
+    document.getElementById('resultModal').style.display = 'none';
 
-        switch (page.type) {
-            // --- CASO VIDEO ---
-            case 'video':
-                let videoUrl = page.payload.url;
-                // Fix para URLs de prueba antiguas
-                if (videoUrl.includes('cdn.com/intro.mp4')) {
-                    videoUrl = 'https://www.youtube.com/embed/M7lc1UVf-VE'; 
-                }
-                
-                const videoHtml = videoUrl.includes('youtube.com') || videoUrl.includes('vimeo.com')
-                    ? `<iframe width="100%" height="500" src="${videoUrl}" title="Video" frameborder="0" allowfullscreen></iframe>`
-                    : `<video controls width="100%" height="500" src="${videoUrl}"></video>`;
-                
-                pageContentEl.innerHTML = `<div class="page-video">${videoHtml}</div>`;
-                break;
+    currentPageIndex = index;
+    const page = courseData.pages[currentPageIndex];
+    pageContentEl.innerHTML = ''; 
+
+    console.log(`DEBUG-RENDER: Renderizando página ${index + 1} (${page.type})`); 
+
+    switch (page.type) {
+        // --- CASO VIDEO ---
+        case 'video':
+            let videoUrl = page.payload.url;
+            if (videoUrl.includes('cdn.com/intro.mp4')) {
+                videoUrl = 'https://www.youtube.com/embed/M7lc1UVf-VE'; 
+            }
             
-            // --- CASO TEXTO / HTML ---
-            case 'text':
-                pageContentEl.innerHTML = `<div class="page-text">${page.payload.html}</div>`;
+            const videoHtml = videoUrl.includes('youtube.com') || videoUrl.includes('vimeo.com')
+                ? `<iframe width="100%" height="500" src="${videoUrl}" title="Video" frameborder="0" allowfullscreen></iframe>`
+                : `<video controls width="100%" height="500" src="${videoUrl}"></video>`;
+            
+            pageContentEl.innerHTML = `<div class="page-video">${videoHtml}</div>`;
+            break;
+        
+        // --- CASO TEXTO / HTML ---
+        case 'text':
+            pageContentEl.innerHTML = `<div class="page-text">${page.payload.html}</div>`;
+            break;
+
+        // --- CASO QUIZ ---
+        case 'quiz':
+            if (!page.payload.questions) {
+                pageContentEl.innerHTML = '<p>Error: Sin preguntas.</p>';
                 break;
-
-            // --- CASO QUIZ (NUEVO) ---
-            case 'quiz':
-                if (!page.payload.questions) {
-                    pageContentEl.innerHTML = '<p>Error: Sin preguntas.</p>';
-                    break;
-                }
-                
-                // 1. Renderizamos la "Portada" del examen + Las preguntas (ocultas)
-                const questionsHtml = page.payload.questions.map((q, qIdx) => `
-                    <div class="quiz-card">
-                        <h4 class="quiz-question-text">${qIdx + 1}. ${q.question}</h4>
-                        <div class="quiz-options" id="q-${qIdx}" data-correct="${q.answer}">
-                            ${q.options.map((opt, oIdx) => `
-                                <button class="quiz-btn" onclick="window.selectOption(${qIdx}, ${oIdx})">
-                                    ${opt}
-                                </button>
-                            `).join('')}
-                        </div>
+            }
+            
+            // Renderiza preguntas (ocultas) y portada (visible)
+            const questionsHtml = page.payload.questions.map((q, qIdx) => `
+                <div class="quiz-card">
+                    <h4 class="quiz-question-text">${qIdx + 1}. ${q.question}</h4>
+                    <div class="quiz-options" id="q-${qIdx}" data-correct="${q.answer}">
+                        ${q.options.map((opt, oIdx) => `
+                            <button class="quiz-btn" onclick="window.selectOption(${qIdx}, ${oIdx})">
+                                ${opt}
+                            </button>
+                        `).join('')}
                     </div>
-                `).join('');
+                </div>
+            `).join('');
 
-                pageContentEl.innerHTML = `
-                    <div class="quiz-container">
-                        <div id="quizIntro" class="quiz-intro-card">
-                            <h3><i class="fas fa-graduation-cap"></i> Evaluación Final</h3>
-                            <p>Estás a punto de iniciar el examen. Tienes un solo intento para registrar tu calificación.</p>
-                            <p><strong>Preguntas:</strong> ${page.payload.questions.length} | <strong>Aprobación:</strong> 80%</p>
-                            <button class="btn btn-primary" onclick="window.startQuiz()">
-                                Comenzar Evaluación
+            pageContentEl.innerHTML = `
+                <div class="quiz-container">
+                    <!-- Portada del Examen -->
+                    <div id="quizIntro" class="quiz-intro-card">
+                        <h3><i class="fas fa-graduation-cap"></i> Evaluación Final</h3>
+                        <p><strong>Preguntas:</strong> ${page.payload.questions.length} | <strong>Aprobación:</strong> 80%</p>
+                        <div style="background:#fff3cd; color:#856404; padding:10px; margin:15px 0; border-radius:5px; font-size:0.9rem;">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            Al dar clic en "Comenzar", no podrás salir hasta terminar.
+                        </div>
+                        <button class="btn btn-primary" onclick="window.startQuiz()">
+                            Comenzar Evaluación
+                        </button>
+                    </div>
+
+                    <!-- Preguntas (Inician Ocultas) -->
+                    <div id="quizQuestionsContainer" style="display:none;">
+                        ${questionsHtml}
+                        <div style="margin-top: 30px; text-align: right;">
+                            <button class="btn btn-primary" onclick="window.submitQuiz()">
+                                Finalizar y Calificar
                             </button>
                         </div>
-
-                        <div id="quizQuestionsContainer">
-                            ${questionsHtml}
-                            <div style="margin-top: 30px; text-align: right;">
-                                <button class="btn btn-primary" onclick="window.submitQuiz()">
-                                    Finalizar y Calificar
-                                </button>
-                            </div>
-                        </div>
-                    </div>`;
-                break;
-                
-            default:
-                pageContentEl.innerHTML = `<p>Tipo de contenido no soportado: ${page.type}</p>`;
-        }
-
-        // Actualizar estado de botones de navegación
-        prevPageBtn.disabled = currentPageIndex === 0;
-        nextPageBtn.disabled = currentPageIndex === courseData.pages.length - 1;
-        footerMessageEl.textContent = `Página ${currentPageIndex + 1} de ${courseData.pages.length}`;
-
-        // Actualizar estado activo en el sidebar
-        document.querySelectorAll('.page-btn').forEach((btn, idx) => {
-                    const isActive = idx === index;
-                    btn.classList.toggle('active', isActive);
-
-                    if (isActive) {
-                        // Centra el botón activo en el contenedor (vertical y horizontalmente)
-                        setTimeout(() => {
-                            btn.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center',
-                                inline: 'center'
-                            });
-                        }, 100);
-                    }  
-        });
+                    </div>
+                </div>`;
+            break;
+            
+        default:
+            pageContentEl.innerHTML = `<p>Tipo de contenido no soportado: ${page.type}</p>`;
     }
+
+    // 3. Actualizar UI de Navegación (Botones y Sidebar)
+    updateNavigationUI(index);
+}
+
+
+// ==========================================
+// FUNCIONES AUXILIARES Y DE QUIZ
+// ==========================================
+
+// Actualizar Botones y Sidebar (Carrusel)
+function updateNavigationUI(index) {
+    // Botones Footer
+    prevPageBtn.disabled = currentPageIndex === 0;
+    nextPageBtn.disabled = currentPageIndex === courseData.pages.length - 1;
+    footerMessageEl.textContent = `Página ${currentPageIndex + 1} de ${courseData.pages.length}`;
+
+    // Sidebar Carrusel
+    const allButtons = document.querySelectorAll('.page-btn');
+    allButtons.forEach((btn, idx) => {
+        const isActive = idx === index;
+        btn.classList.toggle('active', isActive);
+
+        if (isActive) {
+            // 'nearest' evita saltos bruscos si ya es visible
+            btn.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest', 
+                inline: 'center'
+            });
+        }
+    });
+}
+
+
 
     // ==========================================
     // 4. FUNCIONES GLOBALES (Para interacción HTML)
@@ -281,103 +307,98 @@ let currentAnswers = {};
 
 // 1. Iniciar el Quiz (Oculta intro, muestra preguntas)
 window.startQuiz = function() {
+    if (!confirm("¿Estás seguro de comenzar? No podrás navegar a otras secciones hasta terminar.")) {
+        return;
+    }
+
+    isQuizInProgress = true; 
+    document.body.classList.add('quiz-mode'); // Bloqueo visual CSS
+    
     document.getElementById('quizIntro').style.display = 'none';
     document.getElementById('quizQuestionsContainer').style.display = 'block';
-    currentAnswers = {}; // Reiniciar respuestas
+    currentAnswers = {};
+    
+    // Desactivar botones footer visualmente
+    prevPageBtn.disabled = true;
+    nextPageBtn.disabled = true;
 };
 
 // 2. Seleccionar opción (Solo visual, no valida todavía)
 window.selectOption = function(qIdx, oIdx) {
-    // Guardar respuesta
     currentAnswers[qIdx] = oIdx;
-    
-    // Actualizar UI
     const parent = document.getElementById(`q-${qIdx}`);
-    const btns = parent.querySelectorAll('.quiz-btn');
-    btns.forEach((btn, idx) => {
+    parent.querySelectorAll('.quiz-btn').forEach((btn, idx) => {
         if (idx === oIdx) btn.classList.add('selected');
         else btn.classList.remove('selected');
     });
 };
 
+
 // 3. Enviar, Calificar y Guardar en BD
 window.submitQuiz = async function() {
     const questionDivs = document.querySelectorAll('.quiz-options');
     let correctCount = 0;
-    let total = questionDivs.length;
-    let allAnswered = true;
 
-    // --- Validación y Cálculo ---
+    // Validar y Pintar
     questionDivs.forEach((div, idx) => {
         const correctAns = parseInt(div.getAttribute('data-correct'));
         const userAns = currentAnswers[idx];
 
-        if (userAns === undefined) allAnswered = false;
+        if (userAns === correctAns) correctCount++;
 
-        // Bloquear botones
         const btns = div.querySelectorAll('.quiz-btn');
-        btns.forEach(b => b.disabled = true);
+        btns.forEach(b => b.disabled = true); // Congelar botones
 
-        // Pintar resultados
-        if (userAns === correctAns) {
-            correctCount++;
-            if(btns[userAns]) btns[userAns].classList.add('correct'); 
-        } else {
-            if(btns[userAns]) btns[userAns].classList.add('incorrect');
-            if(btns[correctAns]) btns[correctAns].classList.add('correct');
+        if (btns[userAns]) {
+            if (userAns === correctAns) btns[userAns].classList.add('correct');
+            else btns[userAns].classList.add('incorrect');
         }
+        if (btns[correctAns]) btns[correctAns].classList.add('correct');
     });
 
     // --- Calcular Promedio ---
-    const finalScore = Math.round((correctCount / total) * 100);
+    // Calcular
+    const finalScore = Math.round((correctCount / questionDivs.length) * 100);
     const passed = finalScore >= 80;
-    const status = passed ? 'completed' : 'failed';
 
-    // --- Guardar en Supabase ---
+    // DESBLOQUEAR NAVEGACIÓN
+    isQuizInProgress = false;
+    document.body.classList.remove('quiz-mode');
+    updateNavigationUI(currentPageIndex); // Reactiva sidebar/footer
+
+    // Guardar BD
     try {
         const { data: { user } } = await supabase.auth.getUser();
-        const params = new URLSearchParams(location.search);
-        const courseId = params.get("id");
-
+        const courseId = new URLSearchParams(location.search).get("id");
         if (user && courseId) {
-            await supabase
-                .from('user_course_assignments')
-                .upsert({ 
-                    user_id: user.id,
-                    course_id: courseId,
-                    score: finalScore,
-                    status: status,
-                    progress: 100,
-                    assigned_at: new Date()
-                }, { onConflict: 'user_id, course_id' });
-            
-            console.log("✅ Calificación guardada:", finalScore);
+            await supabase.from('user_course_assignments').upsert({
+                user_id: user.id, course_id: courseId, score: finalScore,
+                status: passed ? 'completed' : 'failed', progress: 100, assigned_at: new Date()
+            }, { onConflict: 'user_id, course_id' });
         }
-    } catch (e) {
-        console.error("Error guardando nota:", e);
-    }
+    } catch (e) { console.error(e); }
 
-    // --- MOSTRAR MODAL ---
-    const modalOverlay = document.getElementById('resultModal');
-    const modalIcon = document.getElementById('modalIcon');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalScore = document.getElementById('modalScore');
-    const modalMsg = document.getElementById('modalMessage');
-
+    // Mostrar Modal
+    const modal = document.getElementById('resultModal');
+    const icon = document.getElementById('modalIcon');
+    const title = document.getElementById('modalTitle');
+    
     if (passed) {
-        modalIcon.innerHTML = '🏆';
-        modalTitle.innerText = '¡Felicidades!';
-        modalTitle.style.color = '#28a745';
-        modalMsg.innerText = 'Has aprobado el curso satisfactoriamente. Tu calificación ha sido registrada.';
+        icon.innerHTML = '🏆';
+        title.innerText = '¡Felicidades!';
+        title.style.color = '#28a745';
     } else {
-        modalIcon.innerHTML = '⚠️';
-        modalTitle.innerText = 'Sigue intentando';
-        modalTitle.style.color = '#dc3545';
-        modalMsg.innerText = 'No has alcanzado el puntaje mínimo del 80% para aprobar. Repasa el contenido e intenta nuevamente.';
+        icon.innerHTML = '⚠️';
+        title.innerText = 'Sigue intentando';
+        title.style.color = '#dc3545';
     }
-
-    modalScore.innerText = `${finalScore}%`;
-    modalOverlay.style.display = 'flex';
+    
+    document.getElementById('modalScore').innerText = `${finalScore}%`;
+    document.getElementById('modalMessage').innerText = passed 
+        ? 'Has aprobado el curso. Calificación registrada.' 
+        : 'No alcanzaste el 80% mínimo.';
+        
+    modal.style.display = 'flex';
 };
 
 // Iniciar cuando el DOM esté listo

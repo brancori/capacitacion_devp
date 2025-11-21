@@ -64,12 +64,12 @@
    ============================================ */
 .course-sidebar {
     width: 300px;
-    background-color: var(--bgForm); /* 🎨 Fondo de formularios/panels */
-    color: var(--textForm); /* 🎨 Texto de formularios */
-    padding: 20px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-    overflow-y: auto;
-    flex-shrink: 0;
+    background-color: var(--bgForm);
+    display: flex;
+    flex-direction: column; /* Importante para que el título se quede quieto */
+    height: 100%; /* Ocupa todo el alto disponible */
+    max-height: 100vh; 
+    overflow: hidden; /* Ocultamos el scroll del contenedor padre */
 }
 
 .course-sidebar h2 {
@@ -80,11 +80,6 @@
     font-size: 1.2rem;
 }
 
-#sidebarList {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
 
 #sidebarList button {
     width: 100%;
@@ -208,7 +203,7 @@
     
     .course-sidebar {
         width: 100%;
-        max-height: 15vh;
+        max-height: 15vh!important;
     }
     
     .course-header {
@@ -366,11 +361,12 @@
 
 /* Ocultar scrollbar (Firefox, IE, Edge) */
 #sidebarList {
-    overflow-y: auto;
+    flex: 1; /* Ocupa el espacio restante */
+    overflow-y: auto; /* Solo la lista hace scroll */
+    padding-right: 5px; /* Espacio para evitar corte visual */
     scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch; /* iOS */
     scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+    -ms-overflow-style: none;  /* IE */
 }
 
 /* Efecto visual para destacar más el activo */
@@ -452,4 +448,33 @@
     color: #666;
     margin-bottom: 25px;
     line-height: 1.5;
+}
+
+/* Clase que se añade al BODY cuando inicia el examen */
+body.quiz-mode .course-sidebar,
+body.quiz-mode .course-header,
+body.quiz-mode .course-footer {
+    pointer-events: none; /* Desactiva clics */
+    opacity: 0.5; /* Efecto visual de "desactivado" */
+    filter: blur(1px);
+}
+
+body.quiz-mode .course-content-area {
+    z-index: 100; /* El examen queda por encima */
+    pointer-events: auto; /* El examen sí recibe clics */
+}
+
+/* ============================================
+   MODAL (Asegurar que esté oculto y centrado)
+   ============================================ */
+.course-modal-overlay {
+    display: none; /* Oculto por defecto SIEMPRE */
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999; /* Por encima de todo */
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
 }
