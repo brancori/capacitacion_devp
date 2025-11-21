@@ -14,7 +14,7 @@ let pageContentEl, sidebarListEl, prevPageBtn, nextPageBtn, courseTitleEl, foote
 // 1. INICIO DEL CURSO
 // ==========================================
 async function initCourse() {
-    console.log('🚀 [INIT] Iniciando carga del curso...');
+    console.log('[INIT] Iniciando carga del curso...');
 
     // 1.1 Conectar variables con el HTML
     pageContentEl = document.getElementById("pageContent");
@@ -286,13 +286,13 @@ window.startQuiz = function() {
     console.log("🔒 [QUIZ] Usuario intenta iniciar examen...");
 
     if (!confirm("¿Estás seguro de comenzar?\n\nNo podrás volver a ver los videos hasta terminar.")) {
-        console.log("❌ [QUIZ] Usuario canceló inicio.");
+        console.log(" [QUIZ] Usuario canceló inicio.");
         return;
     }
 
     // ACTIVAMOS EL CANDADO GLOBAL
     isQuizInProgress = true;
-    console.log("✅ [QUIZ] Examen iniciado. isQuizInProgress = TRUE");
+    console.log(" [QUIZ] Examen iniciado. isQuizInProgress = TRUE");
 
     // Efectos Visuales
     document.body.classList.add('quiz-mode'); 
@@ -310,6 +310,7 @@ window.startQuiz = function() {
 
 // 5.2 SELECCIONAR OPCIÓN
 window.selectOption = function(qIdx, oIdx) {
+    if (!isQuizInProgress) return;
     currentAnswers[qIdx] = oIdx;
     const parent = document.getElementById(`q-${qIdx}`);
     parent.querySelectorAll('.quiz-btn').forEach((btn, idx) => {
@@ -320,7 +321,7 @@ window.selectOption = function(qIdx, oIdx) {
 
 // 5.3 ENTREGAR EXAMEN (Guarda y Desbloquea)
 window.submitQuiz = async function() {
-    console.log("📤 [QUIZ] Entregando examen...");
+    console.log(" [QUIZ] Entregando examen...");
     
     const questionDivs = document.querySelectorAll('.quiz-options');
     let correctCount = 0;
@@ -336,16 +337,17 @@ window.submitQuiz = async function() {
         const btns = div.querySelectorAll('.quiz-btn');
         btns.forEach(b => b.disabled = true);
 
-        if (btns[userAns]) {
+        if (userAns !== undefined && btns[userAns]) {
             btns[userAns].classList.add(userAns === correctAns ? 'correct' : 'incorrect');
         }
         if (btns[correctAns]) btns[correctAns].classList.add('correct');
+        
     });
 
     const finalScore = Math.round((correctCount / questionDivs.length) * 100);
     const passed = finalScore >= 80;
 
-    console.log(`📊 [QUIZ] Resultado: ${finalScore}% (Aprobado: ${passed})`);
+    console.log(`[QUIZ] Resultado: ${finalScore}% (Aprobado: ${passed})`);
 
     // DESBLOQUEAR EL CANDADO GLOBAL
     endQuizMode();
@@ -359,16 +361,16 @@ window.submitQuiz = async function() {
                 user_id: user.id, course_id: courseId, score: finalScore,
                 status: passed ? 'completed' : 'failed', progress: 100, assigned_at: new Date()
             }, { onConflict: 'user_id, course_id' });
-            console.log("💾 [SUPABASE] Calificación guardada.");
+            console.log("[SUPABASE] Calificación guardada.");
         }
-    } catch (e) { console.error("❌ [ERROR] Guardando nota:", e); }
+    } catch (e) { console.error("[ERROR] Guardando nota:", e); }
 
     // Mostrar Modal
     showResultModal(passed, finalScore);
 };
 
 function endQuizMode() {
-    console.log("🔓 [QUIZ] Modo examen finalizado. Navegación liberada.");
+    console.log(" [QUIZ] Modo examen finalizado. Navegación liberada.");
     isQuizInProgress = false;
     document.body.classList.remove('quiz-mode');
     updateNavigationUI(currentPageIndex);
