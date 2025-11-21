@@ -26,7 +26,7 @@
   const CURRENT_ORIGIN = window.location.origin;
   
   // IMPORTANTE: URL del proxy (sin barra final)
-  const SUPABASE_URL = window.location.origin + '/api';
+  const SUPABASE_URL = `${CURRENT_ORIGIN}/api`;
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
 
   console.log('🔧 Inicializando Supabase con proxy:', SUPABASE_URL);
@@ -44,20 +44,23 @@
   });
 
   // Test del proxy al cargar
-window.addEventListener('load', async () => {
-  console.log('🧪 Testing proxy...');
-  try {
-    const response = await fetch(`${CURRENT_ORIGIN}/api/rest/v1/`, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-      }
-    });
-    console.log('✅ Proxy response:', response.status, await response.text());
-  } catch (e) {
-    console.error('❌ Proxy test failed:', e);
-  }
-});
+  window.addEventListener('load', async () => {
+    console.log('🧪 Probando conexión del proxy...');
+    try {
+      const testUrl = `${SUPABASE_URL}/rest/v1/`;
+      const response = await fetch(testUrl, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+      const text = await response.text();
+      console.log(`✅ Proxy test - Status: ${response.status}`);
+      console.log(`📄 Response:`, text.substring(0, 200));
+    } catch (e) {
+      console.error('❌ Proxy test falló:', e.message);
+    }
+  });
 
   // -----------------------------------------------------------------
   // 2. CONFIGURACIÓN DE TENANT 
