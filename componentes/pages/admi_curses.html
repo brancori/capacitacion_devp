@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de Cursos</title>
     
-    <!-- 1. Estilos Globales -->
+    <!-- 1. Estilos Globales (Subimos un nivel) -->
     <link rel="stylesheet" href="../../componentes/global.css">
     
-    <!-- 2. Estilos Específicos -->
+    <!-- 2. Estilos Específicos (Mismo nivel) -->
     <link rel="stylesheet" href="./admi_curses.css">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Supabase Client -->
+    <!-- Supabase Client (Subimos un nivel) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../componentes/supabase-client.js"></script>
 
@@ -27,10 +27,10 @@
             <h2 id="companyName"><i class="fas fa-graduation-cap"></i> TROX Academy</h2>
         </div>
         <div class="nav-actions">
-            <a href="../profile/profile.html" class="btn btn-outline">
+            <a href="../../profile/profile.html" class="btn btn-outline">
                 <i class="fas fa-user"></i> Mi Perfil
             </a>
-            <a href="../index.html" class="btn btn-outline">
+            <a href="../../index.html" class="btn btn-outline">
                 <i class="fas fa-sign-out-alt"></i> Salir
             </a>
         </div>
@@ -189,34 +189,36 @@
         const tenantId = (host === '127' || host === 'www') ? 'default' : host;
         let config = {};
 
-        // 1. Intentar cargar JSON (Manejando error 404/Sintaxis)
+        // 1. FIX: Ruta corregida ../../tenants/tenants.json
         try {
-            // Intentamos buscar en la raíz o subiendo niveles
             const resp = await fetch('../../tenants/tenants.json');
             if (resp.ok) {
                 const data = await resp.json();
                 config = data[tenantId] || data['default'] || {};
             } else {
-                console.warn('⚠️ tenants.json no encontrado, usando defaults de DB');
+                console.warn(`⚠️ tenants.json no encontrado en ../../tenants/tenants.json (Status: ${resp.status})`);
             }
         } catch (e) { 
-            console.warn('⚠️ Error parseando tenants.json, ignorando archivo.', e); 
+            console.warn('⚠️ Error cargando/parseando tenants.json:', e); 
         }
 
-        // 2. SIEMPRE intentar obtener UUID desde Supabase (Independiente del JSON)
+        // 2. Fallback a DB
         try {
             const { data: tDb } = await window.supabase
                 .from('tenants')
-                .select('id')
+                .select('id, name')
                 .eq('slug', tenantId)
                 .single();
             
-            if (tDb) config.tenantUUID = tDb.id;
+            if (tDb) {
+                config.tenantUUID = tDb.id;
+                if (!config.companyName) config.companyName = tDb.name;
+            }
         } catch (e) {
             console.error('❌ Error crítico obteniendo Tenant ID de DB:', e);
         }
 
-        // 3. Fallback de nombre si falló todo
+        // 3. Fallback visual final
         if (!config.companyName) config.companyName = tenantId.toUpperCase();
         
         return config;
@@ -224,7 +226,10 @@
 
     async function checkAuth(config) {
         const { data: { user } } = await window.supabase.auth.getUser();
-        if (!user) return window.location.href = '../index.html';
+        if (!user) {
+            window.location.href = '../../index.html'; // Subimos 2 niveles
+            return null;
+        }
 
         const { data: profile } = await window.supabase
             .from('profiles')
@@ -234,7 +239,7 @@
         
         if (!profile || !['master', 'admin', 'supervisor'].includes(profile.role)) {
             alert('Acceso denegado: Rol insuficiente');
-            window.location.href = '../index.html';
+            window.location.href = '../../index.html'; // Subimos 2 niveles
             return null;
         }
         return profile;
@@ -245,9 +250,9 @@
     // =================================================================
 
     async function fetchGroups() {
-        // VALIDACIÓN CRÍTICA: Si no hay tenant_id, no consultamos
+        // FIX: Evitar error 400 si tenant_id es null
         if (!currentAdmin.tenant_id) {
-            console.error('⛔ El usuario admin no tiene tenant_id asignado.');
+            console.warn('⛔ Usuario sin tenant_id, saltando fetchGroups');
             return [];
         }
 
@@ -298,9 +303,11 @@
     async function renderGroups(filter = '') {
         const container = document.getElementById('groups-container');
         
-        // Validación visual si falta tenant
         if (!currentAdmin.tenant_id) {
-            container.innerHTML = `<div class="empty-state"><h3>⚠️ Error de Configuración</h3><p>Tu usuario no tiene un Tenant ID asignado.</p></div>`;
+            container.innerHTML = `<div class="empty-state">
+                <h3>⚠️ Configuración Incompleta</h3>
+                <p>Tu usuario no tiene un Tenant ID asignado en la base de datos.</p>
+            </div>`;
             return;
         }
 
@@ -319,6 +326,7 @@
         }
 
         const groupsHTML = await Promise.all(filtered.map(async (g) => {
+            // Contar miembros
             const { count } = await window.supabase
                 .from('group_members')
                 .select('*', { count: 'exact', head: true })
@@ -579,15 +587,24 @@
     // INIT
     // =================================================================
     async function init() {
+        // 1. Cargar configuración
         const config = await loadTenantConfig();
-        setStyle('--primaryColor', config.primaryColor);
-        setStyle('--secondaryColor', config.secondaryColor);
+        if (config.primaryColor) setStyle('--primaryColor', config.primaryColor);
+        if (config.secondaryColor) setStyle('--secondaryColor', config.secondaryColor);
         
+        // 2. Chequear Auth
         currentAdmin = await checkAuth(config);
         if (!currentAdmin) return;
+
+        // 3. FIX: "Patch" para Master sin tenant_id en perfil
+        if (!currentAdmin.tenant_id && currentAdmin.role === 'master' && config.tenantUUID) {
+            console.log('🔧 Asignando Tenant ID del contexto al usuario Master');
+            currentAdmin.tenant_id = config.tenantUUID;
+        }
         
         console.log('✅ Admin autenticado', currentAdmin);
         
+        // 4. Cargar datos
         await updateKPIs();
         await renderGroups();
 
