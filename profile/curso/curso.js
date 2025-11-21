@@ -1,21 +1,22 @@
 // ==========================================
-// VARIABLES GLOBALES (Estado y Referencias)
+// 0. VARIABLES GLOBALES (PARA QUE TODOS LAS VEAN)
 // ==========================================
+// Estas variables viven fuera de las funciones para que startQuiz y renderPage compartan los datos.
 let courseData = null;
 let currentPageIndex = 0;
-let isQuizInProgress = false; // Controla el bloqueo
-let currentAnswers = {};      // Almacena respuestas temporales
+let isQuizInProgress = false; // 🔒 El candado del examen
+let currentAnswers = {};      // Respuestas temporales
 
-// Referencias DOM (se llenan al iniciar)
+// Referencias a elementos del HTML (se llenan al iniciar)
 let pageContentEl, sidebarListEl, prevPageBtn, nextPageBtn, courseTitleEl, footerMessageEl;
 
 // ==========================================
-// 1. INICIALIZACIÓN DEL CURSO
+// 1. INICIO DEL CURSO
 // ==========================================
 async function initCourse() {
-    console.log('🚀 === INICIANDO CURSO ===');
+    console.log('🚀 [INIT] Iniciando carga del curso...');
 
-    // 1.1 Asignar referencias DOM globales
+    // 1.1 Conectar variables con el HTML
     pageContentEl = document.getElementById("pageContent");
     sidebarListEl = document.getElementById("sidebarList");
     prevPageBtn = document.getElementById("prevPageBtn");
@@ -23,55 +24,55 @@ async function initCourse() {
     courseTitleEl = document.getElementById("courseTitle");
     footerMessageEl = document.getElementById("footerMessage");
 
-    // 1.2 Cargar configuración del Tenant
+    if (!pageContentEl || !sidebarListEl) {
+        console.error("❌ [ERROR] No se encontraron elementos del DOM. Revisa tu HTML.");
+        return;
+    }
+
+    // 1.2 Cargar Estilos (Tenant)
     if (window.tenantManager) {
         try {
             await window.tenantManager.loadFromJson();
             window.tenantManager.applyStyles();
-            document.body.style.opacity = '1'; 
-        } catch (e) {
-            console.error("Error tenant:", e);
-            document.body.style.opacity = '1';
-        }
-    } else {
-        document.body.style.opacity = '1';
+        } catch (e) { console.warn("⚠️ TenantManager error:", e); }
     }
+    document.body.style.opacity = '1';
 
-    // 1.3 Event Listeners de Navegación
-    // Usamos funciones flecha para referenciar las variables globales
-    prevPageBtn.addEventListener('click', () => {
+    // 1.3 Configurar Botones Anterior/Siguiente
+    prevPageBtn.onclick = () => {
         if (currentPageIndex > 0) renderPage(currentPageIndex - 1);
-    });
-
-    nextPageBtn.addEventListener('click', () => {
+    };
+    nextPageBtn.onclick = () => {
         if (courseData && currentPageIndex < courseData.pages.length - 1) {
             renderPage(currentPageIndex + 1);
         }
-    });
+    };
 
-    // 1.4 Conexión con Supabase
+    // 1.4 Descargar datos de Supabase
     await fetchCourseData();
 }
 
 // ==========================================
-// 2. OBTENCIÓN DE DATOS (SUPABASE)
+// 2. CONEXIÓN CON SUPABASE
 // ==========================================
 async function fetchCourseData() {
     const params = new URLSearchParams(location.search);
     const courseId = params.get("id");
+    console.log(`🔎 [SUPABASE] Buscando curso ID: ${courseId}`);
 
     if (!courseId) {
-        pageContentEl.innerHTML = "<p class='error-message'>Error: Falta ID de curso.</p>";
+        pageContentEl.innerHTML = "<p class='error-message'>Error: URL sin ID.</p>";
         return;
     }
 
     try {
+        // Auth Check
         const { data: userData } = await supabase.auth.getUser();
         const myTenantId = userData?.user?.user_metadata?.tenant_id;
         const myRole = userData?.user?.user_metadata?.role;
 
         let query = supabase
-            .from("articles") 
+            .from("articles")
             .select("title, content_json, quiz_json, tenant_id")
             .eq("id", courseId);
 
@@ -79,26 +80,29 @@ async function fetchCourseData() {
             query = query.eq("tenant_id", myTenantId);
         }
 
-        const { data: fetchedCourse, error: courseError } = await query.single();
+        const { data: fetchedCourse, error } = await query.single();
 
-        if (courseError || !fetchedCourse) {
-            console.error("❌ Error Supabase:", courseError);
+        if (error || !fetchedCourse) {
+            console.error("❌ [SUPABASE] Error:", error);
             pageContentEl.innerHTML = "<div class='error-message'>No se pudo cargar el curso.</div>";
             return;
         }
 
-        // Preparar datos (Limpieza e Inyección de Quiz)
+        console.log("✅ [SUPABASE] Curso descargado:", fetchedCourse.title);
+
+        // Procesar Datos (Limpieza e Inyección)
         let finalCourseData = fetchedCourse.content_json;
 
-        // Limpiar quizzes viejos
+        // A. Borrar quizzes viejos del JSON
         if (finalCourseData.pages) {
             finalCourseData.pages = finalCourseData.pages.filter(p => 
                 p.type !== 'quiz' && p.title !== 'Evaluación Final'
             );
         }
 
-        // Inyectar Quiz nuevo si existe
+        // B. Inyectar Quiz desde la columna quiz_json
         if (fetchedCourse.quiz_json) {
+            console.log("📦 [DATA] Procesando quiz_json...");
             let quizObj = typeof fetchedCourse.quiz_json === 'string' 
                 ? JSON.parse(fetchedCourse.quiz_json) 
                 : fetchedCourse.quiz_json;
@@ -109,65 +113,82 @@ async function fetchCourseData() {
                     title: 'Evaluación Final',
                     payload: quizObj
                 });
+                console.log(`➕ [DATA] Quiz agregado con ${quizObj.questions.length} preguntas.`);
             }
+        } else {
+            console.warn("⚠️ [DATA] No hay quiz_json en la base de datos.");
         }
 
-        // Cargar interfaz
+        // Cargar UI
         loadCourseUI(fetchedCourse.title, finalCourseData);
 
     } catch (e) {
-        console.error('Error crítico:', e);
-        pageContentEl.innerHTML = "<p class='error-message'>Error inesperado.</p>";
+        console.error("❌ [CRITICO] Error en fetchCourseData:", e);
     }
 }
 
 // ==========================================
-// 3. INTERFAZ Y RENDERIZADO
+// 3. GENERACIÓN DE INTERFAZ (UI)
 // ==========================================
 function loadCourseUI(title, data) {
-    courseData = data; // Asignar a variable global
+    courseData = data;
     courseTitleEl.textContent = title;
 
     if (!courseData.pages || courseData.pages.length === 0) {
-        sidebarListEl.innerHTML = "<p>Sin contenido.</p>";
+        sidebarListEl.innerHTML = "<p>Curso vacío.</p>";
         return;
     }
 
-    // Generar Sidebar
+    // Crear menú lateral
     sidebarListEl.innerHTML = courseData.pages.map((page, index) => {
-        const titleText = page.title || `Lección ${index + 1}`; 
-        let icon = page.type === 'video' ? 'fa-video' : (page.type === 'quiz' ? 'fa-tasks' : 'fa-file-alt');
-        
+        const titleText = page.title || `Tema ${index + 1}`;
+        let icon = 'fa-file-alt';
+        if (page.type === 'video') icon = 'fa-video';
+        if (page.type === 'quiz') icon = 'fa-tasks';
+
         return `
             <button class="page-btn" onclick="window.renderPage(${index})">
-                <i class="fas ${icon}"></i> <span>${titleText}</span>
+                <i class="fas ${icon}"></i> 
+                <span>${titleText}</span>
             </button>`;
     }).join('');
 
+    // Renderizar primera página
     renderPage(0);
 }
 
-// Función Principal de Renderizado
+// ==========================================
+// 4. RENDERIZADO DE PÁGINA (CORE)
+// ==========================================
+// Se asigna a window para que el HTML pueda llamarla
 window.renderPage = function(index) {
-    // A. GUARDIA DE SEGURIDAD (Bloqueo durante examen)
+    console.log(`🔄 [RENDER] Intentando ir a página ${index}. Estado Examen: ${isQuizInProgress}`);
+
+    // --- 🔒 BLOQUEO DE SEGURIDAD ---
+    // Si el examen está activo (TRUE) y tratas de cambiar de página...
     if (isQuizInProgress) {
-        if(!confirm("⚠️ Evaluación en curso.\n\nSi sales ahora perderás tu progreso. ¿Salir de todos modos?")) {
-            return; // Se queda
+        console.warn("⛔ [BLOQUEO] Navegación detenida por examen en curso.");
+        if(!confirm("⚠️ ¡Evaluación en curso!\n\nSi sales ahora, perderás tu progreso.\n¿Estás seguro de que quieres salir?")) {
+            return; // El usuario cancela la salida, se queda en el examen.
         } else {
-            endQuizMode(); // Fuerza salida
+            console.log("🔓 [BLOQUEO] Usuario forzó la salida.");
+            endQuizMode(); // El usuario forzó la salida, limpiamos el estado.
         }
     }
 
     if (!courseData || !courseData.pages[index]) return;
 
-    // B. Limpieza UI
+    // Limpieza UI
     const modal = document.getElementById('resultModal');
     if (modal) modal.style.display = 'none';
+
     currentPageIndex = index;
     const page = courseData.pages[currentPageIndex];
     pageContentEl.innerHTML = '';
 
-    // C. Switch de Contenido
+    console.log(`📺 [VIEW] Mostrando: ${page.type}`);
+
+    // Renderizado según tipo
     switch (page.type) {
         case 'video':
             let vUrl = page.payload.url;
@@ -184,26 +205,26 @@ window.renderPage = function(index) {
 
         case 'quiz':
             if (!page.payload.questions) {
-                pageContentEl.innerHTML = '<p>Error: Sin preguntas.</p>';
-                break;
+                pageContentEl.innerHTML = '<p>Error: JSON de preguntas vacío.</p>';
+            } else {
+                renderQuizTemplate(page.payload.questions);
             }
-            renderQuizTemplate(page.payload.questions);
             break;
 
         default:
-            pageContentEl.innerHTML = `<p>Contenido no soportado.</p>`;
+            pageContentEl.innerHTML = `<p>Tipo desconocido: ${page.type}</p>`;
     }
 
     updateNavigationUI(index);
 };
 
 function updateNavigationUI(index) {
-    // Actualizar Botones Footer
+    // Actualizar Footer
     prevPageBtn.disabled = (index === 0);
     nextPageBtn.disabled = (index === courseData.pages.length - 1);
     footerMessageEl.textContent = `Página ${index + 1} de ${courseData.pages.length}`;
 
-    // Actualizar Sidebar (Carrusel)
+    // Actualizar Sidebar
     const btns = document.querySelectorAll('.page-btn');
     btns.forEach((btn, idx) => {
         const isActive = idx === index;
@@ -215,11 +236,12 @@ function updateNavigationUI(index) {
 }
 
 // ==========================================
-// 4. LÓGICA DEL QUIZ
+// 5. LÓGICA DEL EXAMEN (QUIZ)
 // ==========================================
 
-// Genera el HTML del Quiz (Portada + Preguntas ocultas)
 function renderQuizTemplate(questions) {
+    console.log("📝 [QUIZ] Renderizando plantilla de examen...");
+    
     const questionsHtml = questions.map((q, qIdx) => `
         <div class="quiz-card">
             <h4 class="quiz-question-text">${qIdx + 1}. ${q.question}</h4>
@@ -237,13 +259,14 @@ function renderQuizTemplate(questions) {
         <div class="quiz-container">
             <div id="quizIntro" class="quiz-intro-card">
                 <h3><i class="fas fa-graduation-cap"></i> Evaluación Final</h3>
-                <p><strong>Preguntas:</strong> ${questions.length} | <strong>Aprobación:</strong> 80%</p>
-                <div style="background:#fff3cd; color:#856404; padding:10px; margin:15px 0; border-radius:5px;">
-                    <i class="fas fa-exclamation-triangle"></i> 
-                    Al dar clic en "Comenzar", se bloqueará la navegación hasta terminar.
+                <p><strong>Total Preguntas:</strong> ${questions.length}</p>
+                <div style="background:#fff3cd; color:#856404; padding:15px; margin:20px 0; border-radius:8px; border:1px solid #ffeeba;">
+                    <strong>⚠️ ¡ATENCIÓN!</strong><br>
+                    Al presionar "Comenzar", el modo examen se activará y 
+                    <u>no podrás salir</u> hasta terminar.
                 </div>
-                <button class="btn btn-primary" onclick="window.startQuiz()">
-                    Comenzar Evaluación
+                <button class="btn btn-primary btn-lg" onclick="window.startQuiz()">
+                    Comenzar Evaluación Ahora
                 </button>
             </div>
 
@@ -251,30 +274,41 @@ function renderQuizTemplate(questions) {
                 ${questionsHtml}
                 <div style="margin-top: 30px; text-align: right;">
                     <button class="btn btn-primary" onclick="window.submitQuiz()">
-                        Finalizar y Calificar
+                        Entregar y Calificar
                     </button>
                 </div>
             </div>
         </div>`;
 }
 
-// 4.1 Iniciar Quiz (Activa Bloqueo)
+// 5.1 INICIAR EXAMEN (Activa el bloqueo)
 window.startQuiz = function() {
-    if (!confirm("¿Estás seguro de comenzar? No podrás navegar a otras secciones.")) return;
+    console.log("🔒 [QUIZ] Usuario intenta iniciar examen...");
 
+    if (!confirm("¿Estás seguro de comenzar?\n\nNo podrás volver a ver los videos hasta terminar.")) {
+        console.log("❌ [QUIZ] Usuario canceló inicio.");
+        return;
+    }
+
+    // ACTIVAMOS EL CANDADO GLOBAL
     isQuizInProgress = true;
-    document.body.classList.add('quiz-mode'); // Efecto visual CSS
-    
+    console.log("✅ [QUIZ] Examen iniciado. isQuizInProgress = TRUE");
+
+    // Efectos Visuales
+    document.body.classList.add('quiz-mode'); 
     document.getElementById('quizIntro').style.display = 'none';
     document.getElementById('quizQuestionsContainer').style.display = 'block';
-    currentAnswers = {};
     
+    // Reiniciar respuestas y scrollear arriba
+    currentAnswers = {};
+    window.scrollTo(0, 0);
+
     // Bloquear botones footer explícitamente
     prevPageBtn.disabled = true;
     nextPageBtn.disabled = true;
 };
 
-// 4.2 Seleccionar Opción
+// 5.2 SELECCIONAR OPCIÓN
 window.selectOption = function(qIdx, oIdx) {
     currentAnswers[qIdx] = oIdx;
     const parent = document.getElementById(`q-${qIdx}`);
@@ -284,19 +318,21 @@ window.selectOption = function(qIdx, oIdx) {
     });
 };
 
-// 4.3 Terminar Quiz (Guarda y Desbloquea)
+// 5.3 ENTREGAR EXAMEN (Guarda y Desbloquea)
 window.submitQuiz = async function() {
+    console.log("📤 [QUIZ] Entregando examen...");
+    
     const questionDivs = document.querySelectorAll('.quiz-options');
     let correctCount = 0;
 
-    // Validar y Pintar
+    // Calificar
     questionDivs.forEach((div, idx) => {
         const correctAns = parseInt(div.getAttribute('data-correct'));
         const userAns = currentAnswers[idx];
 
         if (userAns === correctAns) correctCount++;
 
-        // Congelar botones y pintar
+        // Bloquear inputs visualmente
         const btns = div.querySelectorAll('.quiz-btn');
         btns.forEach(b => b.disabled = true);
 
@@ -309,7 +345,9 @@ window.submitQuiz = async function() {
     const finalScore = Math.round((correctCount / questionDivs.length) * 100);
     const passed = finalScore >= 80;
 
-    // DESBLOQUEAR NAVEGACIÓN
+    console.log(`📊 [QUIZ] Resultado: ${finalScore}% (Aprobado: ${passed})`);
+
+    // DESBLOQUEAR EL CANDADO GLOBAL
     endQuizMode();
 
     // Guardar en Supabase
@@ -321,21 +359,21 @@ window.submitQuiz = async function() {
                 user_id: user.id, course_id: courseId, score: finalScore,
                 status: passed ? 'completed' : 'failed', progress: 100, assigned_at: new Date()
             }, { onConflict: 'user_id, course_id' });
+            console.log("💾 [SUPABASE] Calificación guardada.");
         }
-    } catch (e) { console.error("Error guardando:", e); }
+    } catch (e) { console.error("❌ [ERROR] Guardando nota:", e); }
 
     // Mostrar Modal
     showResultModal(passed, finalScore);
 };
 
-// Auxiliar para terminar modo quiz
 function endQuizMode() {
+    console.log("🔓 [QUIZ] Modo examen finalizado. Navegación liberada.");
     isQuizInProgress = false;
     document.body.classList.remove('quiz-mode');
     updateNavigationUI(currentPageIndex);
 }
 
-// Auxiliar para mostrar modal
 function showResultModal(passed, score) {
     const modal = document.getElementById('resultModal');
     const icon = document.getElementById('modalIcon');
@@ -359,5 +397,5 @@ function showResultModal(passed, score) {
     modal.style.display = 'flex';
 }
 
-// Iniciar app
-document.addEventListener('DOMContentLoaded', initCourse);
+// Iniciar todo al cargar la página
+document.addEventListener('DOMContentLoaded', initCourse);asd
