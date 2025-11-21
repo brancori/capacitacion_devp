@@ -775,6 +775,7 @@ async function handleApproveRequest(requestId, requestEmail) {
         if (currentAdmin.role === 'master') {
             await loadTenantsIntoSelect();
             console.log('✅ Tenants cargados en el modal');
+            
         }
 
         // 4. Cargar solicitudes pendientes
@@ -791,6 +792,7 @@ async function handleApproveRequest(requestId, requestEmail) {
         // 6. Iniciar listeners de la UI
         initUIListeners();
         console.log('✅ UI inicializada');
+        document.body.style.opacity = 1;
     }
 
     // Disparador de carga
