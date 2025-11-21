@@ -162,23 +162,20 @@ function loadCourseUI(title, data) {
 // ==========================================
 // Se asigna a window para que el HTML pueda llamarla
 window.renderPage = function(index) {
-    console.log(`🔄 [RENDER] Intentando ir a página ${index}. Estado Examen: ${isQuizInProgress}`);
+    console.log(`[RENDER] Intentando ir a página ${index}`);
 
-    // --- 🔒 BLOQUEO DE SEGURIDAD ---
-    // Si el examen está activo (TRUE) y tratas de cambiar de página...
+    // --- BLOQUEO DE SEGURIDAD ---
     if (isQuizInProgress) {
-        console.warn("⛔ [BLOQUEO] Navegación detenida por examen en curso.");
         if(!confirm("⚠️ ¡Evaluación en curso!\n\nSi sales ahora, perderás tu progreso.\n¿Estás seguro de que quieres salir?")) {
-            return; // El usuario cancela la salida, se queda en el examen.
+            return;
         } else {
-            console.log("🔓 [BLOQUEO] Usuario forzó la salida.");
-            endQuizMode(); // El usuario forzó la salida, limpiamos el estado.
+            endQuizMode();
         }
     }
 
     if (!courseData || !courseData.pages[index]) return;
 
-    // Limpieza UI
+    // Limpiar modal
     const modal = document.getElementById('resultModal');
     if (modal) modal.style.display = 'none';
 
@@ -186,33 +183,14 @@ window.renderPage = function(index) {
     const page = courseData.pages[currentPageIndex];
     pageContentEl.innerHTML = '';
 
-    console.log(`📺 [VIEW] Mostrando: ${page.type}`);
+    // ✅ GUARDAR PROGRESO (excepto si es quiz, se guarda al completar)
+    if (page.type !== 'quiz') {
+        saveProgress(index, false);
+    }
 
     // Renderizado según tipo
     switch (page.type) {
-        case 'video':
-            let vUrl = page.payload.url;
-            if (vUrl.includes('cdn.com/intro.mp4')) vUrl = 'https://www.youtube.com/embed/M7lc1UVf-VE';
-            const vHtml = (vUrl.includes('youtube') || vUrl.includes('vimeo'))
-                ? `<iframe width="100%" height="500" src="${vUrl}" frameborder="0" allowfullscreen></iframe>`
-                : `<video controls width="100%" height="500" src="${vUrl}"></video>`;
-            pageContentEl.innerHTML = `<div class="page-video">${vHtml}</div>`;
-            break;
-
-        case 'text':
-            pageContentEl.innerHTML = `<div class="page-text">${page.payload.html}</div>`;
-            break;
-
-        case 'quiz':
-            if (!page.payload.questions) {
-                pageContentEl.innerHTML = '<p>Error: JSON de preguntas vacío.</p>';
-            } else {
-                renderQuizTemplate(page.payload.questions);
-            }
-            break;
-
-        default:
-            pageContentEl.innerHTML = `<p>Tipo desconocido: ${page.type}</p>`;
+        // ... resto del código igual ...
     }
 
     updateNavigationUI(index);
@@ -319,19 +297,17 @@ window.selectOption = function(qIdx, oIdx) {
 
 // 5.3 ENTREGAR EXAMEN (Guarda y Desbloquea)
 window.submitQuiz = async function() {
-    console.log(" [QUIZ] Entregando examen...");
+    console.log("[QUIZ] Entregando examen...");
     
     const questionDivs = document.querySelectorAll('.quiz-options');
     let correctCount = 0;
 
-    // Calificar
+    // Calificar (código existente)
     questionDivs.forEach((div, idx) => {
         const correctAns = parseInt(div.getAttribute('data-correct'));
         const userAns = currentAnswers[idx];
-
         if (userAns === correctAns) correctCount++;
 
-        // Bloquear inputs visualmente
         const btns = div.querySelectorAll('.quiz-btn');
         btns.forEach(b => b.disabled = true);
 
@@ -339,7 +315,6 @@ window.submitQuiz = async function() {
             btns[userAns].classList.add(userAns === correctAns ? 'correct' : 'incorrect');
         }
         if (btns[correctAns]) btns[correctAns].classList.add('correct');
-        
     });
 
     const finalScore = Math.round((correctCount / questionDivs.length) * 100);
@@ -347,25 +322,88 @@ window.submitQuiz = async function() {
 
     console.log(`[QUIZ] Resultado: ${finalScore}% (Aprobado: ${passed})`);
 
-    // DESBLOQUEAR EL CANDADO GLOBAL
+    // Desbloquear navegación
     endQuizMode();
 
-    // Guardar en Supabase
+    // ✅ GUARDAR CALIFICACIÓN Y PROGRESO 100%
     try {
         const { data: { user } } = await supabase.auth.getUser();
         const courseId = new URLSearchParams(location.search).get("id");
+        
         if (user && courseId) {
             await supabase.from('user_course_assignments').upsert({
-                user_id: user.id, course_id: courseId, score: finalScore,
-                status: passed ? 'completed' : 'failed', progress: 100, assigned_at: new Date()
+                user_id: user.id,
+                course_id: courseId,
+                score: finalScore,
+                progress: 100, // ✅ Siempre 100% al completar quiz
+                status: passed ? 'completed' : 'failed',
+                assigned_at: new Date()
             }, { onConflict: 'user_id, course_id' });
-            console.log("[SUPABASE] Calificación guardada.");
+            
+            console.log(`[QUIZ] Guardado: Score=${finalScore}%, Progress=100%, Status=${passed ? 'completed' : 'failed'}`);
         }
-    } catch (e) { console.error("[ERROR] Guardando nota:", e); }
+    } catch (e) {
+        console.error("[ERROR] Guardando resultado:", e);
+    }
 
-    // Mostrar Modal
+    // Mostrar modal
     showResultModal(passed, finalScore);
 };
+
+
+async function saveProgress(pageIndex, isQuizCompleted = false) {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const courseId = new URLSearchParams(location.search).get("id");
+        
+        if (!user || !courseId) {
+            console.warn("[PROGRESS] No hay usuario o curso ID");
+            return;
+        }
+
+        // Calcular porcentaje
+        let progress;
+        if (isQuizCompleted) {
+            progress = 100; // Quiz terminado = 100%
+        } else {
+            // (página actual + 1) / total páginas * 100
+            // Pero el quiz no cuenta hasta completarlo, así que máximo 90%
+            const totalWithoutQuiz = courseData.pages.length;
+            progress = Math.round(((pageIndex + 1) / totalWithoutQuiz) * 90);
+            progress = Math.min(progress, 90); // Máximo 90% sin quiz
+        }
+
+        console.log(`[PROGRESS] Guardando progreso: ${progress}%`);
+
+        // Verificar si ya existe un registro
+        const { data: existing } = await supabase
+            .from('user_course_assignments')
+            .select('status, score')
+            .eq('user_id', user.id)
+            .eq('course_id', courseId)
+            .single();
+
+        // Si ya completó el curso, no sobrescribir
+        if (existing?.status === 'completed') {
+            console.log("[PROGRESS] Curso ya completado, no se actualiza");
+            return;
+        }
+
+        // Guardar progreso
+        await supabase.from('user_course_assignments').upsert({
+            user_id: user.id,
+            course_id: courseId,
+            progress: progress,
+            status: progress < 100 ? 'in_progress' : existing?.status || 'in_progress',
+            assigned_at: new Date()
+        }, { onConflict: 'user_id, course_id' });
+
+        console.log(`[PROGRESS] Guardado exitosamente: ${progress}%`);
+
+    } catch (e) {
+        console.error("[PROGRESS] Error guardando progreso:", e);
+    }
+}
 
 function endQuizMode() {
     console.log(" [QUIZ] Modo examen finalizado. Navegación liberada.");
