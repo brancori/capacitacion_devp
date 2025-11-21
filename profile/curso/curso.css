@@ -380,8 +380,11 @@
 
 /* Ocultar scrollbar (Firefox, IE, Edge) */
 #sidebarList {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
 }
 
 /* Efecto visual para destacar más el activo */
@@ -391,4 +394,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     border-left: 4px solid var(--bgBrand); /* Indicador visual extra */
     transform: scale(1.02); /* Pequeño zoom */
+}
+#sidebarList::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
