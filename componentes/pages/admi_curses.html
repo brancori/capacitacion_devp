@@ -109,18 +109,22 @@
             </div>
 
             <!-- Tab Miembros -->
-            <div id="tab-users" class="tab-content">
-                <div class="controls" style="box-shadow: none; padding: 0; margin-bottom: 1rem; background: transparent;">
-                    <div class="search-box">
+        <div id="tab-users" class="tab-content">
+            <div class="two-column">
+                <div>
+                    <div class="column-title">DISPONIBLES PARA AGREGAR</div>
+                    <div class="search-box" style="margin-bottom: 0.5rem;">
                         <span class="search-icon"><i class="fas fa-search"></i></span>
-                        <input type="text" class="search-input" id="search-member-input" placeholder="Buscar usuario por email para agregar...">
+                        <input type="text" class="search-input" id="search-available" placeholder="Filtrar disponibles...">
                     </div>
-                    <button class="btn btn-primary" onclick="addMemberByEmail()">
-                        <i class="fas fa-user-plus"></i> Agregar
-                    </button>
+                    <div class="course-list" id="available-users-list"></div>
                 </div>
-                <div id="users-list"></div>
+                <div>
+                    <div class="column-title">MIEMBROS DEL GRUPO (<span id="members-count">0</span>)</div>
+                    <div id="users-list"></div>
+                </div>
             </div>
+        </div>
 
             <!-- Tab Cursos -->
             <div id="tab-courses" class="tab-content" style="display: none;">
@@ -382,43 +386,90 @@
         if (tabName === 'courses') loadGroupCourses();
     };
 
-    async function loadGroupMembers() {
-        const container = document.getElementById('users-list');
-        container.innerHTML = '<div class="spinner"></div> Cargando...';
+async function loadGroupMembers() {
+    const membersContainer = document.getElementById('users-list');
+    const availableContainer = document.getElementById('available-users-list');
+    
+    membersContainer.innerHTML = '<div class="spinner"></div> Cargando...';
+    availableContainer.innerHTML = '<div class="spinner"></div> Cargando...';
 
-        const { data, error } = await window.supabase
-            .from('group_members')
-            .select(`id, profiles (id, full_name, email, role, status)`)
-            .eq('group_id', currentGroup.id);
+    // 1. Obtener miembros actuales del grupo
+    const { data: members, error: membersError } = await window.supabase
+        .from('group_members')
+        .select('id, user_id, profiles (id, full_name, email)')
+        .eq('group_id', currentGroup.id);
 
-        if (error) {
-            container.innerHTML = 'Error al cargar miembros';
-            return;
-        }
-        groupMembers = data;
+    if (membersError) {
+        membersContainer.innerHTML = 'Error al cargar miembros';
+        return;
+    }
+    
+    groupMembers = members || [];
+    const memberIds = groupMembers.map(m => m.user_id);
 
-        if (data.length === 0) {
-            container.innerHTML = '<div class="empty-state">No hay miembros en este grupo</div>';
-            return;
-        }
+    // 2. Obtener todos los usuarios del tenant
+    const { data: allUsers, error: usersError } = await window.supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('tenant_id', currentAdmin.tenant_id)
+        .order('full_name');
 
-        container.innerHTML = data.map(item => {
+    if (usersError) {
+        availableContainer.innerHTML = 'Error al cargar usuarios';
+        return;
+    }
+
+    // 3. Filtrar disponibles (no están en el grupo)
+    const availableUsers = (allUsers || []).filter(u => !memberIds.includes(u.id));
+
+    // 4. Renderizar miembros
+    document.getElementById('members-count').textContent = groupMembers.length;
+    
+    if (groupMembers.length === 0) {
+        membersContainer.innerHTML = '<div style="padding:1rem;color:var(--text-secondary);">Sin miembros</div>';
+    } else {
+        membersContainer.innerHTML = groupMembers.map(item => {
             const p = item.profiles;
             return `
-            <div class="course-detail-item" style="padding: 1rem;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <h4 style="margin:0;">${p.full_name}</h4>
-                        <small style="color:var(--text-secondary)">${p.email}</small>
-                    </div>
-                    <button class="btn btn-secondary" onclick="removeMember('${item.id}')" style="color:var(--danger)">
-                        <i class="fas fa-trash"></i>
-                    </button>
+            <div class="course-item" style="justify-content:space-between;">
+                <div class="course-details">
+                    <div class="course-title">${p.full_name || 'Sin nombre'}</div>
+                    <small>${p.email}</small>
                 </div>
-            </div>
-            `;
+                <button class="btn btn-secondary" onclick="removeMember('${item.id}')" style="color:var(--danger);padding:0.3rem 0.6rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>`;
         }).join('');
     }
+
+    // 5. Renderizar disponibles
+    window.allAvailableUsers = availableUsers;
+    renderAvailableUsers('');
+}
+
+function renderAvailableUsers(filter) {
+    const container = document.getElementById('available-users-list');
+    const filtered = window.allAvailableUsers.filter(u => 
+        u.full_name?.toLowerCase().includes(filter.toLowerCase()) ||
+        u.email?.toLowerCase().includes(filter.toLowerCase())
+    );
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div style="padding:1rem;color:var(--text-secondary);">No hay usuarios disponibles</div>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(u => `
+        <div class="course-item" onclick="addMemberById('${u.id}')" style="cursor:pointer;">
+            <div class="course-details">
+                <div class="course-title">${u.full_name || 'Sin nombre'}</div>
+                <small>${u.email}</small>
+            </div>
+            <i class="fas fa-plus" style="color:var(--success);"></i>
+        </div>
+    `).join('');
+}
 
 window.addMemberByEmail = async () => {
     const email = document.getElementById('search-member-input').value.trim();
@@ -464,6 +515,20 @@ window.addMemberByEmail = async () => {
         await window.supabase.from('group_members').delete().eq('id', recordId);
         loadGroupMembers();
     };
+
+    window.addMemberById = async (userId) => {
+    const { error } = await window.supabase
+        .from('group_members')
+        .insert({ group_id: currentGroup.id, user_id: userId });
+
+    if (error) {
+        if (error.code === '23505') showToast('Info', 'El usuario ya está en el grupo', 'warning');
+        else showToast('Error', error.message, 'error');
+    } else {
+        showToast('Éxito', 'Usuario agregado', 'success');
+        loadGroupMembers();
+    }
+};
 
     async function loadGroupCourses() {
         const container = document.getElementById('courses-list');
@@ -624,6 +689,7 @@ window.addMemberByEmail = async () => {
     }
 
     document.getElementById('search-groups').addEventListener('input', (e) => renderGroups(e.target.value));
+    document.getElementById('search-available')?.addEventListener('input', (e) => renderAvailableUsers(e.target.value));
     document.getElementById('search-catalog').addEventListener('input', (e) => renderCatalog(e.target.value));
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
