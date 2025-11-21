@@ -554,11 +554,10 @@ async function loadUserProfile() {
     // DEBUG: Pausar y mostrar info
     console.log('🔍 DEBUG user:', user);
     console.log('🔍 DEBUG authError:', authError);
-    alert(`User: ${user?.id || 'null'}\nError: ${authError?.message || 'ninguno'}`);
     
     if (authError || !user) {
       console.error('No hay sesión activa');
-      // window.location.href = '../index.html'; // COMENTADO TEMPORALMENTE
+      window.location.href = '../index.html'; // COMENTADO TEMPORALMENTE
       return;
     }
 
