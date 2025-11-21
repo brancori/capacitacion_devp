@@ -420,32 +420,42 @@
         }).join('');
     }
 
-    window.addMemberByEmail = async () => {
-        const email = document.getElementById('search-member-input').value.trim();
-        if (!email) return;
+window.addMemberByEmail = async () => {
+    const email = document.getElementById('search-member-input').value.trim();
+    if (!email) return showToast('Alerta', 'Ingresa un email', 'warning');
 
-        const { data: user } = await window.supabase
-            .from('profiles')
-            .select('id, tenant_id')
-            .eq('email', email)
-            .single();
+    console.log('🔍 Buscando email:', email);
 
-        if (!user) return showToast('Error', 'Usuario no encontrado', 'error');
-        if (user.tenant_id !== currentAdmin.tenant_id) return showToast('Error', 'Usuario de otro tenant', 'error');
+    const { data: user, error } = await window.supabase
+        .from('profiles')
+        .select('id, tenant_id')
+        .eq('email', email)
+        .single();
 
-        const { error } = await window.supabase
-            .from('group_members')
-            .insert({ group_id: currentGroup.id, user_id: user.id });
+    console.log('📦 Resultado:', { user, error });
 
-        if (error) {
-            if (error.code === '23505') showToast('Info', 'El usuario ya está en el grupo', 'warning');
-            else showToast('Error', error.message, 'error');
-        } else {
-            showToast('Éxito', 'Usuario agregado', 'success');
-            document.getElementById('search-member-input').value = '';
-            loadGroupMembers();
-        }
-    };
+    if (error) {
+        console.error('❌ Error:', error);
+        return showToast('Error', error.message, 'error');
+    }
+
+    if (!user) return showToast('Error', 'Usuario no encontrado', 'error');
+    if (user.tenant_id !== currentAdmin.tenant_id) return showToast('Error', 'Usuario de otro tenant', 'error');
+
+    const { error: insertError } = await window.supabase
+        .from('group_members')
+        .insert({ group_id: currentGroup.id, user_id: user.id });
+
+    if (insertError) {
+        console.error('❌ Error insert:', insertError);
+        if (insertError.code === '23505') showToast('Info', 'El usuario ya está en el grupo', 'warning');
+        else showToast('Error', insertError.message, 'error');
+    } else {
+        showToast('Éxito', 'Usuario agregado', 'success');
+        document.getElementById('search-member-input').value = '';
+        loadGroupMembers();
+    }
+};
 
     window.removeMember = async (recordId) => {
         if(!confirm('¿Quitar usuario del grupo?')) return;
