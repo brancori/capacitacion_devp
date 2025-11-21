@@ -239,67 +239,81 @@ function updateNavigationUI(index) {
     // 6. CONEXIÓN CON SUPABASE
     // ==========================================
 if (!courseId) {
-        pageContentEl.innerHTML = "<p class='error-message'>Error: URL inválida (falta ID).</p>";
+    pageContentEl.innerHTML = "<p class='error-message'>Error: URL inválida (falta ID).</p>";
+    return;
+}
+
+try {
+    const { data: userData } = await supabase.auth.getUser();
+    const myTenantId = userData?.user?.user_metadata?.tenant_id;
+    const myRole = userData?.user?.user_metadata?.role;
+
+    console.log("🔍 Solicitando curso a Supabase...");
+
+    // 1. IMPORTANTE: AQUÍ SE PIDE LA COLUMNA 'quiz_json'
+    let query = supabase
+        .from("articles") 
+        .select("title, content_json, quiz_json, tenant_id") // <--- ¡REVISA ESTA LÍNEA!
+        .eq("id", courseId);
+
+    if (myRole !== "master" && myTenantId) {
+        query = query.eq("tenant_id", myTenantId);
+    }
+
+    const { data: fetchedCourse, error: courseError } = await query.single();
+
+    if (courseError || !fetchedCourse) {
+        console.error("❌ Error Supabase:", courseError);
+        pageContentEl.innerHTML = "<div class='error-message'>Error al cargar el curso.</div>";
         return;
     }
 
-    try {
-        const { data: userData, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !userData?.user) {
-            // ... (código de manejo de error de login igual al original) ...
-            return;
-        }
-
-        const myTenantId = userData.user.user_metadata.tenant_id;
-        const myRole = userData.user.user_metadata.role;
-
-        // 1. AGREGAMOS 'quiz_json' AL SELECT
-        let query = supabase
-            .from("articles") 
-            .select("title, content_json, quiz_json, tenant_id") 
-            .eq("id", courseId);
-
-        if (myRole !== "master" && myTenantId) {
-            query = query.eq("tenant_id", myTenantId);
-        }
-
-        const { data: fetchedCourse, error: courseError } = await query.single();
-
-        if (courseError || !fetchedCourse) {
-            console.error("Error Supabase:", courseError);
-            pageContentEl.innerHTML = "<div class='error-message'>No tienes permiso o no existe.</div>";
-        } else {
-            console.log(`✅ Curso cargado: ${fetchedCourse.title}`);
-            console.log("🔍 Buscando Quiz:", fetchedCourse.quiz_json ? "Encontrado" : "No existe");
-
-            // 2. LÓGICA PARA INYECTAR EL QUIZ AL FINAL DEL ARRAY DE PÁGINAS
-            let finalCourseData = fetchedCourse.content_json;
-            
-            // Si existe quiz_json y tiene preguntas, lo agregamos como una página más
-            if (fetchedCourse.quiz_json && fetchedCourse.quiz_json.questions) {
-                console.log("➕ Agregando Quiz al flujo del curso...");
-                
-                // Parseamos si viene como string, si ya es objeto lo usamos directo
-                const quizPayload = typeof fetchedCourse.quiz_json === 'string' 
-                    ? JSON.parse(fetchedCourse.quiz_json) 
-                    : fetchedCourse.quiz_json;
-
-                finalCourseData.pages.push({
-                    type: 'quiz',
-                    title: 'Evaluación Final',
-                    payload: quizPayload 
-                });
-            }
-
-            // Cargamos el curso con los datos combinados
-            loadCourse(fetchedCourse.title, finalCourseData);
-        }
-
-    } catch (e) {
-        console.error('Error crítico en initCourse:', e);
-        pageContentEl.innerHTML = "<p class='error-message'>Ocurrió un error inesperado.</p>";
+    console.log("✅ Curso descargado:", fetchedCourse.title);
+    
+    // 2. LIMPIEZA: Eliminamos duplicados antiguos del content_json
+    let finalCourseData = fetchedCourse.content_json;
+    
+    if (finalCourseData.pages) {
+        const antes = finalCourseData.pages.length;
+        finalCourseData.pages = finalCourseData.pages.filter(p => 
+            p.type !== 'quiz' && p.title !== 'Evaluación Final'
+        );
+        console.log(`🧹 Limpieza: Se eliminaron ${antes - finalCourseData.pages.length} páginas de quiz antiguas.`);
     }
+
+    // 3. INYECCIÓN: Agregamos el quiz desde la columna quiz_json
+    // Verificamos si existe algo en la columna
+    if (fetchedCourse.quiz_json) {
+        console.log("📦 Columna quiz_json detectada. Procesando...");
+        
+        // Parseamos si viene como texto, o lo usamos directo si ya es objeto
+        let quizObj = typeof fetchedCourse.quiz_json === 'string' 
+            ? JSON.parse(fetchedCourse.quiz_json) 
+            : fetchedCourse.quiz_json;
+
+        // Validamos que tenga preguntas
+        if (quizObj.questions && quizObj.questions.length > 0) {
+            console.log(`➕ Agregando Quiz con ${quizObj.questions.length} preguntas.`);
+            
+            finalCourseData.pages.push({
+                type: 'quiz',
+                title: 'Evaluación Final',
+                payload: quizObj
+            });
+        } else {
+            console.warn("⚠️ El quiz_json existe pero no tiene preguntas ('questions' array vacío).");
+        }
+    } else {
+        console.warn("⚠️ La columna quiz_json es NULL o vacía en la base de datos.");
+    }
+
+    // Cargamos el curso
+    loadCourse(fetchedCourse.title, finalCourseData);
+
+} catch (e) {
+    console.error('❌ Error crítico en initCourse:', e);
+    pageContentEl.innerHTML = "<p class='error-message'>Ocurrió un error inesperado.</p>";
+}
 }
 
 // Variables temporales para el examen
