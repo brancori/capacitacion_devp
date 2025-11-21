@@ -549,11 +549,16 @@ function getDueDateStatus(dueDate) {
    */
 async function loadUserProfile() {
   try {
-    // ✅ CAMBIO AQUÍ
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    // DEBUG: Pausar y mostrar info
+    console.log('🔍 DEBUG user:', user);
+    console.log('🔍 DEBUG authError:', authError);
+    alert(`User: ${user?.id || 'null'}\nError: ${authError?.message || 'ninguno'}`);
+    
     if (authError || !user) {
-      console.error('No hay sesión activa, redirigiendo al login.');
-      window.location.href = '../index.html';
+      console.error('No hay sesión activa');
+      // window.location.href = '../index.html'; // COMENTADO TEMPORALMENTE
       return;
     }
 
