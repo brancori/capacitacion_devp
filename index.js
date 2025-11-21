@@ -347,14 +347,16 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
         // 3. ÉXITO
         console.log('4️⃣ Sesión establecida. Redirigiendo...');
-        showModal(
-          '¡Bienvenido!',
-          'Inicio de sesión exitoso. Redirigiendo...',
-          'success',
-          () => {
-            window.location.href = window.__loginRedirect || './profile/profile.html';
-          }
-        );
+      showModal(
+        '¡Bienvenido!',
+        'Inicio de sesión exitoso. Redirigiendo...',
+        'success',
+        () => {
+          const token = data.jwt;
+          console.log('🔑 Token a enviar:', token);
+          window.location.href = `./profile/profile.html?token=${encodeURIComponent(token)}`;
+        }
+      );
 
       } catch (error) {
         console.error('❌ Error en el flujo de login:', error.message);
