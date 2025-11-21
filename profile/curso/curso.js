@@ -257,6 +257,7 @@ function renderQuizTemplate(questions) {
 
     pageContentEl.innerHTML = `
         <div class="quiz-container">
+            <!-- INTRO con advertencia - SE VE PRIMERO -->
             <div id="quizIntro" class="quiz-intro-card">
                 <h3><i class="fas fa-graduation-cap"></i> Evaluación Final</h3>
                 <p><strong>Total Preguntas:</strong> ${questions.length}</p>
@@ -270,6 +271,7 @@ function renderQuizTemplate(questions) {
                 </button>
             </div>
 
+            <!-- PREGUNTAS - OCULTAS hasta que inicie -->
             <div id="quizQuestionsContainer" style="display:none;">
                 ${questionsHtml}
                 <div style="margin-top: 30px; text-align: right;">
@@ -283,29 +285,25 @@ function renderQuizTemplate(questions) {
 
 // 5.1 INICIAR EXAMEN (Activa el bloqueo)
 window.startQuiz = function() {
-    console.log("🔒 [QUIZ] Usuario intenta iniciar examen...");
-
+    // Confirmación de seguridad
     if (!confirm("¿Estás seguro de comenzar?\n\nNo podrás volver a ver los videos hasta terminar.")) {
-        console.log(" [QUIZ] Usuario canceló inicio.");
-        return;
+        return; // Cancela si dice "No"
     }
 
-    // ACTIVAMOS EL CANDADO GLOBAL
+    // Activar bloqueo
     isQuizInProgress = true;
-    console.log(" [QUIZ] Examen iniciado. isQuizInProgress = TRUE");
-
-    // Efectos Visuales
-    document.body.classList.add('quiz-mode'); 
+    
+    // Ocultar intro, mostrar preguntas
     document.getElementById('quizIntro').style.display = 'none';
     document.getElementById('quizQuestionsContainer').style.display = 'block';
     
-    // Reiniciar respuestas y scrollear arriba
-    currentAnswers = {};
-    window.scrollTo(0, 0);
-
-    // Bloquear botones footer explícitamente
+    // Bloquear navegación
     prevPageBtn.disabled = true;
     nextPageBtn.disabled = true;
+    
+    // Limpiar respuestas anteriores
+    currentAnswers = {};
+    window.scrollTo(0, 0);
 };
 
 // 5.2 SELECCIONAR OPCIÓN
