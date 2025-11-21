@@ -398,4 +398,4 @@ function showResultModal(passed, score) {
 }
 
 // Iniciar todo al cargar la página
-document.addEventListener('DOMContentLoaded', initCourse);asd
+document.addEventListener('DOMContentLoaded', initCourse);
