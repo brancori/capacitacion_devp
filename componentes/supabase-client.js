@@ -6,17 +6,28 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // IMPORTANTE: Esperar a que la librería de Supabase esté cargada
 if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient !== 'function') {
-  console.error('❌ La librería de Supabase no está cargada. Asegúrate de incluir el CDN antes de este script.');
+  console.error('❌ La librería de Supabase no está cargada.');
 } else {
-  // Crear el cliente de Supabase y hacerlo global
   window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-});
-  console.log('✅ Cliente de Supabase inicializado correctamente');
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: {
+        getItem: (key) => {
+          const v = document.cookie.match('(^|;)\\s*' + key + '\\s*=\\s*([^;]+)');
+          return v ? decodeURIComponent(v.pop()) : null;
+        },
+        setItem: (key, value) => {
+          document.cookie = `${key}=${encodeURIComponent(value)};path=/;max-age=31536000;SameSite=Lax`;
+        },
+        removeItem: (key) => {
+          document.cookie = `${key}=;path=/;max-age=0`;
+        }
+      }
+    }
+  });
+  console.log('✅ Cliente de Supabase inicializado');
 }
 
 // --- Manejo del Logout ---

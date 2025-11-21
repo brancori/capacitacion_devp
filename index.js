@@ -31,17 +31,29 @@
 
   console.log('🔧 Inicializando Supabase con proxy:', SUPABASE_URL);
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-    global: {
-      headers: {
-        'x-proxy-debug': 'true'
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storage: {
+      getItem: (key) => {
+        const v = document.cookie.match('(^|;)\\s*' + key + '\\s*=\\s*([^;]+)');
+        return v ? decodeURIComponent(v.pop()) : null;
+      },
+      setItem: (key, value) => {
+        document.cookie = `${key}=${encodeURIComponent(value)};path=/;max-age=31536000;SameSite=Lax`;
+      },
+      removeItem: (key) => {
+        document.cookie = `${key}=;path=/;max-age=0`;
       }
     }
-  });
+  },
+  global: {
+    headers: {
+      'x-proxy-debug': 'true'
+    }
+  }
+});
 
   // Test del proxy al cargar
   window.addEventListener('load', async () => {
