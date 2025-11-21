@@ -53,7 +53,17 @@
 
   </div>
   
-  
+  <div id="resultModal" class="course-modal-overlay">
+    <div class="course-modal">
+        <div id="modalIcon" class="modal-icon"></div>
+        <h2 id="modalTitle">Resultados</h2>
+        <div id="modalScore" class="modal-score"></div>
+        <p id="modalMessage" class="modal-text"></p>
+        <button class="btn btn-primary" onclick="document.getElementById('resultModal').style.display='none'">
+            Entendido
+        </button>
+    </div>
+</div>
   <!-- Scripts de dependencia (rutas relativas correctas) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../componentes/supabase-client.js"></script>

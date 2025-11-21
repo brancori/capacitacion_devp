@@ -73,31 +73,43 @@ async function initCourse() {
             // --- CASO QUIZ (NUEVO) ---
             case 'quiz':
                 if (!page.payload.questions) {
-                    pageContentEl.innerHTML = '<p>Error: No hay preguntas en este quiz.</p>';
+                    pageContentEl.innerHTML = '<p>Error: Sin preguntas.</p>';
                     break;
                 }
-
-                const quizContent = page.payload.questions.map((q, qIdx) => `
+                
+                // 1. Renderizamos la "Portada" del examen + Las preguntas (ocultas)
+                const questionsHtml = page.payload.questions.map((q, qIdx) => `
                     <div class="quiz-card">
-                        <h4 class="quiz-question-text">
-                            <i class="fas fa-question-circle"></i> ${qIdx + 1}. ${q.question}
-                        </h4>
-                        <div class="quiz-options">
+                        <h4 class="quiz-question-text">${qIdx + 1}. ${q.question}</h4>
+                        <div class="quiz-options" id="q-${qIdx}" data-correct="${q.answer}">
                             ${q.options.map((opt, oIdx) => `
-                                <button class="quiz-btn" onclick="window.checkQuizAnswer(this, ${qIdx}, ${oIdx}, ${q.answer})">
+                                <button class="quiz-btn" onclick="window.selectOption(${qIdx}, ${oIdx})">
                                     ${opt}
                                 </button>
                             `).join('')}
                         </div>
-                        <div id="feedback-${qIdx}" class="quiz-feedback"></div>
                     </div>
                 `).join('');
-                
+
                 pageContentEl.innerHTML = `
                     <div class="quiz-container">
-                        <h3><i class="fas fa-clipboard-check"></i> ${page.title || 'Evaluación'}</h3>
-                        <p class="mb-4">Selecciona la respuesta correcta para cada pregunta.</p>
-                        ${quizContent}
+                        <div id="quizIntro" class="quiz-intro-card">
+                            <h3><i class="fas fa-graduation-cap"></i> Evaluación Final</h3>
+                            <p>Estás a punto de iniciar el examen. Tienes un solo intento para registrar tu calificación.</p>
+                            <p><strong>Preguntas:</strong> ${page.payload.questions.length} | <strong>Aprobación:</strong> 80%</p>
+                            <button class="btn btn-primary" onclick="window.startQuiz()">
+                                Comenzar Evaluación
+                            </button>
+                        </div>
+
+                        <div id="quizQuestionsContainer">
+                            ${questionsHtml}
+                            <div style="margin-top: 30px; text-align: right;">
+                                <button class="btn btn-primary" onclick="window.submitQuiz()">
+                                    Finalizar y Calificar
+                                </button>
+                            </div>
+                        </div>
                     </div>`;
                 break;
                 
@@ -263,6 +275,110 @@ if (!courseId) {
         pageContentEl.innerHTML = "<p class='error-message'>Ocurrió un error inesperado.</p>";
     }
 }
+
+// Variables temporales para el examen
+let currentAnswers = {}; 
+
+// 1. Iniciar el Quiz (Oculta intro, muestra preguntas)
+window.startQuiz = function() {
+    document.getElementById('quizIntro').style.display = 'none';
+    document.getElementById('quizQuestionsContainer').style.display = 'block';
+    currentAnswers = {}; // Reiniciar respuestas
+};
+
+// 2. Seleccionar opción (Solo visual, no valida todavía)
+window.selectOption = function(qIdx, oIdx) {
+    // Guardar respuesta
+    currentAnswers[qIdx] = oIdx;
+    
+    // Actualizar UI
+    const parent = document.getElementById(`q-${qIdx}`);
+    const btns = parent.querySelectorAll('.quiz-btn');
+    btns.forEach((btn, idx) => {
+        if (idx === oIdx) btn.classList.add('selected');
+        else btn.classList.remove('selected');
+    });
+};
+
+// 3. Enviar, Calificar y Guardar en BD
+window.submitQuiz = async function() {
+    const questionDivs = document.querySelectorAll('.quiz-options');
+    let correctCount = 0;
+    let total = questionDivs.length;
+    let allAnswered = true;
+
+    // --- Validación y Cálculo ---
+    questionDivs.forEach((div, idx) => {
+        const correctAns = parseInt(div.getAttribute('data-correct'));
+        const userAns = currentAnswers[idx];
+
+        if (userAns === undefined) allAnswered = false;
+
+        // Bloquear botones
+        const btns = div.querySelectorAll('.quiz-btn');
+        btns.forEach(b => b.disabled = true);
+
+        // Pintar resultados
+        if (userAns === correctAns) {
+            correctCount++;
+            if(btns[userAns]) btns[userAns].classList.add('correct'); 
+        } else {
+            if(btns[userAns]) btns[userAns].classList.add('incorrect');
+            if(btns[correctAns]) btns[correctAns].classList.add('correct');
+        }
+    });
+
+    // --- Calcular Promedio ---
+    const finalScore = Math.round((correctCount / total) * 100);
+    const passed = finalScore >= 80;
+    const status = passed ? 'completed' : 'failed';
+
+    // --- Guardar en Supabase ---
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const params = new URLSearchParams(location.search);
+        const courseId = params.get("id");
+
+        if (user && courseId) {
+            await supabase
+                .from('user_course_assignments')
+                .upsert({ 
+                    user_id: user.id,
+                    course_id: courseId,
+                    score: finalScore,
+                    status: status,
+                    progress: 100,
+                    assigned_at: new Date()
+                }, { onConflict: 'user_id, course_id' });
+            
+            console.log("✅ Calificación guardada:", finalScore);
+        }
+    } catch (e) {
+        console.error("Error guardando nota:", e);
+    }
+
+    // --- MOSTRAR MODAL ---
+    const modalOverlay = document.getElementById('resultModal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalScore = document.getElementById('modalScore');
+    const modalMsg = document.getElementById('modalMessage');
+
+    if (passed) {
+        modalIcon.innerHTML = '🏆';
+        modalTitle.innerText = '¡Felicidades!';
+        modalTitle.style.color = '#28a745';
+        modalMsg.innerText = 'Has aprobado el curso satisfactoriamente. Tu calificación ha sido registrada.';
+    } else {
+        modalIcon.innerHTML = '⚠️';
+        modalTitle.innerText = 'Sigue intentando';
+        modalTitle.style.color = '#dc3545';
+        modalMsg.innerText = 'No has alcanzado el puntaje mínimo del 80% para aprobar. Repasa el contenido e intenta nuevamente.';
+    }
+
+    modalScore.innerText = `${finalScore}%`;
+    modalOverlay.style.display = 'flex';
+};
 
 // Iniciar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', initCourse);
