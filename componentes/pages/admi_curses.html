@@ -17,7 +17,7 @@
     
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../supabase-client.js"></script>
+    <script src="../../componentes/supabase-client.js"></script>
 
 </head>
 <body>
@@ -104,7 +104,6 @@
         
         <div class="detail-content-wrapper">
             <div class="tabs">
-                <!-- Por defecto mostramos Usuarios primero, es más lógico al gestionar grupos -->
                 <button class="tab active" onclick="switchTab('users')" data-tab="users"><i class="fas fa-users"></i> Miembros</button>
                 <button class="tab" onclick="switchTab('courses')" data-tab="courses"><i class="fas fa-book"></i> Cursos Asignados</button>
             </div>
@@ -134,11 +133,7 @@
     </div>
 </div>
 
-<!-- Toast Notifications Container -->
 <div class="toast-container" id="toast-container"></div>
-
-<!-- Modal Nuevo Grupo (Simple, usando prompt es feo, mejor un modal real reutilizado) -->
-<!-- Reutilizamos el assign-modal structure pero cambiamos contenido dinámicamente o usamos prompt por ahora para no complicar el HTML -->
 
 <!-- Assign Courses Modal -->
 <div class="modal" id="assign-modal">
@@ -179,38 +174,52 @@
     let currentAdmin = null;
     let currentGroup = null;
     let currentTab = 'users';
-    
-    // Cachés de datos
     let allGroups = [];
     let groupMembers = [];
     let allCourses = []; 
     let selectedCoursesToAssign = [];
 
     // =================================================================
-    // CONFIGURACIÓN TENANT & AUTH
+    // CONFIGURACIÓN TENANT & AUTH (CORREGIDA)
     // =================================================================
     const setStyle = (prop, value) => value && document.documentElement.style.setProperty(prop, value);
 
     async function loadTenantConfig() {
-        // Lógica simplificada de detección
         const host = location.hostname === 'localhost' ? 'demo' : location.hostname.split('.')[0];
         const tenantId = (host === '127' || host === 'www') ? 'default' : host;
-        
+        let config = {};
+
+        // 1. Intentar cargar JSON (Manejando error 404/Sintaxis)
         try {
-            const resp = await fetch('../../tenants/tenants.json');
-            const data = await resp.json();
-            const config = data[tenantId] || data['default'] || {};
-            
-            // Obtener UUID del tenant real desde Supabase
+            // Intentamos buscar en la raíz o subiendo niveles
+            const resp = await fetch('../tenants/tenants.json');
+            if (resp.ok) {
+                const data = await resp.json();
+                config = data[tenantId] || data['default'] || {};
+            } else {
+                console.warn('⚠️ tenants.json no encontrado, usando defaults de DB');
+            }
+        } catch (e) { 
+            console.warn('⚠️ Error parseando tenants.json, ignorando archivo.', e); 
+        }
+
+        // 2. SIEMPRE intentar obtener UUID desde Supabase (Independiente del JSON)
+        try {
             const { data: tDb } = await window.supabase
                 .from('tenants')
                 .select('id')
                 .eq('slug', tenantId)
                 .single();
             
-            config.tenantUUID = tDb ? tDb.id : null;
-            return config;
-        } catch (e) { console.error(e); return {}; }
+            if (tDb) config.tenantUUID = tDb.id;
+        } catch (e) {
+            console.error('❌ Error crítico obteniendo Tenant ID de DB:', e);
+        }
+
+        // 3. Fallback de nombre si falló todo
+        if (!config.companyName) config.companyName = tenantId.toUpperCase();
+        
+        return config;
     }
 
     async function checkAuth(config) {
@@ -223,8 +232,8 @@
             .eq('id', user.id)
             .single();
         
-        if (!['master', 'admin', 'supervisor'].includes(profile.role)) {
-            alert('Acceso denegado');
+        if (!profile || !['master', 'admin', 'supervisor'].includes(profile.role)) {
+            alert('Acceso denegado: Rol insuficiente');
             window.location.href = '../index.html';
             return null;
         }
@@ -232,11 +241,16 @@
     }
 
     // =================================================================
-    // LOGICA DE DATOS (REAL SUPABASE)
+    // LOGICA DE DATOS
     // =================================================================
 
-    // 1. Cargar Grupos
     async function fetchGroups() {
+        // VALIDACIÓN CRÍTICA: Si no hay tenant_id, no consultamos
+        if (!currentAdmin.tenant_id) {
+            console.error('⛔ El usuario admin no tiene tenant_id asignado.');
+            return [];
+        }
+
         const { data, error } = await window.supabase
             .from('course_groups')
             .select('*')
@@ -250,9 +264,9 @@
         return data;
     }
 
-    // 2. Cargar KPIs Globales
     async function updateKPIs() {
-        // Consultar assignments globales del tenant
+        if (!currentAdmin.tenant_id) return;
+
         const { data, error } = await window.supabase
             .from('user_course_assignments')
             .select('status, due_date')
@@ -260,32 +274,36 @@
 
         if (error) return;
 
-        let completed = 0, active = 0, expired = 0, urgent = 0;
+        let completed = 0, active = 0, expired = 0;
         const now = new Date();
 
         data.forEach(a => {
             if (a.status === 'completed') completed++;
-            else if (a.status === 'in_progress' || a.status === 'not_started') active++;
+            else if (['in_progress', 'not_started'].includes(a.status)) active++;
 
             if (a.due_date && new Date(a.due_date) < now && a.status !== 'completed') {
                 expired++;
             }
         });
 
-        // Calculamos porcentaje
         const total = data.length;
         const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
         document.getElementById('kpi-completed').textContent = `${percent}%`;
         document.getElementById('kpi-active').textContent = active;
         document.getElementById('kpi-expired').textContent = expired;
-        // Urgente mockeado por ahora o basado en fecha cercana
         document.getElementById('kpi-urgent').textContent = expired; 
     }
 
-    // 3. Renderizar Grid de Grupos
     async function renderGroups(filter = '') {
         const container = document.getElementById('groups-container');
+        
+        // Validación visual si falta tenant
+        if (!currentAdmin.tenant_id) {
+            container.innerHTML = `<div class="empty-state"><h3>⚠️ Error de Configuración</h3><p>Tu usuario no tiene un Tenant ID asignado.</p></div>`;
+            return;
+        }
+
         allGroups = await fetchGroups();
 
         const filtered = allGroups.filter(g => g.name.toLowerCase().includes(filter.toLowerCase()));
@@ -300,8 +318,6 @@
             return;
         }
 
-        // Para cada grupo, necesitamos saber cuántos miembros tiene
-        // Hacemos un fetch rápido de counts
         const groupsHTML = await Promise.all(filtered.map(async (g) => {
             const { count } = await window.supabase
                 .from('group_members')
@@ -328,7 +344,6 @@
         container.innerHTML = groupsHTML.join('');
     }
 
-    // 4. Ver Detalle de Grupo
     window.viewGroupDetail = async (groupId) => {
         currentGroup = allGroups.find(g => g.id === groupId);
         if (!currentGroup) return;
@@ -336,8 +351,6 @@
         document.getElementById('main-view').style.display = 'none';
         document.getElementById('detail-view').classList.add('active');
         document.getElementById('detail-group-name').textContent = currentGroup.name;
-        
-        // Reset tabs
         window.switchTab('users');
     };
 
@@ -345,12 +358,11 @@
         document.getElementById('detail-view').classList.remove('active');
         document.getElementById('main-view').style.display = 'block';
         currentGroup = null;
-        renderGroups(); // Recargar por si hubo cambios
+        renderGroups();
     };
 
     window.switchTab = (tabName) => {
         currentTab = tabName;
-        // UI Tabs
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
 
@@ -362,25 +374,20 @@
         if (tabName === 'courses') loadGroupCourses();
     };
 
-    // 5. Cargar Miembros del Grupo
     async function loadGroupMembers() {
         const container = document.getElementById('users-list');
         container.innerHTML = '<div class="spinner"></div> Cargando...';
 
         const { data, error } = await window.supabase
             .from('group_members')
-            .select(`
-                id,
-                profiles (id, full_name, email, role, status)
-            `)
+            .select(`id, profiles (id, full_name, email, role, status)`)
             .eq('group_id', currentGroup.id);
 
         if (error) {
             container.innerHTML = 'Error al cargar miembros';
             return;
         }
-
-        groupMembers = data; // Guardar referencia
+        groupMembers = data;
 
         if (data.length === 0) {
             container.innerHTML = '<div class="empty-state">No hay miembros en este grupo</div>';
@@ -405,12 +412,10 @@
         }).join('');
     }
 
-    // 6. Agregar Miembro
     window.addMemberByEmail = async () => {
         const email = document.getElementById('search-member-input').value.trim();
         if (!email) return;
 
-        // Buscar usuario
         const { data: user } = await window.supabase
             .from('profiles')
             .select('id, tenant_id')
@@ -420,7 +425,6 @@
         if (!user) return showToast('Error', 'Usuario no encontrado', 'error');
         if (user.tenant_id !== currentAdmin.tenant_id) return showToast('Error', 'Usuario de otro tenant', 'error');
 
-        // Insertar
         const { error } = await window.supabase
             .from('group_members')
             .insert({ group_id: currentGroup.id, user_id: user.id });
@@ -441,11 +445,6 @@
         loadGroupMembers();
     };
 
-    // 7. Cargar Cursos Asignados (Simulado consultando assignments de los miembros)
-    // NOTA: Como no tenemos una tabla "group_assignments" directa, consultamos
-    // qué cursos tienen en común los miembros o mostramos historial.
-    // Para simplificar, mostraremos NADA por ahora, ya que la asignación
-    // crea registros individuales. 
     async function loadGroupCourses() {
         const container = document.getElementById('courses-list');
         container.innerHTML = `
@@ -455,8 +454,8 @@
             </div>`;
     }
 
-    // 8. Crear Nuevo Grupo
     window.openNewGroupModal = async () => {
+        if (!currentAdmin.tenant_id) return showToast('Error', 'No tienes tenant asignado', 'error');
         const name = prompt("Nombre del nuevo grupo:");
         if (!name) return;
 
@@ -471,14 +470,12 @@
         }
     };
 
-    // 9. Asignar Cursos (Modal)
     window.openAssignModal = async () => {
         if (!currentGroup) return;
         document.getElementById('assign-modal').classList.add('active');
         
-        // Cargar catálogo de cursos reales
         const { data } = await window.supabase
-            .from('articles') // Tabla de cursos
+            .from('articles')
             .select('id, title, duration_text')
             .eq('tenant_id', currentAdmin.tenant_id)
             .eq('status', 'published');
@@ -530,11 +527,9 @@
         `).join('');
     }
 
-    // 10. Confirmar Asignación Masiva
     window.confirmAssignment = async () => {
         if (selectedCoursesToAssign.length === 0) return showToast('Alerta', 'Selecciona cursos', 'warning');
         if (!groupMembers || groupMembers.length === 0) {
-            // Intentar recargar miembros si está vacío
              await loadGroupMembers();
              if (groupMembers.length === 0) return showToast('Alerta', 'El grupo no tiene miembros', 'warning');
         }
@@ -542,9 +537,8 @@
         const assignments = [];
         const now = new Date();
         const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 30); // 30 días por defecto
+        dueDate.setDate(dueDate.getDate() + 30);
 
-        // Crear una asignación por cada (Usuario x Curso Seleccionado)
         groupMembers.forEach(member => {
             selectedCoursesToAssign.forEach(course => {
                 assignments.push({
@@ -572,11 +566,10 @@
         }
     };
 
-    // Toast Helper
     function showToast(title, msg, type) {
         const container = document.getElementById('toast-container');
         const div = document.createElement('div');
-        div.className = `toast ${type}`; // Asegúrate de tener CSS para .success, .error
+        div.className = `toast ${type}`;
         div.innerHTML = `<strong>${title}</strong>: ${msg}`;
         container.appendChild(div);
         setTimeout(() => div.remove(), 3000);
@@ -593,16 +586,14 @@
         currentAdmin = await checkAuth(config);
         if (!currentAdmin) return;
         
-        console.log('✅ Admin autenticado');
+        console.log('✅ Admin autenticado', currentAdmin);
         
         await updateKPIs();
         await renderGroups();
 
-        // IMPORTANTE: Hacer visible el body
         document.body.style.opacity = 1;
     }
 
-    // Event Listeners búsqueda
     document.getElementById('search-groups').addEventListener('input', (e) => renderGroups(e.target.value));
     document.getElementById('search-catalog').addEventListener('input', (e) => renderCatalog(e.target.value));
 
