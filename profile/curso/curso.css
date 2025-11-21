@@ -108,12 +108,6 @@
     opacity: 0.9;
 }
 
-#sidebarList button.active {
-    background-color: var(--primaryColor); /* 🎨 Color primario activo */
-    color: var(--bgBrand); /* 🎨 Texto claro activo */
-    font-weight: 600;
-}
-
 /* ============================================
    ÁREA DE CONTENIDO
    ============================================ */
@@ -365,14 +359,6 @@
     min-height: 20px;
 }
 
-#sidebarList {
-    /* Habilita scroll suave y oculta la barra para efecto "limpio" */
-    overflow-y: auto;
-    scroll-behavior: smooth;
-    
-    /* Ocultar scrollbar (Chrome, Safari, Opera) */
-    -webkit-overflow-scrolling: touch;
-}
 
 #sidebarList::-webkit-scrollbar {
     display: none;
@@ -382,7 +368,7 @@
 #sidebarList {
     overflow-y: auto;
     scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch; /* iOS */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
 }
@@ -392,11 +378,9 @@
     position: relative;
     z-index: 2;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    border-left: 4px solid var(--bgBrand); /* Indicador visual extra */
-    transform: scale(1.02); /* Pequeño zoom */
-}
-#sidebarList::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+    border-left: 4px solid var(--bgBrand);
+    transform: scale(1.02);
+    font-weight: 700;
 }
 
 /* Estado de selección previa a calificar */
