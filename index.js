@@ -347,6 +347,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
         // 3. ÉXITO
         console.log('4️⃣ Sesión establecida. Redirigiendo...');
+        console.log('🔑 Token disponible:', data.jwt);
       showModal(
         '¡Bienvenido!',
         'Inicio de sesión exitoso. Redirigiendo...',
