@@ -359,7 +359,7 @@ display: grid !important;
     border: 1px solid var(--border);
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
-}A
+}
 
 .group-card:hover {
     transform: translateY(-4px);
