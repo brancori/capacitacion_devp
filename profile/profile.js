@@ -522,127 +522,109 @@ const { data: courses, error: coursesError } = await q;
 */
 
 const { data: assignments, error: coursesError } = await supabase
-  .from("user_course_assignments")
-  .select(`
-    progress,
-    due_date,
-    articles (
-      id,
-      title,
-      thumbnail_url,
-      status,
-      instructor_name,
-      duration_text
-    )
-  `)
-  .eq('user_id', userId);
+        .from("user_course_assignments")
+        .select(`
+            progress,
+            due_date,
+            status, 
+            articles (
+            id,
+            title,
+            thumbnail_url,
+            status,
+            instructor_name,
+            duration_text
+            )
+        `)
+        .eq('user_id', userId); // <--- FILTRO CRÍTICO
 
-if (coursesError) {
-  console.error("Error al cargar asignaciones:", coursesError.message);
-  return;
+    if (coursesError) {
+        console.error("Error al cargar cursos:", coursesError.message);
+        return;
+    }
+
+    // 2. PROCESAR Y SEPARAR LOS CURSOS
+    const allCourses = assignments ? assignments.map(a => ({
+        ...a.articles,     
+        progress: a.progress,
+        due_date: a.due_date,
+        assignment_status: a.status // Usamos el status de la asignación, no del artículo
+    })) : [];
+
+    // Separamos en dos listas
+    const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
+    const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
+
+    console.log(`📦 Cursos: ${pendingCourses.length} pendientes, ${completedCourses.length} completados`);
+
+    // 3. FUNCIÓN DE RENDERIZADO (Reutilizable)
+    const renderCourses = (coursesList, containerId, emptyMsg) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (coursesList.length === 0) {
+            container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-secondary);">${emptyMsg}</p>`;
+            return;
+        }
+
+        container.innerHTML = coursesList.map(c => {
+            const dueDateInfo = getDueDateStatus(c.due_date);
+            const progress = c.progress || 0;
+            const isUrgent = dueDateInfo.urgent && progress < 100;
+
+            let iconClass = 'pending';
+            let iconFA = 'fa-clock';
+            let btnText = progress > 0 ? 'Continuar' : 'Iniciar';
+            
+            if (isUrgent) {
+                iconClass = 'urgent';
+                iconFA = 'fa-exclamation-triangle';
+            } else if (progress === 100) {
+                iconClass = 'completed';
+                iconFA = 'fa-check-circle';
+                btnText = 'Ver Certificado';
+            }
+
+            return `
+            <div class="course-card" data-status="${iconClass}">
+                <div class="course-icon-lg ${iconClass}">
+                    <i class="fas ${iconFA}"></i>
+                </div>
+                <div class="course-info">
+                    <h3>${c.title}</h3>
+                    ${dueDateInfo.text && progress < 100 ? `
+                    <div class="meta-item" style="font-size: 0.9rem; color: ${isUrgent ? 'var(--danger)' : 'var(--text-secondary)'}; font-weight: ${isUrgent ? '500' : 'normal'}; margin-bottom: 0.5rem;">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${dueDateInfo.text}</span>
+                    </div>` : ''}
+                    
+                    <div class="course-meta" style="margin-bottom: 0.75rem;">
+                        <div class="meta-item"><i class="fas fa-user-tie"></i> <span>${c.instructor_name || 'Trox Academy'}</span></div>
+                        <div class="meta-item"><i class="fas fa-clock"></i> <span>${c.duration_text || 'Self-paced'}</span></div>
+                    </div>
+
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: ${progress}%;"></div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Progreso: ${progress}%</p>
+                </div>
+                <div class="course-actions">
+                    <a href="../curso/curso.html?id=${c.id}" class="btn btn-primary" style="width: 100%;">
+                        ${btnText}
+                    </a>
+                </div>
+            </div>`;
+        }).join("");
+    };
+
+    // 4. RENDERIZAR EN LOS CONTENEDORES CORRECTOS
+    renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día! No tienes cursos pendientes.');
+    renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado ningún curso.');
+
+    console.log('✅ Cursos renderizados correctamente por tabs');
+
+    initUI();
 }
-
-// Transformamos los datos para que el renderizado sea fácil
-// El resultado es un array de cursos con los datos de progreso incluidos
-const courses = assignments 
-  ? assignments.map(a => ({
-      ...a.articles,     // id, title, thumbnail_url, etc.
-      progress: a.progress, // 25, 60, etc.
-      due_date: a.due_date  // "2025-11-20T..."
-    })) 
-  : [];
-
-console.log("📦 Cursos asignados recibidos:", courses);
-console.log("📦 Datos recibidos desde Supabase:", courses);
-console.log("🔎 Error:", coursesError);
-
-if (coursesError) {
-  console.error("Error al cargar cursos:", coursesError.message);
-} else {
-  // Render de las tarjetas
-  const container = document.getElementById("courseCardsContainer");
-
-if (container) {
-  console.log("🎨 Renderizando tarjetas con diseño de CSS existente", container);
-
-  container.innerHTML = courses
-    .map(c => {
-      // c ahora tiene: { id, title, instructor_name, duration_text, progress, due_date }
-      
-      const dueDateInfo = getDueDateStatus(c.due_date);
-      const progress = c.progress || 0;
-      const isUrgent = dueDateInfo.urgent;
-
-      // Determinamos qué ícono y color usar según el CSS
-      // (.urgent, .completed, .pending)
-      let iconClass = 'pending'; // Clase por defecto
-      let iconFA = 'fa-clock';   // Ícono por defecto
-      
-      if (isUrgent) {
-          iconClass = 'urgent';
-          iconFA = 'fa-exclamation-triangle';
-      } else if (progress === 100) {
-          iconClass = 'completed';
-          iconFA = 'fa-check-circle';
-      }
-
-      return `
-      <div class="course-card" data-status="${iconClass}">
-          
-          <div class="course-icon-lg ${iconClass}">
-              <i class="fas ${iconFA}"></i>
-          </div>
-
-          <div class="course-info">
-              <h3>${c.title}</h3>
-              
-              ${dueDateInfo.text ? `
-              <div class="meta-item" style="font-size: 0.9rem; color: ${isUrgent ? 'var(--danger)' : 'var(--text-secondary)'}; font-weight: ${isUrgent ? '500' : 'normal'}; margin-bottom: 0.5rem;">
-                  <i class="fas fa-calendar-alt"></i>
-                  <span>${dueDateInfo.text}</span>
-              </div>` : ''}
-
-              <div class="course-meta" style="margin-bottom: 0.75rem;">
-                  <div class="meta-item">
-                      <i class="fas fa-user-tie"></i>
-                      <span>Capacitador: ${c.instructor_name || 'N/A'}</span>
-                  </div>
-                  <div class="meta-item">
-                      <i class="fas fa-clock"></i>
-                      <span>${c.duration_text || 'N/A'}</span>
-                  </div>
-              </div>
-
-              <div class="progress-bar-container">
-                  <div class="progress-bar-fill" style="width: ${progress}%;"></div>
-              </div>
-              
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0.5rem 0 0 0;">
-                  Progreso: ${progress}% completado
-              </p>
-          </div>
-
-          <div class="course-actions">
-            <a href="curso/curso.html?id=${c.id}" class="btn btn-primary" style="width: 100%;">
-                ${progress > 0 ? 'Continuar' : 'Iniciar'}
-            </a>
-              <button class="btn btn-outline" style="width: 100%;">
-                  Recordar
-              </button>
-          </div>
-      </div>
-      `;
-    })
-    .join("");
-}
-}
-
-console.log('✅ Cursos cargados');
-
-
-    initUI();
-    console.log('✅ UI inicializada');
-  }
 
   // --- Disparador de Carga ---
   if (document.readyState === 'loading') {

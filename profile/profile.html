@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -15,7 +16,6 @@
             <h2 id="companyName"><i class="fas fa-graduation-cap"></i> TROX Academy</h2>
         </div>
         <div class="nav-actions">
-
             <button class="notification-btn" id="notificationBtn">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge">3</span>
@@ -23,7 +23,6 @@
             <button class="theme-toggle" id="themeToggle">
                 <i class="fas fa-moon"></i>
             </button>
-            <!-- CORRECCIÓN: Cambiado de <button> a <a> para el enlace -->
             <a href="../index.html" class="btn btn-outline">
                 <i class="fas fa-sign-out-alt"></i> Salir
             </a>
@@ -31,8 +30,7 @@
     </nav>
 
     <div class="container">
-        <!-- 'stats-grid' se movió dentro de 'content-area' -->
-
+        
         <!-- Main Grid -->
         <div class="main-grid">
             <!-- Sidebar -->
@@ -43,23 +41,23 @@
                         <i class="fas fa-user"></i>
                     </div>
                     <h2 id="profileName">Cargando...</h2>
-                    <p class="role">Contratista | ID: 789456</p>
+                    <p class="role">Usuario | ID: ...</p>
                     
                     <div class="progress-donut">
                         <svg viewBox="0 0 150 150">
                             <circle class="progress-donut-bg" cx="75" cy="75" r="69"></circle>
                             <circle class="progress-donut-fg" cx="75" cy="75" r="69"></circle>
                         </svg>
-                        <span class="progress-text">40%</span>
+                        <span class="progress-text">0%</span>
                     </div>
                     <p style="color: var(--primary); font-weight: 600; margin-bottom: 1rem;">
-                        2 de 5 cursos completados
+                        Cargando progreso...
                     </p>
                     <button class="btn btn-primary" style="width: 100%;">
                         <i class="fas fa-user-edit"></i> Editar Perfil
                     </button>
                     <a href="../componentes/admin.html" class="btn btn-outline" id="manageUsersBtn" style="width: 100%; margin-top: 0.75rem; display: none;">
-                        <i class="fas fa-users-cog"></i> Adminsitración<nav></nav>
+                        <i class="fas fa-users-cog"></i> Administración
                     </a>
                 </div>
 
@@ -67,30 +65,8 @@
                 <div class="badges-card">
                     <h3><i class="fas fa-trophy"></i> Certificaciones</h3>
                     <div class="badges-grid">
-                        <div class="badge earned" title="Certificación Obtenida">
-                            <i class="fas fa-first-aid"></i>
-                            <span>Brigadista P. Auxilios Leader</span>
-                        </div>
-                        <div class="badge" title="Requiere: Curso de Primeros Auxilios Avanzado">
-                            <i class="fas fa-fire-extinguisher"></i>
-                            <span>Combate Incendios Leader</span>
-                        </div>
-                        <div class="badge" title="Requiere: 3 cursos de calidad completados">
-                            <i class="fas fa-certificate"></i>
-                            <span>Quality Expert</span>
-                        </div>
-                        <div class="badge" title="Requiere: Curso de Trabajos en Altura Básico">
-                            <i class="fas fa-hard-hat"></i>
-                            <span>Alturas Instructor</span>
-                        </div>
-                        <div class="badge" title="Requiere: Alturas Básico + Intermedio + Rescate">
-                            <i class="fas fa-mountain"></i>
-                            <span>Espacios Confinados Instructor</span>
-                        </div>
-                        <div class="badge" title="Requiere: 10+ certificaciones profesionales">
-                            <i class="fas fa-crown"></i>
-                            <span>Líder HSE</span>
-                        </div>
+                        <!-- Se llenará con JS -->
+                        <p style="font-size: 0.8rem; color: #888;">Cargando insignias...</p>
                     </div>
                     <button class="btn btn-outline" id="viewBadgesBtn" style="width: 100%; margin-top: 1rem; font-size: 0.9rem;">
                         <i class="fas fa-info-circle"></i> Ver Requisitos
@@ -100,50 +76,22 @@
                 <!-- Calendar Card -->
                 <div class="calendar-card">
                     <h3><i class="far fa-calendar-alt"></i> Próximos Vencimientos</h3>
-                    <div class="calendar-event urgent">
-                        <div class="event-date">
-                            <div class="day">30</div>
-                            <div class="month">OCT</div>
-                        </div>
-                        <div class="event-details">
-                            <h4>Inducción de Seguridad</h4>
-                            <p>Vence en 3 días</p>
-                        </div>
-                    </div>
-                    <div class="calendar-event">
-                        <div class="event-date">
-                            <div class="day">26</div>
-                            <div class="month">NOV</div>
-                        </div>
-                        <div class="event-details">
-                            <h4>Manejo de Químicos</h4>
-                            <p>Vence en 30 días</p>
-                        </div>
-                    </div>
-                    <div class="calendar-event">
-                        <div class="event-date">
-                            <div class="day">26</div>
-                            <div class="month">DIC</div>
-                        </div>
-                        <div class="event-details">
-                            <h4>Uso de Extintores</h4>
-                            <p>Vence en 60 días</p>
-                        </div>
-                    </div>
+                    <!-- Se llenará con JS -->
+                    <p style="font-size: 0.8rem; color: #888;">Cargando calendario...</p>
                 </div>
             </div> <!-- Cierre de .sidebar -->
 
             <!-- Main Content -->
             <div class="content-area">
                 
-                <!-- CORRECCIÓN: 'stats-grid' movido aquí dentro -->
+                <!-- Stats Grid -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon total">
                             <i class="fas fa-book"></i>
                         </div>
                         <div class="stat-content">
-                            <h3>5</h3>
+                            <h3>0</h3>
                             <p>Cursos Totales</p>
                         </div>
                     </div>
@@ -152,7 +100,7 @@
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-content">
-                            <h3>2</h3>
+                            <h3>0</h3>
                             <p>Completados</p>
                         </div>
                     </div>
@@ -161,7 +109,7 @@
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-content">
-                            <h3>2</h3>
+                            <h3>0</h3>
                             <p>En Progreso</p>
                         </div>
                     </div>
@@ -170,7 +118,7 @@
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="stat-content">
-                            <h3>1</h3>
+                            <h3>0</h3>
                             <p>Urgente</p>
                         </div>
                     </div>
@@ -183,99 +131,41 @@
                         <input type="text" id="searchInput" placeholder="Buscar cursos...">
                     </div>
                     <div class="filter-group">
-                        <button class="filter-btn active" data-filter="all">Todos</button>
-                        <button class="filter-btn" data-filter="urgent">Urgente</button>
-                        <button class="filter-btn" data-filter="pending">Pendiente</button>
-                        <button class="filter-btn" data-filter="completed">Completado</button>
+                        <!-- Estos filtros visuales pueden requerir lógica JS adicional si quieres filtrar dentro de las tabs -->
+                        <!-- Por ahora solo son decorativos o funcionales si tu JS original de filtros sigue activo -->
                     </div>
                 </div>
 
                 <!-- Tabs -->
                 <div class="tabs">
-                <div class="tab active" data-tab="catalog">Catálogo</div>
-                <div class="tab" data-tab="assigned">Asignados</div>
-                <div class="tab" data-tab="completed">Completados</div>
-                </div>
-
-                <div class="tab-content" id="assigned">
-                    <div class="course-grid" id="assignedCourses"></div>
-                </div>
-
-                <div class="tab-content" id="completed">
-                    <div class="course-grid" id="completedCourses"></div>
+                    <div class="tab active" data-tab="assigned">Asignados</div>
+                    <div class="tab" data-tab="completed">Completados</div>
+                    <div class="tab" data-tab="timeline">Historial</div>
+                    <div class="tab" data-tab="recommendations">Recomendados</div>
                 </div>
 
                 <!-- Tab Content: Assigned Courses -->
                 <div class="tab-content active" id="assigned">
-                <div class="course-grid" id="courseCardsContainer">
-                    <!-- Los cursos estáticos de demo los puedes dejar o quitar -->
-                </div>
-                </div>
-
-                <!-- Tab Content: Certificates -->
-                <div class="tab-content" id="certificates">
-                <div class="course-grid" id="courseCardsContainer"></div>
-                </div>
-
-
-                <!-- Tab Content: Timeline (Estaba fuera) -->
-                <div class="tab-content" id="timeline">
-                    <div class="timeline">
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-date">15 de Octubre, 2025</div>
-                                <h3 style="color: var(--success); margin-bottom: 0.5rem;">
-                                    <i class="fas fa-check-circle"></i> Curso Completado
-                                </h3>
-                                <p><strong>Política de Seguridad TROX</strong></p>
-                                <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                                    Calificación obtenida: 95/100 | Certificado emitido
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-date">10 de Octubre, 2025</div>
-                                <h3 style="color: var(--warning); margin-bottom: 0.5rem;">
-                                    <i class="fas fa-play-circle"></i> Curso Iniciado
-                                </h3>
-                                <p><strong>Inducción de Seguridad (Contratistas)</strong></p>
-                                <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                                    En progreso: 60% completado
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-date">1 de Septiembre, 2025</div>
-                                <h3 style="color: var(--success); margin-bottom: 0.5rem;">
-                                    <i class="fas fa-check-circle"></i> Curso Completado
-                                </h3>
-                                <p><strong>COVID-19: Protocolo de Acceso</strong></p>
-                                <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                                    Calificación obtenida: 100/100 | Certificado emitido
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-date">25 de Agosto, 2025</div>
-                                <h3 style="color: var(--primary); margin-bottom: 0.5rem;">
-                                    <i class="fas fa-user-plus"></i> Registro en Plataforma
-                                </h3>
-                                <p><strong>Bienvenido a TROX Academy</strong></p>
-                                <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                                    Tu cuenta ha sido activada correctamente
-                                </p>
-                            </div>
-                        </div>
+                    <div class="course-grid" id="assignedCoursesContainer">
+                        <p style="text-align: center; color: var(--text-secondary); width: 100%;">Cargando cursos pendientes...</p>
                     </div>
                 </div>
 
-                <!-- Tab Content: Recommendations (Estaba fuera) -->
+                <!-- Tab Content: Completed Courses -->
+                <div class="tab-content" id="completed">
+                    <div class="course-grid" id="completedCoursesContainer">
+                        <p style="text-align: center; color: var(--text-secondary); width: 100%;">Cargando cursos completados...</p>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Timeline -->
+                <div class="tab-content" id="timeline">
+                    <div class="timeline">
+                        <!-- Se llenará con JS -->
+                    </div>
+                </div>
+
+                <!-- Tab Content: Recommendations -->
                 <div class="tab-content" id="recommendations">
                     <h2 style="margin-bottom: 1rem; color: var(--primary);">
                         <i class="fas fa-magic"></i> Cursos Recomendados Para Ti
@@ -330,7 +220,7 @@
                                 <span class="match-score">88%</span>
                             </div>
                             <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
-                                Especializacióncomplementaria a tus cursos actuales
+                                Especialización complementaria a tus cursos actuales
                             </p>
                             <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
                                 <span style="background: #e6f0ff; color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem;">
@@ -380,7 +270,7 @@
         </div> <!-- Cierre de .main-grid -->
     </div> <!-- Cierre de .container -->
 
-    <!-- Modal (Estaba fuera) -->
+    <!-- Modal General -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <div class="modal-icon" id="modalIcon"></div>
@@ -389,8 +279,10 @@
             <button class="btn btn-primary" id="modalClose" style="width: 100%;">Aceptar</button>
         </div>
     </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../componentes/supabase-client.js"></script>
-<script src="./profile.js?V=3"></script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../componentes/supabase-client.js"></script>
+    <script src="./profile.js?V=3"></script>
 </body>
 </html>
