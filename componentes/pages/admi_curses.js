@@ -863,45 +863,77 @@ window.addMemberByEmail = async () => {
         `).join('');
     }
 
-    window.confirmAssignment = async () => {
+window.confirmAssignment = async () => {
+        // 1. Validaciones básicas
         if (selectedCoursesToAssign.length === 0) return showToast('Alerta', 'Selecciona cursos', 'warning');
+        
         if (!groupMembers || groupMembers.length === 0) {
              await loadGroupMembers();
              if (groupMembers.length === 0) return showToast('Alerta', 'El grupo no tiene miembros', 'warning');
         }
 
-        const assignments = [];
-        const now = new Date();
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 30);
+        // 2. Preparar los IDs para verificar duplicados
+        const userIds = groupMembers.map(m => m.profiles.id);
+        const courseIds = selectedCoursesToAssign.map(c => c.id);
 
-        groupMembers.forEach(member => {
-            selectedCoursesToAssign.forEach(course => {
-                assignments.push({
-                    user_id: member.profiles.id,
-                    course_id: course.id,
-                    tenant_id: currentAdmin.tenant_id,
-                    status: 'not_started',
-                    progress: 0,
-                    assigned_at: now.toISOString(),
-                    due_date: dueDate.toISOString()
+        try {
+            // 3. Consultar qué asignaciones ya existen en la BD
+            const { data: existing, error: queryError } = await window.supabase
+                .from('user_course_assignments')
+                .select('user_id, course_id')
+                .in('user_id', userIds)
+                .in('course_id', courseIds);
+
+            if (queryError) throw queryError;
+
+            // Crear un Set para búsqueda rápida (formato "userId-courseId")
+            const existingSet = new Set(existing.map(e => `${e.user_id}-${e.course_id}`));
+
+            // 4. Filtrar: Solo crear asignaciones que NO estén en el Set
+            const assignmentsToInsert = [];
+            const now = new Date();
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 30);
+
+            groupMembers.forEach(member => {
+                selectedCoursesToAssign.forEach(course => {
+                    const key = `${member.profiles.id}-${course.id}`;
+                    
+                    // Solo agregamos si NO existe
+                    if (!existingSet.has(key)) {
+                        assignmentsToInsert.push({
+                            user_id: member.profiles.id,
+                            course_id: course.id,
+                            tenant_id: currentAdmin.tenant_id,
+                            status: 'not_started',
+                            progress: 0,
+                            assigned_at: now.toISOString(),
+                            due_date: dueDate.toISOString()
+                        });
+                    }
                 });
             });
-        });
 
-const { error } = await window.supabase
-            .from('user_course_assignments')
-            .upsert(assignments, { 
-                onConflict: 'user_id, course_id', 
-                ignoreDuplicates: true 
-            });
+            // 5. Verificar si hay algo que insertar
+            if (assignmentsToInsert.length === 0) {
+                showToast('Info', 'Todos los usuarios seleccionados ya tienen estos cursos asignados.', 'warning');
+                closeAssignModal();
+                return;
+            }
 
-        if (error) {
-            console.error(error);
-            showToast('Error', 'Hubo un problema al asignar', 'error');
-        } else {
-            showToast('Éxito', `Asignados ${selectedCoursesToAssign.length} cursos a ${groupMembers.length} usuarios`, 'success');
+            // 6. Insertar solo los nuevos (usando insert normal, ya no upsert)
+            const { error: insertError } = await window.supabase
+                .from('user_course_assignments')
+                .insert(assignmentsToInsert);
+
+            if (insertError) throw insertError;
+
+            showToast('Éxito', `Se asignaron ${assignmentsToInsert.length} cursos nuevos.`, 'success');
             closeAssignModal();
+
+        } catch (error) {
+            console.error(error);
+            showToast('Error', 'Hubo un problema al asignar los cursos', 'error');
         }
     };
 
