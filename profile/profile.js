@@ -305,24 +305,37 @@ async function loadRealDashboardData(userId) {
     const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
 
     // --- FIX DEL DONUT ---
-    const donutFg = document.querySelector('.progress-donut-fg');
+const donutFg = document.querySelector('.progress-donut-fg');
     const donutText = document.querySelector('.progress-text');
     const progressMsg = document.querySelector('.profile-card p[style*="primary"]');
 
-    if(donutFg) {
-        // IMPORTANTE: Quitamos la animación CSS para que el JS pueda controlar el círculo
+    if (donutFg) {
+        // 1. Definir radio y circunferencia exacta (r=69 según tu HTML)
+        const radius = 69;
+        const circumference = 2 * Math.PI * radius; // Aprox 433.54
+
+        // 2. Calcular el offset
+        // Si porcentaje es 0, el offset es igual a la circunferencia (círculo vacío)
+        // Si porcentaje es 100, el offset es 0 (círculo lleno)
+        const offset = circumference - (percentage / 100) * circumference;
+
+        // 3. APLICAR ESTILOS FORZOSOS
+        // Es CRÍTICO establecer el dasharray aquí para asegurar que coincida con la matemática
+        donutFg.style.strokeDasharray = `${circumference} ${circumference}`;
+        
+        // Desactivamos cualquier animación o transición CSS que esté estorbando
+        donutFg.style.transition = 'none'; 
         donutFg.style.animation = 'none'; 
-        
-        // Circunferencia r=69 es aprox 433.5
-        const circumference = 433.5;
-        const offset = circumference - (circumference * percentage) / 100;
-        
-        // Aplicamos el offset calculado
+
+        // Aplicamos el valor calculado
         donutFg.style.strokeDashoffset = offset;
+
+        // Debug para ver en consola si está calculando bien
+        console.log(` Donut Debug: ${percentage}% | Offset: ${offset}`);
     }
-    
-    if(donutText) donutText.textContent = `${percentage}%`;
-    if(progressMsg) progressMsg.textContent = `${completados} de ${totalCursos} cursos completados`;
+
+    if (donutText) donutText.textContent = `${percentage}%`;
+    if (progressMsg) progressMsg.textContent = `${completados} de ${totalCursos} cursos completados`;
 
     // Actualizar Tarjetas de Estadísticas (Grid)
     const statCards = document.querySelectorAll('.stat-card h3');
