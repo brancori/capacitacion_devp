@@ -458,6 +458,7 @@ if (authError || !authData?.user) {
   return;
 }
 const userId = authData.user.id;
+await loadRealDashboardData(userId);
 
 // Obtener profile (tenant + role)
 const { data: profileRow, error: profileRowError } = await supabase
