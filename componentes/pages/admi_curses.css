@@ -244,28 +244,6 @@ display: grid !important;
     margin-right: 1.5rem;
 }
 
-.compliance-ring {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.85rem;
-    color: white;
-    transition: background 0.3s;
-}
-
-.compliance-ring.red { background: linear-gradient(135deg, #dc3545, #b91c1c); }
-.compliance-ring.yellow { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.compliance-ring.green { background: linear-gradient(135deg, #28a745, #16a34a); }
-
-.compliance-label {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-}
 
 /* === KPIs por Grupo (en tarjetas) === */
 .group-stats {
@@ -694,3 +672,31 @@ display: grid !important;
 .expand-btn.expanded {
     transform: rotate(180deg);
 }
+
+/* Nuevo estilo tipo Badge (igual a Dashboard) */
+.compliance-badge {
+    background: white; 
+    padding: 8px 16px; 
+    border-radius: 20px; 
+    font-weight: 600; 
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    display: flex; 
+    align-items: center; 
+    gap: 8px;
+    border: 1px solid #ddd; /* Default */
+    color: #555;
+}
+
+.compliance-badge .dot { 
+    width: 8px; 
+    height: 8px; 
+    background: currentColor; 
+    border-radius: 50%; 
+    display: block; 
+}
+
+/* Estados de color */
+.compliance-badge.success { color: #2ecc71; border-color: #2ecc71; }
+.compliance-badge.warning { color: #f39c12; border-color: #f39c12; }
+.compliance-badge.danger { color: #e74c3c; border-color: #e74c3c; }
