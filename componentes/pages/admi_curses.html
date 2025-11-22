@@ -22,19 +22,27 @@
 </head>
 <body>
     <!-- Header -->
-    <nav class="top-navbar">
-        <div class="logo-section">
-            <h2 id="companyName"><i class="fas fa-graduation-cap"></i> TROX Academy</h2>
-        </div>
-        <div class="nav-actions">
-            <a href="../../profile/profile.html" class="btn btn-outline">
-                <i class="fas fa-user"></i> Mi Perfil
-            </a>
-            <a href="../../index.html" class="btn btn-outline">
-                <i class="fas fa-sign-out-alt"></i> Salir
-            </a>
-        </div>
-    </nav>
+        <nav class="top-navbar">
+            <div class="logo-section">
+                <h2 id="companyName"><i class="fas fa-graduation-cap"></i> TROX Academy</h2>
+            </div>
+            <div class="nav-actions">
+                <!-- ESTO ES LO QUE DEBES AGREGAR -->
+                <div class="compliance-indicator" id="global-compliance">
+                    <div class="compliance-ring" id="compliance-ring">
+                        <span id="compliance-value">--%</span>
+                    </div>
+                    <span class="compliance-label">Cumplimiento</span>
+                </div>
+                <!-- FIN DE LO AGREGADO -->
+                <a href="../../profile/profile.html" class="btn btn-outline">
+                    <i class="fas fa-user"></i> Mi Perfil
+                </a>
+                <a href="../../index.html" class="btn btn-outline">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </a>
+            </div>
+        </nav>
 
 <!-- Main Container -->
 <div class="container">
