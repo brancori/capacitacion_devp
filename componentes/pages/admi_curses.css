@@ -350,7 +350,6 @@ display: grid !important;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
 }
-s
 /* === Tarjeta de Grupo === */
 .group-card {
     background: var(--card-bg);
@@ -360,7 +359,7 @@ s
     border: 1px solid var(--border);
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
-}
+}A
 
 .group-card:hover {
     transform: translateY(-4px);
