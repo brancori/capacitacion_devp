@@ -2,8 +2,6 @@
    ESTILOS GESTIÓN DE CURSOS Y GRUPOS
    ======================================================================== */
 
-html { font-size: 100%; }
-
 body {
     background-color: var(--light-gray) !important; 
 }
@@ -33,11 +31,9 @@ display: grid !important;
 
 .groups-header {
     padding: 1.5rem;
-    border-bottom: 2px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--light-gray);
+    background: #fff; 
+    border-bottom: 1px solid var(--light-gray); 
+    border-radius: 12px 12px 0 0;
 }
 
 .groups-header h3 {
@@ -72,12 +68,14 @@ display: grid !important;
 
 /* --- Panel Derecho: Detalles del Grupo --- */
 .group-details-container {
-    background: var(--card-bg);
+    background: var(--card-bg); 
     border-radius: 12px;
-    box-shadow: 0 4px 12px var(--shadow);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+    border: 1px solid rgba(0,0,0,0.03); 
     min-height: 400px;
     display: flex;
     flex-direction: column;
+    overflow: hidden; 
 }
 
 .empty-state {
