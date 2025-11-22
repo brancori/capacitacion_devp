@@ -1,0 +1,33 @@
+# 📋 Reglas de Desarrollo y Arquitectura - Aula Corporativa
+
+Este documento define los estándares obligatorios para la generación y mantenimiento de código en este proyecto. 
+
+## 1. Arquitectura de Conexión (Supabase & Proxy)
+El proyecto utiliza un **Proxy PHP** intermedio para asegurar las peticiones a Supabase.
+- **NUNCA** se debe conectar directamente a la URL de Supabase (`supabase.co`) desde el frontend.
+- **SIEMPRE** se debe usar la ruta relativa `/api` como endpoint.
+
+## 2. Cliente Supabase Centralizado
+La lógica de conexión, manejo de cookies y configuración del proxy está centralizada en un único archivo.
+
+### ❌ LO QUE NO SE DEBE HACER (Anti-patrones):
+* No importar `createClient` de `@supabase/supabase-js` en los scripts de las páginas.
+* No definir `SUPABASE_URL` ni `SUPABASE_ANON_KEY` en archivos individuales.
+* No inicializar `supabase.createClient()` manualmente en `index.js`, `profile.js`, etc.
+
+### ✅ LA FORMA CORRECTA:
+* **Dependencia:** Todos los scripts deben asumir que `window.supabase` ya existe y está configurado.
+* **Acceso:** Se debe acceder a la instancia global usando:
+    ```javascript
+    const supabase = window.supabase;
+    ```
+* **Ámbito (Scope):** Para evitar errores de carga (`undefined`), **nunca** declares `const supabase = window.supabase` en el ámbito global (al inicio del archivo). Decláralo **dentro** de las funciones asíncronas, `mainInit`, o manejadores de eventos.
+
+## 3. Estructura HTML Obligatoria
+Para que el cliente centralizado funcione, los scripts en el HTML deben seguir este orden estricto:
+
+```html
+<script src="[https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2)"></script>
+
+<script src="../componentes/supabase-client.js"></script> 
+<script src="./mi-pagina.js"></script>

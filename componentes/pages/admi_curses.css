@@ -6,19 +6,26 @@ html { font-size: 100%; }
 
 .groups-layout {
     display: grid;
-    grid-template-columns: 350px 1fr;
-    gap: 2rem;
-    align-items: start;
+    /* Refactoring UI: "Relative sizing doesn't scale" (p.92) - Usamos minmax para control */
+    grid-template-columns: minmax(300px, 350px) 1fr; 
+    gap: 2.5rem; /* Aumentamos el espacio (Laws of UX - Ley de Proximidad) */
+    align-items: start; /* Crucial para que position: sticky funcione */
+    position: relative;
 }
 
 /* --- Panel Izquierdo: Lista de Grupos --- */
 .groups-sidebar {
     background: var(--card-bg);
     border-radius: 12px;
-    box-shadow: 0 4px 12px var(--shadow);
-    overflow: hidden;
+    /* Refactoring UI: "Use shadows to convey elevation" (p.207) - Eliminamos bordes duros */
+    border: none; 
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    
     position: sticky;
-    top: 100px; 
+    top: 120px; /* Ajuste visual para no chocar con el header */
+    max-height: calc(100vh - 140px); /* Evita que el sticky se rompa al scrollear */
+    display: flex;
+    flex-direction: column;
 }
 
 .groups-header {
@@ -31,30 +38,18 @@ html { font-size: 100%; }
 }
 
 .groups-header h3 {
-    margin: 0;
-    color: var(--primaryColor);
-    font-size: 1.1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--primaryColor); /* Contraste alto */
 }
 
-.groups-list {
-    max-height: 70vh;
+.groups-list, .course-list {
     overflow-y: auto;
+    /* Scrollbar suave para reducir distracción visual */
+    scrollbar-width: thin;
+    padding-bottom: 1rem;
 }
-
-.group-item {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.group-item:hover {
-    background: var(--light-gray);
-}
-
 .group-item.active {
     background: #e6f0ff; /* Tint de primaryColor */
     border-left: 4px solid var(--primaryColor);
@@ -187,22 +182,32 @@ html { font-size: 100%; }
     background: var(--light-gray);
 }
 
-.course-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--card-bg);
-    transition: background 0.2s;
-}
 
 .course-item:last-child {
     border-bottom: none;
 }
 
-.course-item:hover {
-    background: var(--light-gray);
+.course-item, .group-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    /* Refactoring UI: "Start with too much white space" (p.66) */
+    padding: 1.25rem 1.5rem; 
+    background: var(--card-bg);
+    
+    /* Eliminamos border-bottom excesivo */
+    border-bottom: 1px solid var(--light-gray);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Ley de Fitts: Aumentar el área clickable y feedback visual */
+.course-item:hover, .group-item:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    border-color: transparent;
+    cursor: pointer;
 }
 
 .course-details {
