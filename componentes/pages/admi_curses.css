@@ -345,14 +345,12 @@ display: grid !important;
 .status-badge.in_progress, .status-badge.not_started { background: #dbeafe; color: #1e40af; }
 .status-badge.expired { background: #fee2e2; color: #991b1b; }
 
-Agrega esto al final de admi_curses.css:
-css/* === Grid de Grupos === */
 .groups-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
 }
-
+s
 /* === Tarjeta de Grupo === */
 .group-card {
     background: var(--card-bg);
