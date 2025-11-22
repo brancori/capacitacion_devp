@@ -9,7 +9,7 @@ body {
 }
 
 .groups-layout {
-    display: grid;
+display: grid !important;
     grid-template-columns: minmax(280px, 320px) 1fr !important; 
     gap: 2rem; 
     align-items: start;
