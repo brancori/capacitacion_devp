@@ -268,93 +268,112 @@ async function loadUserProfile() {
 async function loadRealDashboardData(userId) {
     const supabase = window.supabase;
 
-    // 1. Cargar Perfil y Asignaciones (Datos base)
-    // Usamos Promise.all para eficiencia
-    const [profileRes, assignmentsRes, badgesRes, logsRes] = await Promise.all([
+    // 1. CARGA DE DATOS (Perfil, Asignaciones, Mis Insignias, Catálogo Completo, Logs)
+    const [profileRes, assignmentsRes, myBadgesRes, allBadgesRes, logsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).single(),
         supabase.from('user_course_assignments').select('*, articles:course_id(title, duration_text)').eq('user_id', userId),
-        supabase.from('user_badges').select('*, badges(*)').eq('user_id', userId),
+        supabase.from('user_badges').select('badge_id'), 
+        supabase.from('badges').select('*'),             
         supabase.from('activity_logs').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(5)
     ]);
 
-    if (profileRes.error) console.error('Error perfil:', profileRes.error);
     const profile = profileRes.data;
     const assignments = assignmentsRes.data || [];
-    const badges = badgesRes.data || [];
+    const myBadgesIds = new Set((myBadgesRes.data || []).map(b => b.badge_id)); 
+    const allBadges = allBadgesRes.data || [];
     const logs = logsRes.data || [];
 
-    // --- A. Renderizar Cabecera de Perfil ---
+    // --- A. Renderizar Perfil ---
     if (profile) {
         document.getElementById('profileName').textContent = profile.full_name || 'Usuario';
-        
-        // Generar Iniciales para Avatar (Fallback de imagen)
         const initials = (profile.full_name || 'U').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
         const avatarEl = document.querySelector('.avatar');
-        avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`; // Reemplaza el icono
-
-        // ID Empleado (Fallback a segmento de UUID)
+        if(avatarEl) avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`;
+        
         const shortId = profile.id.split('-')[0].toUpperCase(); 
-        document.querySelector('.profile-card .role').textContent = `${profile.role === 'master' ? 'Administrador' : 'Colaborador'} | ID REF: ${shortId}`;
+        const roleEl = document.querySelector('.profile-card .role');
+        if(roleEl) roleEl.textContent = `${profile.role === 'master' ? 'Administrador' : 'Colaborador'} | ID: ${shortId}`;
     }
 
-    // --- B. Calcular Estadísticas (Donut y Cards) ---
+    // --- B. Estadísticas y Donut Chart ---
     const totalCursos = assignments.length;
-    const completados = assignments.filter(a => a.status === 'completed' || a.progress === 100).length;
-    const pendientes = assignments.filter(a => a.status === 'pending' && a.progress < 100).length;
+    // Consideramos completado si status es 'completed' O si el progreso es 100
+    const completados = assignments.filter(a => a.status === 'completed' || Number(a.progress) === 100).length;
+    const pendientes = assignments.filter(a => a.status !== 'completed' && Number(a.progress) < 100).length;
     
-    // Lógica Urgente: Vence en menos de 7 días y no está completo
+    // Calcular porcentaje
+    const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
+
+    // --- FIX DEL DONUT ---
+    const donutFg = document.querySelector('.progress-donut-fg');
+    const donutText = document.querySelector('.progress-text');
+    const progressMsg = document.querySelector('.profile-card p[style*="primary"]');
+
+    if(donutFg) {
+        // IMPORTANTE: Quitamos la animación CSS para que el JS pueda controlar el círculo
+        donutFg.style.animation = 'none'; 
+        
+        // Circunferencia r=69 es aprox 433.5
+        const circumference = 433.5;
+        const offset = circumference - (circumference * percentage) / 100;
+        
+        // Aplicamos el offset calculado
+        donutFg.style.strokeDashoffset = offset;
+    }
+    
+    if(donutText) donutText.textContent = `${percentage}%`;
+    if(progressMsg) progressMsg.textContent = `${completados} de ${totalCursos} cursos completados`;
+
+    // Actualizar Tarjetas de Estadísticas (Grid)
+    const statCards = document.querySelectorAll('.stat-card h3');
+    if(statCards.length >= 3) {
+        if(statCards[0]) statCards[0].textContent = totalCursos;
+        if(statCards[1]) statCards[1].textContent = completados;
+        if(statCards[2]) statCards[2].textContent = pendientes;
+        // La tarjeta de "Urgente" la calculamos abajo
+    }
+
+    // --- C. RENDERIZADO DE INSIGNIAS (Lógica de Álbum) ---
+    const badgesContainer = document.querySelector('.badges-grid');
+    if (badgesContainer) {
+        if (allBadges.length === 0) {
+            badgesContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; font-size: 0.8rem;">No hay insignias disponibles.</p>';
+        } else {
+            // Recorremos el CATÁLOGO COMPLETO (allBadges) para mostrarlas todas
+            badgesContainer.innerHTML = allBadges.map(badge => {
+                // Checamos si el usuario tiene esta estampita
+                const isEarned = myBadgesIds.has(badge.id);
+                
+                // Si la tiene = color ('earned'). Si no = gris ('badge' normal del CSS)
+                const cssClass = isEarned ? 'badge earned' : 'badge';
+                const tooltip = isEarned ? '¡Insignia Obtenida!' : 'Bloqueado: Completa los requisitos';
+
+                return `
+                <div class="${cssClass}" title="${tooltip}">
+                    <i class="${badge.icon_class || 'fas fa-medal'}"></i>
+                    <span>${badge.name}</span>
+                </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // --- D. Calendario (Urgencias) ---
     const now = new Date();
     const urgentThreshold = new Date();
     urgentThreshold.setDate(now.getDate() + 7);
-    
-    const urgentes = assignments.filter(a => {
+
+    // Filtramos urgentes para el contador de la tarjeta roja
+    const urgentesCount = assignments.filter(a => {
         if (!a.due_date || a.status === 'completed') return false;
         const due = new Date(a.due_date);
         return due <= urgentThreshold && due >= now;
     }).length;
+    
+    if(statCards[3]) statCards[3].textContent = urgentesCount;
 
-    // Actualizar DOM Stats Grid
-    const statCards = document.querySelectorAll('.stat-card h3');
-    if(statCards.length >= 4) {
-        statCards[0].textContent = totalCursos; // Total
-        statCards[1].textContent = completados; // Completados
-        statCards[2].textContent = pendientes;  // En Progreso/Pendientes
-        statCards[3].textContent = urgentes;    // Urgente
-    }
-
-    // Actualizar Donut Chart
-    const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
-    const donutFg = document.querySelector('.progress-donut-fg');
-    const donutText = document.querySelector('.progress-text');
-    const progressMsg = document.querySelector('.profile-card p[style*="primary"]'); // "2 de 5 cursos..."
-
-    if(donutFg) {
-        // Cálculo del dashoffset: 433.5 es la circunferencia completa
-        const offset = 433.5 - (433.5 * percentage) / 100;
-        donutFg.style.strokeDashoffset = offset;
-    }
-    if(donutText) donutText.textContent = `${percentage}%`;
-    if(progressMsg) progressMsg.textContent = `${completados} de ${totalCursos} cursos completados`;
-
-
-    // --- C. Renderizar Badges ---
-    const badgesContainer = document.querySelector('.badges-grid');
-    if (badgesContainer) {
-        if (badges.length === 0) {
-            badgesContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary);">Aún no tienes insignias.</p>';
-        } else {
-            badgesContainer.innerHTML = badges.map(ub => `
-                <div class="badge earned" title="${ub.badges.description || ''}">
-                    <i class="${ub.badges.icon_class || 'fas fa-award'}"></i>
-                    <span>${ub.badges.name}</span>
-                </div>
-            `).join('');
-        }
-    }
-
-    // --- D. Renderizar Calendario (Próximos Vencimientos) ---
+    // Renderizar lista del calendario
     const calendarContainer = document.querySelector('.calendar-card');
-    // Filtramos asignaciones con fecha, no completadas, ordenadas por fecha
     const upcomingAssignments = assignments
         .filter(a => a.due_date && a.status !== 'completed')
         .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
@@ -365,13 +384,13 @@ async function loadRealDashboardData(userId) {
         let content = '';
 
         if (upcomingAssignments.length === 0) {
-            content = '<p style="text-align: center; color: var(--text-secondary); padding: 1rem;">No hay vencimientos próximos.</p>';
+            content = '<p style="text-align: center; color: var(--text-secondary); padding: 1rem; font-size: 0.9rem;">¡Estás al día!</p>';
         } else {
             content = upcomingAssignments.map(a => {
                 const date = new Date(a.due_date);
                 const day = date.getDate();
                 const month = date.toLocaleString('es-ES', { month: 'short' }).toUpperCase();
-                // Determinar urgencia
+                
                 const diffTime = date - now;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 const isUrgent = diffDays <= 5;
@@ -384,7 +403,7 @@ async function loadRealDashboardData(userId) {
                     </div>
                     <div class="event-details">
                         <h4>${a.articles.title}</h4>
-                        <p>${diffDays < 0 ? 'Vencido' : `Vence en ${diffDays} días`}</p>
+                        <p>${diffDays < 0 ? 'Vencido' : diffDays === 0 ? 'Vence hoy' : `Vence en ${diffDays} días`}</p>
                     </div>
                 </div>`;
             }).join('');
@@ -392,31 +411,28 @@ async function loadRealDashboardData(userId) {
         calendarContainer.innerHTML = header + content;
     }
 
-    // --- E. Renderizar Timeline (Activity Logs) ---
+    // --- E. Timeline ---
     const timelineContainer = document.querySelector('.timeline');
     if (timelineContainer) {
         if (logs.length === 0) {
-            timelineContainer.innerHTML = '<p style="padding: 1rem; color: var(--text-secondary);">No hay actividad reciente registrada.</p>';
+            timelineContainer.innerHTML = '<p style="padding: 1rem; color: var(--text-secondary);">Sin actividad reciente.</p>';
         } else {
             timelineContainer.innerHTML = logs.map(log => {
                 const date = new Date(log.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-                
-                // Icono y color según tipo de acción
                 let icon = 'fa-info-circle';
                 let color = 'var(--primaryColor)';
                 
                 if (log.action_type === 'course_completed') { icon = 'fa-check-circle'; color = 'var(--success)'; }
                 if (log.action_type === 'enrollment') { icon = 'fa-play-circle'; color = 'var(--warning)'; }
-                if (log.action_type === 'login') { icon = 'fa-user-clock'; color = 'var(--text-secondary)'; }
-
+                
                 return `
                 <div class="timeline-item">
                     <div class="timeline-content">
                         <div class="timeline-date">${date}</div>
-                        <h3 style="color: ${color}; margin-bottom: 0.5rem;">
-                            <i class="fas ${icon}"></i> ${log.action_type.replace('_', ' ').toUpperCase()}
+                        <h3 style="color: ${color}; margin-bottom: 0.5rem; font-size: 1rem;">
+                            <i class="fas ${icon}"></i> ${log.action_type === 'course_completed' ? 'Curso Completado' : 'Actividad'}
                         </h3>
-                        <p><strong>${log.description}</strong></p>
+                        <p style="font-size: 0.9rem;"><strong>${log.description}</strong></p>
                     </div>
                 </div>`;
             }).join('');
