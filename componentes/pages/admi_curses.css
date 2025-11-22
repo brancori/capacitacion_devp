@@ -236,3 +236,111 @@ display: grid !important;
         max-height: 250px;
     }
 }
+/* === Indicador Global de Cumplimiento === */
+.compliance-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-right: 1.5rem;
+}
+
+.compliance-ring {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: white;
+    transition: background 0.3s;
+}
+
+.compliance-ring.red { background: linear-gradient(135deg, #dc3545, #b91c1c); }
+.compliance-ring.yellow { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.compliance-ring.green { background: linear-gradient(135deg, #28a745, #16a34a); }
+
+.compliance-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* === KPIs por Grupo (en tarjetas) === */
+.group-stats {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.group-stat {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.group-stat.completed { background: #d1fae5; color: #065f46; }
+.group-stat.in-progress { background: #dbeafe; color: #1e40af; }
+.group-stat.expired { background: #fee2e2; color: #991b1b; }
+
+/* === Modal Usuario Detalle === */
+.user-detail-modal .modal-content {
+    max-width: 700px;
+}
+
+.user-summary {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.user-summary .stat-box {
+    flex: 1;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    background: var(--light-gray);
+}
+
+.stat-box .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.stat-box.completed .stat-value { color: var(--success); }
+.stat-box.in-progress .stat-value { color: var(--primaryColor); }
+.stat-box.expired .stat-value { color: var(--danger); }
+
+.user-courses-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.user-courses-table th,
+.user-courses-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.user-courses-table th {
+    background: var(--light-gray);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.modal.active {
+    display: flex;
+}
+
+.status-badge.completed { background: #d1fae5; color: #065f46; }
+.status-badge.in_progress, .status-badge.not_started { background: #dbeafe; color: #1e40af; }
+.status-badge.expired { background: #fee2e2; color: #991b1b; }

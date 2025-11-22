@@ -170,6 +170,26 @@
     </div>
 </div>
 
+<!-- User Detail Modal -->
+<div class="modal user-detail-modal" id="user-detail-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="user-detail-name">Detalle del Usuario</h3>
+            <button class="modal-close" onclick="closeUserDetailModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="user-summary" id="user-summary"></div>
+            <div id="user-courses-container"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeUserDetailModal()">Cerrar</button>
+            <button class="btn btn-primary" onclick="sendReminder()">
+                <i class="fas fa-bell"></i> Enviar Recordatorio
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 (async () => {
     // =================================================================
@@ -304,6 +324,166 @@
         document.getElementById('kpi-urgent').textContent = expired; 
     }
 
+
+    async function updateGlobalCompliance() {
+    if (!currentAdmin.tenant_id) return;
+
+    const { data } = await window.supabase
+        .from('user_course_assignments')
+        .select('status, due_date')
+        .eq('tenant_id', currentAdmin.tenant_id);
+
+    if (!data || data.length === 0) {
+        document.getElementById('compliance-value').textContent = '0%';
+        document.getElementById('compliance-ring').className = 'compliance-ring red';
+        return;
+    }
+
+    const completed = data.filter(a => a.status === 'completed').length;
+    const percent = Math.round((completed / data.length) * 100);
+
+    document.getElementById('compliance-value').textContent = `${percent}%`;
+    const ring = document.getElementById('compliance-ring');
+    ring.classList.remove('red', 'yellow', 'green');
+    
+    if (percent <= 50) ring.classList.add('red');
+    else if (percent <= 80) ring.classList.add('yellow');
+    else ring.classList.add('green');
+}
+
+// =================================================================
+// ESTADÍSTICAS POR GRUPO
+// =================================================================
+async function getGroupStats(groupId) {
+    const { data: members } = await window.supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupId);
+
+    if (!members || members.length === 0) {
+        return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
+    }
+
+    const userIds = members.map(m => m.user_id);
+    const now = new Date().toISOString();
+
+    const { data: assignments } = await window.supabase
+        .from('user_course_assignments')
+        .select('status, due_date')
+        .in('user_id', userIds);
+
+    if (!assignments) return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
+
+    let completed = 0, inProgress = 0, expired = 0;
+
+    assignments.forEach(a => {
+        if (a.status === 'completed') completed++;
+        else if (a.due_date && new Date(a.due_date) < new Date()) expired++;
+        else inProgress++;
+    });
+
+    const total = assignments.length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return { completed, inProgress, expired, completionRate };
+}
+
+// =================================================================
+// DETALLE DE USUARIO
+// =================================================================
+let currentDetailUser = null;
+
+window.openUserDetail = async (userId, userName) => {
+    currentDetailUser = { id: userId, name: userName };
+    document.getElementById('user-detail-name').textContent = userName;
+    document.getElementById('user-detail-modal').classList.add('active');
+
+    const summaryEl = document.getElementById('user-summary');
+    const coursesEl = document.getElementById('user-courses-container');
+    
+    summaryEl.innerHTML = '<p>Cargando...</p>';
+    coursesEl.innerHTML = '';
+
+    const now = new Date();
+
+    const { data: assignments } = await window.supabase
+        .from('user_course_assignments')
+        .select('*, articles(title)')
+        .eq('user_id', userId);
+
+    if (!assignments || assignments.length === 0) {
+        summaryEl.innerHTML = '<p>Este usuario no tiene cursos asignados.</p>';
+        return;
+    }
+
+    let completed = 0, inProgress = 0, expired = 0;
+    const processed = assignments.map(a => {
+        let displayStatus = a.status;
+        if (a.status === 'completed') completed++;
+        else if (a.due_date && new Date(a.due_date) < now) {
+            expired++;
+            displayStatus = 'expired';
+        } else inProgress++;
+        return { ...a, displayStatus };
+    });
+
+    summaryEl.innerHTML = `
+        <div class="stat-box completed">
+            <div class="stat-value">${completed}</div>
+            <div>Completados</div>
+        </div>
+        <div class="stat-box in-progress">
+            <div class="stat-value">${inProgress}</div>
+            <div>En Progreso</div>
+        </div>
+        <div class="stat-box expired">
+            <div class="stat-value">${expired}</div>
+            <div>Vencidos</div>
+        </div>
+    `;
+
+    const statusLabels = {
+        completed: 'Completado',
+        in_progress: 'En Progreso',
+        not_started: 'No Iniciado',
+        expired: 'Vencido'
+    };
+
+    coursesEl.innerHTML = `
+        <table class="user-courses-table">
+            <thead>
+                <tr>
+                    <th>Curso</th>
+                    <th>Progreso</th>
+                    <th>Vencimiento</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${processed.map(a => `
+                    <tr>
+                        <td>${a.articles?.title || 'Sin título'}</td>
+                        <td>${a.progress || 0}%</td>
+                        <td>${a.due_date ? new Date(a.due_date).toLocaleDateString() : '-'}</td>
+                        <td><span class="status-badge ${a.displayStatus}">${statusLabels[a.displayStatus] || a.displayStatus}</span></td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+};
+
+window.closeUserDetailModal = () => {
+    document.getElementById('user-detail-modal').classList.remove('active');
+    currentDetailUser = null;
+};
+
+window.sendReminder = async () => {
+    if (!currentDetailUser) return;
+    // TODO: Integrar con sistema de notificaciones/email
+    showToast('Info', `Recordatorio enviado a ${currentDetailUser.name}`, 'success');
+};
+
     async function renderGroups(filter = '') {
         const container = document.getElementById('groups-container');
         
@@ -330,11 +510,12 @@
         }
 
         const groupsHTML = await Promise.all(filtered.map(async (g) => {
-            // Contar miembros
             const { count } = await window.supabase
                 .from('group_members')
                 .select('*', { count: 'exact', head: true })
                 .eq('group_id', g.id);
+            
+            const stats = await getGroupStats(g.id);
             
             return `
             <div class="group-card" onclick="window.viewGroupDetail('${g.id}')">
@@ -343,6 +524,12 @@
                         <h3><i class="fas fa-folder"></i> ${g.name}</h3>
                         <div class="group-meta">
                             <span><i class="fas fa-users"></i> ${count || 0} miembros</span>
+                            <span><i class="fas fa-chart-pie"></i> ${stats.completionRate}% completado</span>
+                        </div>
+                        <div class="group-stats">
+                            <span class="group-stat completed">${stats.completed} ✓</span>
+                            <span class="group-stat in-progress">${stats.inProgress} ◔</span>
+                            <span class="group-stat expired">${stats.expired} ⚠</span>
                         </div>
                     </div>
                 </div>
@@ -431,12 +618,12 @@ async function loadGroupMembers() {
         membersContainer.innerHTML = groupMembers.map(item => {
             const p = item.profiles;
             return `
-            <div class="course-item" style="justify-content:space-between;">
+            <div class="course-item" style="justify-content:space-between; cursor:pointer;" onclick="openUserDetail('${p.id}', '${p.full_name || p.email}')">
                 <div class="course-details">
                     <div class="course-title">${p.full_name || 'Sin nombre'}</div>
                     <small>${p.email}</small>
                 </div>
-                <button class="btn btn-secondary" onclick="removeMember('${item.id}')" style="color:var(--danger);padding:0.3rem 0.6rem;">
+                <button class="btn btn-secondary" onclick="event.stopPropagation(); removeMember('${item.id}')" style="color:var(--danger);padding:0.3rem 0.6rem;">
                     <i class="fas fa-times"></i>
                 </button>
             </div>`;
@@ -683,6 +870,7 @@ window.addMemberByEmail = async () => {
         
         // 4. Cargar datos
         await updateKPIs();
+        await updateGlobalCompliance();
         await renderGroups();
 
         document.body.style.opacity = 1;

@@ -1,0 +1,188 @@
+:root {
+    --primaryColor: #234B95;
+    --secondaryColor: #1F3F7A;
+    --bgPage: #f0f2f5;
+    --textPage: #333;
+    --white: #ffffff;
+    --success: #2ecc71;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --info: #3498db;
+    --purple: #9b59b6;
+    --shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+body {
+    background-color: var(--bgPage);
+    color: var(--textPage);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 80px; background: var(--white); display: flex; flex-direction: column; align-items: center;
+    padding: 1.5rem 0.5rem; box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 100; transition: width 0.3s;
+}
+.brand-area { color: var(--primaryColor); font-size: 1.5rem; margin-bottom: 2rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.logo-icon { font-size: 1.8rem; }
+.brand-text { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+
+.nav-menu { flex: 1; display: flex; flex-direction: column; gap: 0.8rem; width: 100%; align-items: center; }
+.nav-btn {
+    background: none; border: none; width: 45px; height: 45px; border-radius: 12px;
+    color: #999; font-size: 1.2rem; cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; justify-content: center;
+}
+.nav-btn:hover, .nav-btn.active { background: var(--primaryColor); color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+.user-area { display: flex; flex-direction: column; gap: 1rem; align-items: center; }
+.avatar-mini { width: 40px; height: 40px; background: var(--secondaryColor); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; }
+.logout-mini { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
+
+/* Main */
+.dashboard-container { flex: 1; padding: 1.5rem 2rem; overflow-y: auto; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.welcome-text h1 { font-weight: 700; font-size: 1.8rem; color: var(--primaryColor); margin-bottom: 0.2rem; }
+.date-sub { color: #888; font-size: 0.9rem; text-transform: capitalize; }
+.risk-badge {
+    background: white; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.9rem;
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px;
+}
+.risk-badge.low { color: var(--success); border: 1px solid var(--success); }
+.risk-badge .dot { width: 8px; height: 8px; background: currentColor; border-radius: 50%; display: block; }
+.btn-primary-outline {
+    border: 2px solid var(--primaryColor); color: var(--primaryColor); background: transparent;
+    padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary-outline:hover { background: var(--primaryColor); color: white; }
+.full-width { width: 100%; }
+
+/* Grid */
+.bento-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(140px, auto); gap: 1.2rem;
+}
+.card {
+    background: var(--white); border-radius: 16px; padding: 1.2rem;
+    box-shadow: var(--shadow); position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s; border: 1px solid transparent;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); border-color: rgba(0,0,0,0.05); }
+
+/* --- Tarjetas de Detalle (Permisos, Maquinaria, etc) --- */
+.detail-card { grid-column: span 1; grid-row: span 1; display: flex; flex-direction: column; gap: 0.8rem; }
+.card-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.card-title-row h3 { font-size: 1rem; color: var(--textPage); margin: 0; }
+.icon-box { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+.warning-bg { background: #fff8e1; color: var(--warning); }
+.danger-bg { background: #feedeb; color: var(--danger); }
+.info-bg { background: #e3f2fd; color: var(--info); }
+.success-bg { background: #e6f4ea; color: var(--success); }
+.purple-bg { background: #f3e5f5; color: var(--purple); }
+
+/* Listas de Estadísticas (Permisos) */
+.stats-list { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; width: 100%; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; color: #555; }
+.stat-row .val { font-weight: bold; color: var(--textPage); }
+.stat-row.highlight-warning .val { color: var(--warning); }
+
+/* Lista de Brigadas */
+.brigade-list { display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; }
+.brigade-item { display: flex; align-items: center; gap: 8px; }
+.brigade-item i { color: #aaa; width: 16px; text-align: center; }
+.brigade-item span { flex: 1; color: #444; }
+.brigade-item .badge { background: #eee; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.75rem; color: #555; }
+
+/* Status Rows (Maquinaria) */
+.status-rows { display: flex; flex-direction: column; gap: 8px; }
+.status-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; }
+.status-row.success { background: #e6f4ea; color: #1e7e34; }
+.status-row.warning { background: #fff8e1; color: #856404; }
+.status-row.danger { background: #feedeb; color: #721c24; }
+.status-row strong { margin-left: auto; }
+
+/* Inspecciones (Extra Card) */
+.card-subtitle { font-size: 0.8rem; color: #888; margin-top: -5px; margin-bottom: 5px; }
+.progress-mini-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: #555; margin-bottom: 3px; }
+.bar { height: 6px; background: #eee; border-radius: 3px; width: 100%; overflow: hidden; margin-bottom: 8px; }
+.fill { height: 100%; background: var(--primaryColor); }
+.fill.purple-fill { background: var(--purple); }
+.mini-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.mini-tags span { font-size: 0.7rem; background: #f8f9fa; padding: 2px 6px; border-radius: 4px; color: #666; border: 1px solid #eee; }
+
+/* Safety Counter */
+.safety-counter-card { grid-column: span 1; grid-row: span 2; background: linear-gradient(160deg, var(--primaryColor), var(--secondaryColor)); color: white; display: flex; flex-direction: column; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.status-pill { background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; }
+.counter-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; z-index: 2; }
+.big-number { font-size: 5rem; font-weight: 800; line-height: 1; }
+.card-actions { margin-top: auto; text-align: center; z-index: 2; }
+.btn-glass-sm { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; }
+.btn-glass-sm:hover { background: white; color: var(--primaryColor); }
+.bg-icon { position: absolute; bottom: -10px; right: -10px; font-size: 10rem; opacity: 0.1; transform: rotate(-15deg); pointer-events: none; }
+
+/* Calendar */
+.calendar-card { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column; }
+.calendar-header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.calendar-header-controls button { background: none; border: none; cursor: pointer; color: var(--textPage); }
+.calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; color: #aaa; font-size: 0.8rem; margin-bottom: 5px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; flex: 1; }
+.day-cell { display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.85rem; cursor: pointer; background: #f8f9fa; position: relative; }
+.day-cell:hover { background: #eee; border: 1px solid var(--primaryColor); }
+.day-cell.empty { background: transparent; cursor: default; }
+.day-cell.safe { background: rgba(46, 204, 113, 0.15); color: var(--success); font-weight: bold; }
+.day-cell.today { border: 2px solid var(--primaryColor); }
+.agenda-dot { position: absolute; bottom: 4px; width: 5px; height: 5px; background-color: var(--primaryColor); border-radius: 50%; }
+
+/* Training Card */
+.training-card { grid-column: span 2; grid-row: span 1; display: flex; flex-direction: column; justify-content: center; border-left: 4px solid var(--primaryColor); cursor: pointer; }
+.training-content { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+.icon-float { width: 45px; height: 45px; background: #eef2ff; color: var(--primaryColor); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.training-card h3 { font-size: 1.1rem; margin: 0; }
+
+/* Manager Card (Scorecard) */
+.manager-card { grid-column: span 1; grid-row: span 2; display: flex; flex-direction: column; }
+.manager-card h3 { font-size: 1rem; margin-bottom: 1rem; text-align: center; color: var(--textPage); }
+.score-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
+.compliance-gauge { position: relative; width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(var(--success) calc(var(--percent) * 1%), #eee 0); display: flex; align-items: center; justify-content: center; }
+.gauge-inner { width: 100px; height: 100px; background: var(--white); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.score-number { font-size: 1.8rem; font-weight: 800; color: var(--textPage); line-height: 1; }
+.score-label { font-size: 0.65rem; color: #888; text-transform: uppercase; }
+.mini-stats-column { width: 100%; padding: 0 10px; }
+
+/* Modals */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+.modal-content { background: white; padding: 2rem; border-radius: 15px; width: 400px; animation: slideUp 0.3s ease; max-width: 95%; }
+.modal-lg { width: 550px; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; align-items: center; }
+.close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: 600; }
+.form-group select, .form-group textarea, .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+.btn-primary { background: var(--primaryColor); color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+/* Modal Día */
+.day-actions-grid { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+.action-btn { flex: 1; border: none; border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; color: white; }
+.action-btn:hover { transform: translateY(-3px); opacity: 0.9; }
+.action-btn.danger { background: var(--danger); }
+.action-btn.warning { background: var(--warning); }
+.action-btn.info { background: var(--info); }
+.action-btn i { font-size: 1.5rem; }
+.divider { border: 0; border-top: 1px solid #eee; margin: 1.5rem 0; }
+.agenda-input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.btn-icon { background: var(--primaryColor); color: white; border: none; width: 40px; border-radius: 6px; cursor: pointer; }
+.agenda-list { list-style: none; max-height: 150px; overflow-y: auto; }
+.agenda-item { background: #f8f9fa; padding: 0.5rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; font-size: 0.9rem; border-left: 3px solid var(--primaryColor); }
+
+@media (max-width: 768px) {
+    .bento-grid { grid-template-columns: 1fr; }
+    .card, .calendar-card, .training-card, .manager-card { grid-column: span 1 !important; grid-row: span 1 !important; }
+    .day-actions-grid { flex-direction: column; }
+    .sidebar { width: 0; padding: 0; overflow: hidden; }
+}

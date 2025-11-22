@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Gestión EH&S</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+    <!-- Barra Lateral -->
+    <aside class="sidebar">
+        <div class="brand-area">
+            <i class="fas fa-shield-alt logo-icon"></i>
+            <span id="companyName" class="brand-text">Portal</span>
+        </div>
+        
+        <nav class="nav-menu">
+            <button class="nav-btn active" title="Dashboard Principal"><i class="fas fa-th-large"></i></button>
+            <a href="../capacitacion/admin.html" class="nav-btn" title="Admin Capacitación"><i class="fas fa-chalkboard-teacher"></i></a>
+            <button class="nav-btn" title="Permisos de Trabajo"><i class="fas fa-id-card"></i></button>
+            <button class="nav-btn" title="Gestión de Riesgos"><i class="fas fa-clipboard-list"></i></button>
+            <button class="nav-btn" title="Maquinaria y Equipo"><i class="fas fa-cogs"></i></button>
+        </nav>
+
+        <div class="user-area">
+            <div class="avatar-mini" id="userAvatar">U</div>
+            <button id="logoutBtn" class="logout-mini" title="Cerrar Sesión"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </aside>
+
+    <!-- Contenido Principal -->
+    <main class="dashboard-container">
+        
+        <!-- Header -->
+        <header class="top-bar">
+            <div class="welcome-text">
+                <h1 id="welcomeMsg">Panel de Control</h1>
+                <p id="dateDisplay" class="date-sub">Cargando fecha...</p>
+            </div>
+            <div class="actions">
+                <div class="risk-badge low">
+                    <span class="dot"></span> Riesgo Planta: BAJO
+                </div>
+            </div>
+        </header>
+
+        <!-- GRID PRINCIPAL -->
+        <div class="bento-grid">
+            
+            <!-- 1. Contador de Seguridad (Sin cambios) -->
+            <div class="card safety-counter-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-hard-hat"></i> Seguridad</h3>
+                    <span class="status-pill success">Meta: 365</span>
+                </div>
+                <div class="counter-content">
+                    <div class="big-number" id="accident-free-days">0</div>
+                    <p>Días sin accidentes</p>
+                </div>
+                <div class="card-actions">
+                    <button id="markSafeDay" class="btn-glass-sm">
+                        <i class="fas fa-check"></i> Validar Día
+                    </button>
+                </div>
+                <div class="bg-icon"><i class="fas fa-shield-virus"></i></div>
+            </div>
+
+            <!-- 2. Calendario Operativo (Sin cambios) -->
+            <div class="card calendar-card">
+                <div class="calendar-header-controls">
+                    <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                    <h3 id="monthDisplay">Calendario</h3>
+                    <button onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-weekdays">
+                    <div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+            </div>
+
+            <!-- 3. PERMISOS DE TRABAJO (Actualizado) -->
+            <div class="card detail-card">
+                <div class="card-title-row">
+                    <div class="icon-box warning-bg"><i class="fas fa-file-signature"></i></div>
+                    <h3>Permisos PTW</h3>
+                </div>
+                <div class="stats-list">
+                    <div class="stat-row">
+                        <span class="lbl">Abiertos (Vigentes)</span>
+                        <span class="val bold">5</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="lbl">Cerrados</span>
+                        <span class="val">12</span>
+                    </div>
+                    <div class="stat-row highlight-warning">
+                        <span class="lbl">Pendientes Autorizar</span>
+                        <span class="val">3</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. ORGANIGRAMA / BRIGADAS (Actualizado) -->
+            <div class="card detail-card">
+                <div class="card-title-row">
+                    <div class="icon-box success-bg"><i class="fas fa-users"></i></div>
+                    <h3>Brigadas Activas</h3>
+                </div>
+                <div class="brigade-list">
+                    <div class="brigade-item">
+                        <i class="fas fa-medkit"></i>
+                        <span>Primeros Auxilios</span>
+                        <span class="badge">8</span>
+                    </div>
+                    <div class="brigade-item">
+                        <i class="fas fa-fire-extinguisher"></i>
+                        <span>Contra Incendios</span>
+                        <span class="badge">12</span>
+                    </div>
+                    <div class="brigade-item">
+                        <i class="fas fa-search-location"></i>
+                        <span>Búsqueda y Rescate</span>
+                        <span class="badge">6</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Tarjeta Admin Capacitación -->
+            <div class="card training-card" onclick="window.location.href='../capacitacion/admin.html'">
+                <div class="training-content">
+                    <div class="icon-float"><i class="fas fa-users-cog"></i></div>
+                    <div>
+                        <h3>Gestión de Capacitación</h3>
+                        <p>Administración de cursos y personal</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. MAQUINARIA Y EQUIPO (Actualizado) -->
+            <div class="card detail-card">
+                <div class="card-title-row">
+                    <div class="icon-box info-bg"><i class="fas fa-truck-loading"></i></div>
+                    <h3>Maquinaria</h3>
+                </div>
+                <div class="status-rows">
+                    <div class="status-row success">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Liberada</span>
+                        <strong>15</strong>
+                    </div>
+                    <div class="status-row warning">
+                        <i class="fas fa-clock"></i>
+                        <span>Pendiente Autorizar</span>
+                        <strong>2</strong>
+                    </div>
+                    <div class="status-row danger">
+                        <i class="fas fa-ban"></i>
+                        <span>No Cumple / Cancelada</span>
+                        <strong>1</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. NUEVO CARD EXTRA: Inspecciones de Seguridad (Operación y Control) -->
+            <div class="card detail-card" onclick="alert('Ir a módulo de inspecciones')">
+                <div class="card-title-row">
+                    <div class="icon-box purple-bg"><i class="fas fa-clipboard-check"></i></div>
+                    <h3>Inspecciones</h3>
+                </div>
+                <p class="card-subtitle">Recorridos de seguridad (Safety Walks)</p>
+                <div class="progress-mini-label">
+                    <span>Avance Mensual</span>
+                    <span>80%</span>
+                </div>
+                <div class="bar"><div class="fill purple-fill" style="width: 80%"></div></div>
+                <div class="mini-tags">
+                    <span>Extintores</span>
+                    <span>Botiquines</span>
+                    <span>EPP</span>
+                </div>
+            </div>
+
+            <!-- 8. KPI GERENCIALES (Scorecard) -->
+            <div class="card manager-card">
+                <h3><i class="fas fa-chart-line"></i> Scorecard EHS</h3>
+                
+                <div class="score-container">
+                    <!-- Gauge -->
+                    <div class="compliance-gauge" style="--percent: 92;">
+                        <div class="gauge-inner">
+                            <span class="score-number">92%</span>
+                            <span class="score-label">Cumplimiento</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mini-stats-column">
+                        <div class="stat-row">
+                            <span class="lbl">Hallazgos Abiertos</span>
+                            <span class="val danger">2</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="lbl">Hallazgos Cerrados</span>
+                            <span class="val success">45</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-primary-outline full-width" onclick="exportExecutiveReport()">
+                    <i class="fas fa-file-pdf"></i> Reporte Ejecutivo
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modals (Reporte y Agenda - Iguales) -->
+    <div id="recordFormModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nuevo Reporte</h2>
+                <button onclick="toggleRecordForm()" class="close-btn">&times;</button>
+            </div>
+            <form id="recordForm">
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="eventType" required>
+                        <option value="incident">Incidente</option>
+                        <option value="accident">Accidente</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha del Evento</label>
+                    <input type="date" id="eventDateInput" required>
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="description" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn-primary full-width">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="dayActionModal" class="modal-overlay">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2 id="dayModalTitle">Gestión del Día</h2>
+                <button onclick="closeDayModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="day-actions-grid">
+                <button class="action-btn danger" onclick="triggerReportFromDay('accident')"><i class="fas fa-ambulance"></i><span>Accidente</span></button>
+                <button class="action-btn warning" onclick="triggerReportFromDay('incident')"><i class="fas fa-exclamation-triangle"></i><span>Incidente</span></button>
+                <button class="action-btn info" onclick="triggerReportFromDay('unsafe_act')"><i class="fas fa-user-injured"></i><span>Acto Inseguro</span></button>
+            </div>
+            <hr class="divider">
+            <div class="agenda-section">
+                <h3><i class="fas fa-tasks"></i> Agenda / Compromisos</h3>
+                <div class="agenda-input-group">
+                    <input type="text" id="newCommitmentInput" placeholder="Ej: Revisión de extintores...">
+                    <button class="btn-icon" onclick="addCommitment()"><i class="fas fa-plus"></i></button>
+                </div>
+                <ul id="agendaList" class="agenda-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./componentes/supabase-client.js"></script>
+    <script src="./componentes/tenant-manager.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
