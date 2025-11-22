@@ -41,6 +41,7 @@
     /* Efectos de UI (Refactoring UI p. 180) */
     --shadow: rgba(0,0,0,0.05);
     --shadow-hover: rgba(0,0,0,0.1);
+    --font-main: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 /* ========================================================================
@@ -66,7 +67,7 @@ html {
 
 body {
     /* Fuente base del sistema: Segoe UI es limpia y profesional */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-main);
     
     /* Fondo global de la aplicación */
     background: var(--bgPage);

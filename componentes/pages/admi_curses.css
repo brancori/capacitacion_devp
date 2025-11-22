@@ -761,6 +761,7 @@ display: grid !important;
     margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
+    font-weight: var(--font-bold);
     color: var(--text-primary);
     letter-spacing: -0.01em; /* Tipografía moderna */
 }
@@ -796,14 +797,10 @@ display: grid !important;
 
 /* 5. Footer (Acciones) */
 .modal-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--border);
-    background-color: #fafafa; /* Ligeramente diferente al body, opcional */
-    display: flex;
-    justify-content: flex-end; /* Botones a la derecha (Patrón Z) */
-    gap: 0.75rem;
-    border-bottom-left-radius: 12px;
-    border-bottom-right-radius: 12px;
+    background-color: #fff; /* Fondo blanco limpio, eliminamos el gris */
+    border-top: 1px solid var(--border); /* Línea sutil */
+    padding: 1.5rem;
+    gap: 1rem; /* Separación clara entre botones */
 }
 
 /* Animación de entrada suave */
@@ -816,4 +813,38 @@ display: grid !important;
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+.modal-footer .btn {
+    padding: 0.6rem 1.5rem; /* Más relleno para cumplir Ley de Fitts */
+    font-size: 0.95rem;
+    font-weight: 600; /* Texto más grueso como en Profile */
+    border-radius: 8px; /* Radio consistente */
+    letter-spacing: 0.02em;
+    font-weight: var(--font-bold);
+}
+
+.modal-footer .btn-outline {
+    background: transparent;
+    border: 2px solid #e5e7eb; /* Un borde un poco más grueso */
+    color: var(--text-secondary); /* Texto gris oscuro/negro */
+}
+
+.modal-footer .btn-outline:hover {
+    border-color: var(--text-secondary); /* Se oscurece al pasar el mouse */
+    background-color: #f9fafb;
+    color: var(--text-primary);
+}
+
+/* 4. Botón Primario "Asignar" */
+.modal-footer .btn-primary {
+    background-color: var(--primaryColor);
+    border: 2px solid var(--primaryColor);
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Leve elevación */
+}
+
+.modal-footer .btn-primary:hover {
+    filter: brightness(110%); /* Efecto de luz simple */
+    transform: translateY(-1px); /* Feedback táctil visual */
 }
