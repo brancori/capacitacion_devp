@@ -475,52 +475,73 @@ window.exportToExcel = () => {
         return;
     }
 
-    // 1. Aplanar los datos para Excel (Usuario + Cursos)
+    // 1. Preparar los datos con las llaves en MAYÚSCULAS (UPPERCASE)
     const dataForExcel = [];
 
     trackingData.forEach(u => {
         if (u.courses.length === 0) {
             dataForExcel.push({
-                "Usuario": u.name,
-                "Email": u.email,
-                "Curso": "Sin cursos asignados",
-                "Progreso": "0%",
-                "Vencimiento": "-",
-                "Estado": "-"
+                "USUARIO": u.name,
+                "EMAIL": u.email,
+                "CURSO": "Sin cursos asignados",
+                "PROGRESO": "0%",
+                "VENCIMIENTO": "-",
+                "ESTADO": "-"
             });
         } else {
             u.courses.forEach(c => {
                 dataForExcel.push({
-                    "Usuario": u.name,
-                    "Email": u.email,
-                    "Curso": c.title,
-                    "Progreso": c.progress + "%",
-                    "Vencimiento": c.due_date ? new Date(c.due_date).toLocaleDateString() : '-',
-                    "Estado": c.status === 'completed' ? 'Completado' : 
+                    "USUARIO": u.name,
+                    "EMAIL": u.email,
+                    "CURSO": c.title,
+                    "PROGRESO": c.progress + "%",
+                    "VENCIMIENTO": c.due_date ? new Date(c.due_date).toLocaleDateString() : '-',
+                    "ESTADO": c.status === 'completed' ? 'Completado' : 
                               c.status === 'expired' ? 'Vencido' : 'En Progreso'
                 });
             });
         }
     });
 
-    // 2. Crear Hoja de Cálculo y Libro
+    // 2. Crear la Hoja de Cálculo
     const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
-    const workbook = XLSX.utils.book_new();
+
+    // 3. APLICAR ESTILO NEGRITA A LAS CABECERAS (Fila 1)
+    // Obtenemos el rango de celdas de la hoja (ej: "A1:F10")
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
     
-    // Ajustar ancho de columnas automáticamente (Opcional, mejora estética)
+    // Iteramos solo sobre la primera fila (r: 0) y todas las columnas (c)
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_cell({ r: 0, c: C }); // A1, B1, C1...
+        if (!worksheet[address]) continue;
+        
+        // Aplicamos el objeto de estilo
+        worksheet[address].s = {
+            font: {
+                bold: true,
+                color: { rgb: "000000" } // Opcional: color negro
+            },
+            alignment: {
+                horizontal: "center" // Opcional: centrar cabeceras
+            }
+        };
+    }
+
+    // 4. Ajustar ancho de columnas (Estético)
     const wscols = [
-        {wch: 25}, // Usuario
-        {wch: 30}, // Email
-        {wch: 30}, // Curso
-        {wch: 10}, // Progreso
-        {wch: 15}, // Vencimiento
-        {wch: 15}  // Estado
+        { wch: 30 }, // USUARIO
+        { wch: 35 }, // EMAIL
+        { wch: 35 }, // CURSO
+        { wch: 12 }, // PROGRESO
+        { wch: 15 }, // VENCIMIENTO
+        { wch: 15 }  // ESTADO
     ];
     worksheet['!cols'] = wscols;
 
+    // 5. Crear libro y descargar
+    const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Seguimiento");
 
-    // 3. Descargar archivo .xlsx real
     const fileName = `Reporte_Capacitacion_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 

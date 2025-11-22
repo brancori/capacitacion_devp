@@ -19,14 +19,20 @@ display: grid !important;
 .groups-sidebar {
     background: var(--card-bg);
     border-radius: 12px;
-    border: none; 
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    
+    border: none;     
     position: sticky;
     top: 120px; 
     max-height: calc(100vh - 140px);
     display: flex;
     flex-direction: column;
+}
+
+.groups-sidebar, 
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border); /* Define bordes sutiles */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* Sombra suave unificada */
+    border-radius: 12px; /* Radio estándar */
 }
 
 .groups-header {
@@ -700,3 +706,80 @@ display: grid !important;
 .compliance-badge.success { color: #2ecc71; border-color: #2ecc71; }
 .compliance-badge.warning { color: #f39c12; border-color: #f39c12; }
 .compliance-badge.danger { color: #e74c3c; border-color: #e74c3c; }
+
+.modal {
+    background-color: rgba(0, 0, 0, 0.5); /* Oscurecimiento estándar */
+    backdrop-filter: blur(4px); /* Efecto moderno de UI */
+    transition: opacity 0.3s ease;
+}
+
+.modal-content {
+    background: var(--card-bg);       /* Usa tu variable global, no #fff */
+    border: 1px solid var(--border);  /* Borde sutil definido en global */
+    border-radius: 12px;              /* Radio de 12px como en Profile */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* Sombra suave de la guía */
+    
+    /* Layout */
+    margin: 5% auto;
+    width: 90%;
+    max-width: 800px; /* Ancho máximo para evitar líneas muy largas (Ley de Fitts/Lectura) */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Para que el contenido no rompa el border-radius */
+}
+
+/* Header del Modal */
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card-bg);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+/* Botón de cierre estandarizado */
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    background-color: var(--light-gray); /* Feedback visual al hover */
+    color: var(--danger);
+}
+
+/* Body y Footer */
+.modal-body {
+    padding: 2rem; /* Espaciado interno generoso (Whitespace) */
+    overflow-y: auto;
+    max-height: 70vh;
+    color: var(--text-secondary); /* Texto legible por defecto */
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    background-color: rgba(0, 0, 0, 0.02); /* Diferenciación muy sutil */
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem; /* Espaciado entre botones (Ley de Proximidad) */
+}
