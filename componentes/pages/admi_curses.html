@@ -77,14 +77,21 @@
             </div>
         </div>
     </div>
-
+    <div class="main-tabs">
+        <button class="main-tab active" onclick="switchMainTab('groups')" data-maintab="groups">
+            <i class="fas fa-layer-group"></i> Grupos
+        </button>
+        <button class="main-tab" onclick="switchMainTab('tracking')" data-maintab="tracking">
+            <i class="fas fa-clipboard-list"></i> Seguimiento de Usuarios
+        </button>
+    </div>
     <!-- Main View -->
     <div id="main-view">
         <!-- Controls -->
         <div class="controls">
             <div class="search-box">
                 <span class="search-icon"><i class="fas fa-search"></i></span>
-                <input type="text" class="search-input" id="search-groups" placeholder="Buscar grupos...">
+                <input type="text" class="search-input" id="search-groups" placeholder="    Buscar grupos...">
             </div>
             <button class="btn btn-primary" onclick="openNewGroupModal()">
                 <span><i class="fas fa-plus"></i></span> Nuevo Grupo
@@ -97,6 +104,45 @@
                 <i class="fas fa-spinner fa-spin empty-state-icon"></i>
                 <p>Cargando grupos...</p>
             </div>
+        </div>
+    </div>
+
+
+    <!-- Tracking View -->
+    <div id="tracking-view" style="display:none;">
+        <div class="tracking-header">
+            <div class="tracking-filters">
+                <div class="search-box">
+                    <span class="search-icon"><i class="fas fa-search"></i></span>
+                    <input type="text" class="search-input" id="search-users-tracking" placeholder="Buscar usuario...">
+                </div>
+                <select id="filter-status" class="form-control" style="width:auto;">
+                    <option value="all">Todos los estados</option>
+                    <option value="completed">Solo Completados</option>
+                    <option value="in_progress">Solo En Progreso</option>
+                    <option value="expired">Solo Vencidos</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </button>
+        </div>
+        
+        <div class="tracking-table-container">
+            <table class="tracking-table" id="tracking-table">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th class="text-center">Completados</th>
+                        <th class="text-center">En Progreso</th>
+                        <th class="text-center">Vencidos</th>
+                        <th class="text-center">% Cumplimiento</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tracking-tbody"></tbody>
+            </table>
         </div>
     </div>
 
@@ -492,6 +538,225 @@ window.sendReminder = async () => {
     showToast('Info', `Recordatorio enviado a ${currentDetailUser.name}`, 'success');
 };
 
+window.switchMainTab = (tabName) => {
+    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.main-tab[data-maintab="${tabName}"]`).classList.add('active');
+
+    document.getElementById('main-view').style.display = 'none';
+    document.getElementById('tracking-view').style.display = 'none';
+    document.getElementById('detail-view').classList.remove('active');
+
+    if (tabName === 'groups') {
+        document.getElementById('main-view').style.display = 'block';
+    } else if (tabName === 'tracking') {
+        document.getElementById('tracking-view').style.display = 'block';
+        loadTrackingData();
+    }
+};
+
+// =================================================================
+// SEGUIMIENTO DE USUARIOS
+// =================================================================
+let trackingData = [];
+
+async function loadTrackingData() {
+    const tbody = document.getElementById('tracking-tbody');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+
+    const { data: users } = await window.supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('tenant_id', currentAdmin.tenant_id)
+        .order('full_name');
+
+    if (!users || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">No hay usuarios</td></tr>';
+        return;
+    }
+
+    const now = new Date();
+    trackingData = [];
+
+    for (const user of users) {
+        const { data: assignments } = await window.supabase
+            .from('user_course_assignments')
+            .select('*, articles(title)')
+            .eq('user_id', user.id);
+
+        let completed = 0, inProgress = 0, expired = 0;
+        const courses = [];
+
+        (assignments || []).forEach(a => {
+            let status = a.status;
+            if (a.status === 'completed') {
+                completed++;
+            } else if (a.due_date && new Date(a.due_date) < now) {
+                expired++;
+                status = 'expired';
+            } else {
+                inProgress++;
+            }
+            courses.push({
+                title: a.articles?.title || 'Sin título',
+                progress: a.progress || 0,
+                due_date: a.due_date,
+                status: status
+            });
+        });
+
+        const total = completed + inProgress + expired;
+        const compliance = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        trackingData.push({
+            id: user.id,
+            name: user.full_name || 'Sin nombre',
+            email: user.email,
+            completed,
+            inProgress,
+            expired,
+            compliance,
+            courses
+        });
+    }
+
+    renderTrackingTable();
+}
+
+function renderTrackingTable(filter = 'all', search = '') {
+    const tbody = document.getElementById('tracking-tbody');
+    
+    let filtered = trackingData;
+
+    if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(u => 
+            u.name.toLowerCase().includes(s) || 
+            u.email.toLowerCase().includes(s)
+        );
+    }
+
+    if (filter !== 'all') {
+        filtered = filtered.filter(u => {
+            if (filter === 'completed') return u.completed > 0;
+            if (filter === 'in_progress') return u.inProgress > 0;
+            if (filter === 'expired') return u.expired > 0;
+            return true;
+        });
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">No se encontraron usuarios</td></tr>';
+        return;
+    }
+
+    const statusLabels = {
+        completed: 'Completado',
+        in_progress: 'En Progreso',
+        not_started: 'No Iniciado',
+        expired: 'Vencido'
+    };
+
+    tbody.innerHTML = filtered.map((u, idx) => {
+        const barClass = u.compliance <= 50 ? 'red' : u.compliance <= 80 ? 'yellow' : 'green';
+        
+        return `
+        <tr class="user-row-main" onclick="toggleUserCourses(${idx})">
+            <td><strong>${u.name}</strong></td>
+            <td>${u.email}</td>
+            <td class="text-center"><span class="stat-pill completed">${u.completed}</span></td>
+            <td class="text-center"><span class="stat-pill in-progress">${u.inProgress}</span></td>
+            <td class="text-center"><span class="stat-pill expired">${u.expired}</span></td>
+            <td class="text-center">
+                <div class="compliance-bar"><div class="compliance-bar-fill ${barClass}" style="width:${u.compliance}%"></div></div>
+                ${u.compliance}%
+            </td>
+            <td><button class="expand-btn" id="expand-btn-${idx}"><i class="fas fa-chevron-down"></i></button></td>
+        </tr>
+        <tr class="user-courses-row" id="courses-row-${idx}">
+            <td colspan="7">
+                <div class="courses-detail">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Curso</th>
+                                <th>Progreso</th>
+                                <th>Vencimiento</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${u.courses.length === 0 ? '<tr><td colspan="4">Sin cursos asignados</td></tr>' : 
+                              u.courses.map(c => `
+                                <tr>
+                                    <td>${c.title}</td>
+                                    <td>${c.progress}%</td>
+                                    <td>${c.due_date ? new Date(c.due_date).toLocaleDateString() : '-'}</td>
+                                    <td><span class="status-badge ${c.status}">${statusLabels[c.status] || c.status}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+window.toggleUserCourses = (idx) => {
+    const row = document.getElementById(`courses-row-${idx}`);
+    const btn = document.getElementById(`expand-btn-${idx}`);
+    row.classList.toggle('expanded');
+    btn.classList.toggle('expanded');
+};
+
+// =================================================================
+// EXPORTAR A EXCEL
+// =================================================================
+window.exportToExcel = () => {
+    if (trackingData.length === 0) {
+        showToast('Alerta', 'No hay datos para exportar', 'warning');
+        return;
+    }
+
+    const rows = [];
+    
+    // Headers
+    rows.push(['Usuario', 'Email', 'Curso', 'Progreso %', 'Vencimiento', 'Estado']);
+
+    trackingData.forEach(u => {
+        if (u.courses.length === 0) {
+            rows.push([u.name, u.email, 'Sin cursos', '', '', '']);
+        } else {
+            u.courses.forEach((c, i) => {
+                rows.push([
+                    i === 0 ? u.name : '',
+                    i === 0 ? u.email : '',
+                    c.title,
+                    c.progress,
+                    c.due_date ? new Date(c.due_date).toLocaleDateString() : '',
+                    c.status === 'completed' ? 'Completado' : 
+                    c.status === 'expired' ? 'Vencido' : 'En Progreso'
+                ]);
+            });
+        }
+    });
+
+    // Crear CSV con BOM para Excel
+    const BOM = '\uFEFF';
+    const csv = BOM + rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `seguimiento_capacitacion_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showToast('Éxito', 'Archivo exportado correctamente', 'success');
+};
+
     async function renderGroups(filter = '') {
         const container = document.getElementById('groups-container');
         
@@ -885,6 +1150,13 @@ window.addMemberByEmail = async () => {
     }
 
     document.getElementById('search-groups').addEventListener('input', (e) => renderGroups(e.target.value));
+    document.getElementById('search-users-tracking')?.addEventListener('input', (e) => {
+    renderTrackingTable(document.getElementById('filter-status').value, e.target.value);
+    });
+
+    document.getElementById('filter-status')?.addEventListener('change', (e) => {
+        renderTrackingTable(e.target.value, document.getElementById('search-users-tracking').value);
+    });
     document.getElementById('search-available')?.addEventListener('input', (e) => renderAvailableUsers(e.target.value));
     document.getElementById('search-catalog').addEventListener('input', (e) => renderCatalog(e.target.value));
 
