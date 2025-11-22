@@ -475,42 +475,56 @@ window.exportToExcel = () => {
         return;
     }
 
-    const rows = [];
-    
-    // Headers
-    rows.push(['Usuario', 'Email', 'Curso', 'Progreso %', 'Vencimiento', 'Estado']);
+    // 1. Aplanar los datos para Excel (Usuario + Cursos)
+    const dataForExcel = [];
 
     trackingData.forEach(u => {
         if (u.courses.length === 0) {
-            rows.push([u.name, u.email, 'Sin cursos', '', '', '']);
+            dataForExcel.push({
+                "Usuario": u.name,
+                "Email": u.email,
+                "Curso": "Sin cursos asignados",
+                "Progreso": "0%",
+                "Vencimiento": "-",
+                "Estado": "-"
+            });
         } else {
-            u.courses.forEach((c, i) => {
-                rows.push([
-                    i === 0 ? u.name : '',
-                    i === 0 ? u.email : '',
-                    c.title,
-                    c.progress,
-                    c.due_date ? new Date(c.due_date).toLocaleDateString() : '',
-                    c.status === 'completed' ? 'Completado' : 
-                    c.status === 'expired' ? 'Vencido' : 'En Progreso'
-                ]);
+            u.courses.forEach(c => {
+                dataForExcel.push({
+                    "Usuario": u.name,
+                    "Email": u.email,
+                    "Curso": c.title,
+                    "Progreso": c.progress + "%",
+                    "Vencimiento": c.due_date ? new Date(c.due_date).toLocaleDateString() : '-',
+                    "Estado": c.status === 'completed' ? 'Completado' : 
+                              c.status === 'expired' ? 'Vencido' : 'En Progreso'
+                });
             });
         }
     });
 
-    // Crear CSV con BOM para Excel
-    const BOM = '\uFEFF';
-    const csv = BOM + rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    // 2. Crear Hoja de Cálculo y Libro
+    const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
+    const workbook = XLSX.utils.book_new();
     
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `seguimiento_capacitacion_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    showToast('Éxito', 'Archivo exportado correctamente', 'success');
+    // Ajustar ancho de columnas automáticamente (Opcional, mejora estética)
+    const wscols = [
+        {wch: 25}, // Usuario
+        {wch: 30}, // Email
+        {wch: 30}, // Curso
+        {wch: 10}, // Progreso
+        {wch: 15}, // Vencimiento
+        {wch: 15}  // Estado
+    ];
+    worksheet['!cols'] = wscols;
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Seguimiento");
+
+    // 3. Descargar archivo .xlsx real
+    const fileName = `Reporte_Capacitacion_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    showToast('Éxito', 'Reporte Excel generado correctamente', 'success');
 };
 
     async function renderGroups(filter = '') {
