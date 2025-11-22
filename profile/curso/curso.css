@@ -439,6 +439,10 @@
     font-weight: bold;
     margin: 20px 0;
 }
+.textito{ 
+    font-size: .5rem;
+    text-align: center;
+}
 
 .modal-text {
     color: #666;
