@@ -534,7 +534,8 @@ const { data: assignments, error: coursesError } = await supabase
       instructor_name,
       duration_text
     )
-  `);// La RLS "Los usuarios pueden ver sus propias asignaciones" filtra esto por ti
+  `)
+  .eq('user_id', userId);
 
 if (coursesError) {
   console.error("Error al cargar asignaciones:", coursesError.message);
