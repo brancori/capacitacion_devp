@@ -23,6 +23,7 @@
   // -----------------------------------------------------------------
   // 1. CONFIGURACIÓN E INICIALIZACIÓN DE SUPABASE
   // -----------------------------------------------------------------
+  const CURRENT_ORIGIN = window.location.origin;
   
   // IMPORTANTE: URL del proxy (sin barra final)
   const SUPABASE_URL = window.location.origin + '/api';
@@ -54,7 +55,24 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 });
 
-
+  // Test del proxy al cargar
+  window.addEventListener('load', async () => {
+    console.log('🧪 Probando conexión del proxy...');
+    try {
+      const testUrl = `${SUPABASE_URL}/rest/v1/`;
+      const response = await fetch(testUrl, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+      const text = await response.text();
+      console.log(`✅ Proxy test - Status: ${response.status}`);
+      console.log(`📄 Response:`, text.substring(0, 200));
+    } catch (e) {
+      console.error('❌ Proxy test falló:', e.message);
+    }
+  });
 
   // -----------------------------------------------------------------
   // 2. CONFIGURACIÓN DE TENANT 
