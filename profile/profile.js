@@ -1,0 +1,623 @@
+(function() {
+        try {
+          // 1. Obtener el slug actual SÍNCRONAMENTE
+          const host = location.hostname || 'localhost';
+          const parts = host.split('.');
+          const currentSlug = parts.length > 2 && parts[0] !== 'www' ? parts[0] : 'default';
+
+          // 2. Intentar cargar el tema cacheado
+          const cachedTheme = localStorage.getItem('tenantTheme');
+          const cachedSlug = localStorage.getItem('tenantSlug');
+
+          // 3. Validar y aplicar el tema
+          if (cachedTheme && cachedSlug === currentSlug) {
+            const theme = JSON.parse(cachedTheme);
+            const root = document.documentElement;
+            
+            // Aplicar estilos, asumiendo que el caché guarda primaryColor y secondaryColor
+            if (theme.primaryColor) root.style.setProperty('--primaryColor', theme.primaryColor);
+            if (theme.secondaryColor) root.style.setProperty('--secondaryColor', theme.secondaryColor);
+            
+            // Mostrar la página inmediatamente ya que el tema es correcto
+            document.body.style.opacity = 1;
+          }
+        } catch (e) {
+          console.error('Error aplicando tema cacheado', e);
+          // Si hay error, la página se quedará oculta y la lógica principal la mostrará
+        }
+      })();
+
+// ═══════════════════════════════════════════════════════════
+// BLOQUE ÚNICO DE INICIALIZACIÓN
+// ═══════════════════════════════════════════════════════════
+(async () => {
+
+    const supabase = window.supabase;
+  // --- Lógica del Tenant (Tu código original) ---
+  const setStyle = (prop, value) => {
+    if (value) document.documentElement.style.setProperty(prop, value);
+  };
+
+  const detectTenant = () => {
+    const host = location.hostname || 'localhost';
+
+    if (host === 'localhost') {
+      return 'demo';
+    }
+    if (host === '127.0.0.1') {
+      return 'default';
+    }
+    const parts = host.split('.');
+    
+    if (parts.length > 2 && parts[0] !== 'www') {
+      return parts[0];
+    }
+    
+    return 'default';
+  };
+
+  async function loadTenantConfig() {
+    const tenantId = detectTenant();
+    console.log(`🔍 Detectando tenant: ${tenantId}`);
+    try {
+      const response = await fetch('../tenants/tenants.json', {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) throw new Error('No se pudo cargar tenants.json');
+      const data = await response.json();
+      return data[tenantId] || data['default'] || {};
+    } catch (error) {
+      console.warn('⚠️ Error al cargar configuración del tenant:', error);
+      return {};
+    }
+  }
+
+function applyConfiguration(config) {
+    if (!config) return;
+    
+    // Colores
+    setStyle('--primaryColor', config.primaryColor);
+    setStyle('--secondaryColor', config.secondaryColor);
+
+    // Nombre de la compañía
+    const companyNameEl = document.getElementById('companyName');
+    if (companyNameEl && config.companyName) {
+      const icon = companyNameEl.querySelector('i');
+      companyNameEl.innerHTML = '';
+      if (icon) companyNameEl.appendChild(icon);
+      companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
+    }
+    console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
+
+    // --- CAMBIO: Guardar la configuración en localStorage ---
+    try {
+        const tenantSlug = detectTenant();
+        localStorage.setItem('tenantTheme', JSON.stringify(config));
+        localStorage.setItem('tenantSlug', tenantSlug);
+        console.log('💾 Configuración de tenant guardada en caché.');
+    } catch (e) {
+        console.warn('Advertencia: No se pudo guardar el tema en localStorage.', e);
+    }
+  }
+
+  // --- Lógica de Permisos (NUEVA) ---
+  const manageUsersBtn = document.getElementById('manageUsersBtn');
+
+  /**
+   * Muestra u oculta elementos basados en el rol del usuario.
+   */
+  function updateProfileView(profile) {
+    // Actualizar el nombre
+    const profileNameEl = document.getElementById('profileName');
+    if (profileNameEl) {
+      // *** CORREGIDO ***
+      profileNameEl.textContent = profile.full_name || 'Usuario';
+    }
+
+    // Lógica de permisos existente
+    // *** CORREGIDO (para incluir 'supervisor') ***
+    const allowedRoles = ['master', 'admin', 'supervisor'];
+    if (allowedRoles.includes(profile.role)) {
+      if (manageUsersBtn) manageUsersBtn.style.display = 'flex';
+    } else {
+      if (manageUsersBtn) manageUsersBtn.style.display = 'none';
+    }
+  }
+function getDueDateStatus(dueDate) {
+  if (!dueDate) return { text: '', urgent: false };
+  
+  const ONE_DAY = 1000 * 60 * 60 * 24;
+  const now = new Date();
+  const due = new Date(dueDate);
+  
+  // Ignorar la hora, comparar solo fechas
+  now.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  
+  const diffTime = due.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / ONE_DAY);
+
+  if (diffDays < 0) return { text: 'Vencido', urgent: true };
+  if (diffDays === 0) return { text: 'Vence hoy', urgent: true };
+  if (diffDays === 1) return { text: 'Vence mañana', urgent: true };
+  if (diffDays <= 7) return { text: `Vence en ${diffDays} días`, urgent: true };
+  
+  return { text: `Vence en ${diffDays} días`, urgent: false };
+}
+  /**
+   * Carga el perfil del usuario desde Supabase y actualiza la vista.
+   */
+async function loadUserProfile() {
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    // DEBUG: Pausar y mostrar info
+    console.log('🔍 DEBUG user:', user);
+    console.log('🔍 DEBUG authError:', authError);
+    
+    if (authError || !user) {
+      console.error('No hay sesión activa');
+      window.location.href = '../index.html'; // COMENTADO TEMPORALMENTE
+      return;
+    }
+
+    // ✅ CAMBIO AQUÍ
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, full_name')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) throw profileError;
+
+    if (profile) {
+      updateProfileView(profile);
+    } else {
+      console.warn('Usuario autenticado pero sin perfil.');
+      updateProfileView({ role: 'user', full_name: 'Usuario' });
+    }
+  } catch (error) {
+    console.error('Error al cargar el perfil del usuario:', error.message);
+    updateProfileView({ role: 'user', full_name: 'Usuario' });
+  }
+}
+
+  // --- Lógica de UI (Modales, Tabs, Filtros) ---
+  function initUI() {
+    // ... (Todo tu código de UI original va aquí, sin cambios) ...
+    // --- Modal general ---
+    const modal = document.getElementById('modal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalClose = document.getElementById('modalClose');
+
+    function showModal(title, message, type = 'success') {
+      modalTitle.textContent = title;
+      modalMessage.textContent = message;
+      modalIcon.className = `modal-icon ${type}`;
+      modalIcon.innerHTML = type === 'success'
+        ? '<i class="fas fa-check-circle"></i>'
+        : '<i class="fas fa-info-circle"></i>';
+      modal.classList.add('show');
+    }
+    function closeModal() {
+      modal.classList.remove('show');
+    }
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // --- Tabs ---
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(tc => tc.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // --- Filtros ---
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const courseCards = document.querySelectorAll('.course-card[data-status]');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.dataset.filter;
+        courseCards.forEach(card => {
+          card.style.display = (filter === 'all' || card.dataset.status === filter) ? 'flex' : 'none';
+        });
+      });
+    });
+
+    // --- Buscador ---
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      document.querySelectorAll('.course-card').forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        card.style.display = title.includes(searchTerm) ? 'flex' : 'none';
+      });;
+    });
+
+
+
+    // --- Botón de tema ---
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle?.addEventListener('click', () => {
+      showModal('Cambio de Tema', 'El modo oscuro estará disponible próximamente', 'info');
+    });
+
+    // --- Animación de barras ---
+    const progressBars = document.querySelectorAll('.progress-bar-fill');
+    progressBars.forEach(bar => {
+      const width = bar.style.width;
+      bar.style.width = '0%';
+      setTimeout(() => {
+        bar.style.width = width;
+      }, 100);
+    });
+  }
+
+async function loadRealDashboardData(userId) {
+    const supabase = window.supabase;
+
+    // 1. Cargar Perfil y Asignaciones (Datos base)
+    // Usamos Promise.all para eficiencia
+    const [profileRes, assignmentsRes, badgesRes, logsRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('user_course_assignments').select('*, articles:course_id(title, duration_text)').eq('user_id', userId),
+        supabase.from('user_badges').select('*, badges(*)').eq('user_id', userId),
+        supabase.from('activity_logs').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(5)
+    ]);
+
+    if (profileRes.error) console.error('Error perfil:', profileRes.error);
+    const profile = profileRes.data;
+    const assignments = assignmentsRes.data || [];
+    const badges = badgesRes.data || [];
+    const logs = logsRes.data || [];
+
+    // --- A. Renderizar Cabecera de Perfil ---
+    if (profile) {
+        document.getElementById('profileName').textContent = profile.full_name || 'Usuario';
+        
+        // Generar Iniciales para Avatar (Fallback de imagen)
+        const initials = (profile.full_name || 'U').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+        const avatarEl = document.querySelector('.avatar');
+        avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`; // Reemplaza el icono
+
+        // ID Empleado (Fallback a segmento de UUID)
+        const shortId = profile.id.split('-')[0].toUpperCase(); 
+        document.querySelector('.profile-card .role').textContent = `${profile.role === 'master' ? 'Administrador' : 'Colaborador'} | ID REF: ${shortId}`;
+    }
+
+    // --- B. Calcular Estadísticas (Donut y Cards) ---
+    const totalCursos = assignments.length;
+    const completados = assignments.filter(a => a.status === 'completed' || a.progress === 100).length;
+    const pendientes = assignments.filter(a => a.status === 'pending' && a.progress < 100).length;
+    
+    // Lógica Urgente: Vence en menos de 7 días y no está completo
+    const now = new Date();
+    const urgentThreshold = new Date();
+    urgentThreshold.setDate(now.getDate() + 7);
+    
+    const urgentes = assignments.filter(a => {
+        if (!a.due_date || a.status === 'completed') return false;
+        const due = new Date(a.due_date);
+        return due <= urgentThreshold && due >= now;
+    }).length;
+
+    // Actualizar DOM Stats Grid
+    const statCards = document.querySelectorAll('.stat-card h3');
+    if(statCards.length >= 4) {
+        statCards[0].textContent = totalCursos; // Total
+        statCards[1].textContent = completados; // Completados
+        statCards[2].textContent = pendientes;  // En Progreso/Pendientes
+        statCards[3].textContent = urgentes;    // Urgente
+    }
+
+    // Actualizar Donut Chart
+    const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
+    const donutFg = document.querySelector('.progress-donut-fg');
+    const donutText = document.querySelector('.progress-text');
+    const progressMsg = document.querySelector('.profile-card p[style*="primary"]'); // "2 de 5 cursos..."
+
+    if(donutFg) {
+        // Cálculo del dashoffset: 433.5 es la circunferencia completa
+        const offset = 433.5 - (433.5 * percentage) / 100;
+        donutFg.style.strokeDashoffset = offset;
+    }
+    if(donutText) donutText.textContent = `${percentage}%`;
+    if(progressMsg) progressMsg.textContent = `${completados} de ${totalCursos} cursos completados`;
+
+
+    // --- C. Renderizar Badges ---
+    const badgesContainer = document.querySelector('.badges-grid');
+    if (badgesContainer) {
+        if (badges.length === 0) {
+            badgesContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary);">Aún no tienes insignias.</p>';
+        } else {
+            badgesContainer.innerHTML = badges.map(ub => `
+                <div class="badge earned" title="${ub.badges.description || ''}">
+                    <i class="${ub.badges.icon_class || 'fas fa-award'}"></i>
+                    <span>${ub.badges.name}</span>
+                </div>
+            `).join('');
+        }
+    }
+
+    // --- D. Renderizar Calendario (Próximos Vencimientos) ---
+    const calendarContainer = document.querySelector('.calendar-card');
+    // Filtramos asignaciones con fecha, no completadas, ordenadas por fecha
+    const upcomingAssignments = assignments
+        .filter(a => a.due_date && a.status !== 'completed')
+        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+        .slice(0, 3);
+
+    if (calendarContainer) {
+        const header = '<h3><i class="far fa-calendar-alt"></i> Próximos Vencimientos</h3>';
+        let content = '';
+
+        if (upcomingAssignments.length === 0) {
+            content = '<p style="text-align: center; color: var(--text-secondary); padding: 1rem;">No hay vencimientos próximos.</p>';
+        } else {
+            content = upcomingAssignments.map(a => {
+                const date = new Date(a.due_date);
+                const day = date.getDate();
+                const month = date.toLocaleString('es-ES', { month: 'short' }).toUpperCase();
+                // Determinar urgencia
+                const diffTime = date - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const isUrgent = diffDays <= 5;
+
+                return `
+                <div class="calendar-event ${isUrgent ? 'urgent' : ''}">
+                    <div class="event-date">
+                        <div class="day">${day}</div>
+                        <div class="month">${month}</div>
+                    </div>
+                    <div class="event-details">
+                        <h4>${a.articles.title}</h4>
+                        <p>${diffDays < 0 ? 'Vencido' : `Vence en ${diffDays} días`}</p>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        calendarContainer.innerHTML = header + content;
+    }
+
+    // --- E. Renderizar Timeline (Activity Logs) ---
+    const timelineContainer = document.querySelector('.timeline');
+    if (timelineContainer) {
+        if (logs.length === 0) {
+            timelineContainer.innerHTML = '<p style="padding: 1rem; color: var(--text-secondary);">No hay actividad reciente registrada.</p>';
+        } else {
+            timelineContainer.innerHTML = logs.map(log => {
+                const date = new Date(log.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                
+                // Icono y color según tipo de acción
+                let icon = 'fa-info-circle';
+                let color = 'var(--primaryColor)';
+                
+                if (log.action_type === 'course_completed') { icon = 'fa-check-circle'; color = 'var(--success)'; }
+                if (log.action_type === 'enrollment') { icon = 'fa-play-circle'; color = 'var(--warning)'; }
+                if (log.action_type === 'login') { icon = 'fa-user-clock'; color = 'var(--text-secondary)'; }
+
+                return `
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-date">${date}</div>
+                        <h3 style="color: ${color}; margin-bottom: 0.5rem;">
+                            <i class="fas ${icon}"></i> ${log.action_type.replace('_', ' ').toUpperCase()}
+                        </h3>
+                        <p><strong>${log.description}</strong></p>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+}
+
+  // ═══════════════════════════════════════════════════════════
+
+  // FUNCIÓN PRINCIPAL DE ARRANQUE
+  // ═══════════════════════════════════════════════════════════
+async function mainInit() {
+  // AGREGAR ESTO AL INICIO:
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('token');
+  
+  if (urlToken) {
+    console.log('🔑 Token recibido por URL');
+    await supabase.auth.setSession({
+      access_token: urlToken,
+      refresh_token: 'dummy'
+    });
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+    // 1. Carga la config del tenant
+    const config = await loadTenantConfig();
+    applyConfiguration(config);
+    console.log('✅ Tenant listo');
+
+    document.body.style.opacity = 1;
+    // 2. Carga el perfil de usuario (para permisos)
+    await loadUserProfile();
+    console.log('✅ Perfil de usuario cargado');
+
+// 🔐 Obtener usuario autenticado (LO QUE TE FALTABA)
+const { data: authData, error: authError } = await supabase.auth.getUser();
+if (authError || !authData?.user) {
+  console.error("❌ No hay sesión activa", authError);
+  return;
+}
+const userId = authData.user.id;
+
+// Obtener profile (tenant + role)
+const { data: profileRow, error: profileRowError } = await supabase
+  .from("profiles")
+  .select("tenant_id, role")
+  .eq("id", userId)
+  .single();
+
+if (profileRowError) {
+  console.error("❌ Error al leer profileRow:", profileRowError);
+  return;
+}
+
+const myTenant = profileRow?.tenant_id;
+const myRole   = profileRow?.role;
+
+console.log("🧭 Tenant usado en consulta:", myTenant, "Role:", myRole);
+console.log("DEBUG authData:", authData);
+console.log("DEBUG profileRow:", profileRow);
+console.log("DEBUG myTenant, myRole:", myTenant, myRole);
+// Query base
+/*
+let q = window.supabase
+  .from("articles")
+  .select("id, title, thumbnail_url, status, tenant_id");
+
+if (myRole !== "master") {
+  q = q.eq("tenant_id", myTenant);
+}
+
+const { data: courses, error: coursesError } = await q;
+*/
+
+const { data: assignments, error: coursesError } = await supabase
+  .from("user_course_assignments")
+  .select(`
+    progress,
+    due_date,
+    articles (
+      id,
+      title,
+      thumbnail_url,
+      status,
+      instructor_name,
+      duration_text
+    )
+  `);// La RLS "Los usuarios pueden ver sus propias asignaciones" filtra esto por ti
+
+if (coursesError) {
+  console.error("Error al cargar asignaciones:", coursesError.message);
+  return;
+}
+
+// Transformamos los datos para que el renderizado sea fácil
+// El resultado es un array de cursos con los datos de progreso incluidos
+const courses = assignments 
+  ? assignments.map(a => ({
+      ...a.articles,     // id, title, thumbnail_url, etc.
+      progress: a.progress, // 25, 60, etc.
+      due_date: a.due_date  // "2025-11-20T..."
+    })) 
+  : [];
+
+console.log("📦 Cursos asignados recibidos:", courses);
+console.log("📦 Datos recibidos desde Supabase:", courses);
+console.log("🔎 Error:", coursesError);
+
+if (coursesError) {
+  console.error("Error al cargar cursos:", coursesError.message);
+} else {
+  // Render de las tarjetas
+  const container = document.getElementById("courseCardsContainer");
+
+if (container) {
+  console.log("🎨 Renderizando tarjetas con diseño de CSS existente", container);
+
+  container.innerHTML = courses
+    .map(c => {
+      // c ahora tiene: { id, title, instructor_name, duration_text, progress, due_date }
+      
+      const dueDateInfo = getDueDateStatus(c.due_date);
+      const progress = c.progress || 0;
+      const isUrgent = dueDateInfo.urgent;
+
+      // Determinamos qué ícono y color usar según el CSS
+      // (.urgent, .completed, .pending)
+      let iconClass = 'pending'; // Clase por defecto
+      let iconFA = 'fa-clock';   // Ícono por defecto
+      
+      if (isUrgent) {
+          iconClass = 'urgent';
+          iconFA = 'fa-exclamation-triangle';
+      } else if (progress === 100) {
+          iconClass = 'completed';
+          iconFA = 'fa-check-circle';
+      }
+
+      return `
+      <div class="course-card" data-status="${iconClass}">
+          
+          <div class="course-icon-lg ${iconClass}">
+              <i class="fas ${iconFA}"></i>
+          </div>
+
+          <div class="course-info">
+              <h3>${c.title}</h3>
+              
+              ${dueDateInfo.text ? `
+              <div class="meta-item" style="font-size: 0.9rem; color: ${isUrgent ? 'var(--danger)' : 'var(--text-secondary)'}; font-weight: ${isUrgent ? '500' : 'normal'}; margin-bottom: 0.5rem;">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>${dueDateInfo.text}</span>
+              </div>` : ''}
+
+              <div class="course-meta" style="margin-bottom: 0.75rem;">
+                  <div class="meta-item">
+                      <i class="fas fa-user-tie"></i>
+                      <span>Capacitador: ${c.instructor_name || 'N/A'}</span>
+                  </div>
+                  <div class="meta-item">
+                      <i class="fas fa-clock"></i>
+                      <span>${c.duration_text || 'N/A'}</span>
+                  </div>
+              </div>
+
+              <div class="progress-bar-container">
+                  <div class="progress-bar-fill" style="width: ${progress}%;"></div>
+              </div>
+              
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0.5rem 0 0 0;">
+                  Progreso: ${progress}% completado
+              </p>
+          </div>
+
+          <div class="course-actions">
+            <a href="curso/curso.html?id=${c.id}" class="btn btn-primary" style="width: 100%;">
+                ${progress > 0 ? 'Continuar' : 'Iniciar'}
+            </a>
+              <button class="btn btn-outline" style="width: 100%;">
+                  Recordar
+              </button>
+          </div>
+      </div>
+      `;
+    })
+    .join("");
+}
+}
+
+console.log('✅ Cursos cargados');
+
+
+    initUI();
+    console.log('✅ UI inicializada');
+  }
+
+  // --- Disparador de Carga ---
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mainInit);
+  } else {
+    mainInit();
+  }
+
+})();
