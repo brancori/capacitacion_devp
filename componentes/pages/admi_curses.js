@@ -889,9 +889,12 @@ window.addMemberByEmail = async () => {
             });
         });
 
-        const { error } = await window.supabase
+const { error } = await window.supabase
             .from('user_course_assignments')
-            .insert(assignments);
+            .upsert(assignments, { 
+                onConflict: 'user_id, course_id', 
+                ignoreDuplicates: true 
+            });
 
         if (error) {
             console.error(error);
