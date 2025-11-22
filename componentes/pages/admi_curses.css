@@ -6,28 +6,8 @@ body {
     background-color: var(--light-gray) !important; 
 }
 
-.groups-layout {
-display: grid !important;
-    grid-template-columns: minmax(280px, 320px) 1fr !important; 
-    gap: 2rem; 
-    align-items: start;
-    position: relative;
-    margin-top: 2rem; 
-}
 
 /* --- Panel Izquierdo: Lista de Grupos --- */
-.groups-sidebar {
-    background: var(--card-bg);
-    border-radius: 12px;
-    border: none; 
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    
-    position: sticky;
-    top: 120px; 
-    max-height: calc(100vh - 140px);
-    display: flex;
-    flex-direction: column;
-}
 
 .groups-header {
     padding: 1.5rem;
@@ -36,47 +16,13 @@ display: grid !important;
     border-radius: 12px 12px 0 0;
 }
 
-.groups-header h3 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    color: var(--primaryColor); 
-}
-
 .groups-list, .course-list {
     overflow-y: auto;
     scrollbar-width: thin;
     padding-bottom: 1rem;
 }
-.group-item.active {
-    background: #e6f0ff; 
-    border-left: 4px solid var(--primaryColor);
-}
-
-.group-item h4 {
-    margin: 0;
-    font-size: 1rem;
-    color: var(--text-secondary);
-}
-
-.group-item .member-count {
-    font-size: 0.8rem;
-    background: var(--border);
-    padding: 0.2rem 0.6rem;
-    border-radius: 10px;
-}
 
 /* --- Panel Derecho: Detalles del Grupo --- */
-.group-details-container {
-    background: var(--card-bg); 
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-    border: 1px solid rgba(0,0,0,0.03); 
-    min-height: 400px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; 
-}
 
 .empty-state {
     display: flex;
@@ -95,67 +41,6 @@ display: grid !important;
     color: var(--border);
 }
 
-.details-header {
-    padding: 1.5rem 2rem;
-    border-bottom: 2px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.group-title-section h2 {
-    margin: 0;
-    color: var(--primaryColor);
-}
-
-.add-member-section {
-    padding: 1.5rem 2rem;
-    background: var(--light-gray);
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-}
-
-/* Tabla de Miembros (Reutilizando conceptos de users.css) */
-.members-list {
-    padding: 0;
-}
-
-.member-row {
-    display: grid;
-    grid-template-columns: 50px 1fr 1fr 100px;
-    padding: 1rem 2rem;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-}
-
-.member-row:hover {
-    background: #fafafa;
-}
-
-.avatar-small {
-    width: 35px;
-    height: 35px;
-    background: var(--primaryColor);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-}
-
-/* Responsive */
-@media (max-width: 900px) {
-    .groups-layout {
-        grid-template-columns: 1fr;
-    }
-    .groups-sidebar {
-        position: static;
-        margin-bottom: 1rem;
-    }
-}
 
 /* === Dos Columnas para Miembros === */
 .two-column {
@@ -345,11 +230,9 @@ display: grid !important;
 .status-badge.in_progress, .status-badge.not_started { background: #dbeafe; color: #1e40af; }
 .status-badge.expired { background: #fee2e2; color: #991b1b; }
 
-Agrega esto al final de admi_curses.css:
-css/* === Grid de Grupos === */
 .groups-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: minmax(280px, 320px) 1fr !important; 
     gap: 1.5rem;
 }
 
