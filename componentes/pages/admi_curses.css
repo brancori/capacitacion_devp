@@ -708,78 +708,112 @@ display: grid !important;
 .compliance-badge.danger { color: #e74c3c; border-color: #e74c3c; }
 
 .modal {
-    background-color: rgba(0, 0, 0, 0.5); /* Oscurecimiento estándar */
-    backdrop-filter: blur(4px); /* Efecto moderno de UI */
+    display: none; /* Por defecto oculto, JS lo activa con display: flex */
+    position: fixed;
+    z-index: 2000; /* Asegura estar encima de todo */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Más suave que 0.5 */
+    backdrop-filter: blur(4px); /* EL SECRETO: Esto suaviza el fondo */
+    align-items: center; /* Centrado vertical perfecto */
+    justify-content: center; /* Centrado horizontal perfecto */
+    opacity: 0;
     transition: opacity 0.3s ease;
 }
 
-.modal-content {
-    background: var(--card-bg);       /* Usa tu variable global, no #fff */
-    border: 1px solid var(--border);  /* Borde sutil definido en global */
-    border-radius: 12px;              /* Radio de 12px como en Profile */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* Sombra suave de la guía */
-    
-    /* Layout */
-    margin: 5% auto;
-    width: 90%;
-    max-width: 800px; /* Ancho máximo para evitar líneas muy largas (Ley de Fitts/Lectura) */
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Para que el contenido no rompa el border-radius */
+/* Estado activo manejado por JS */
+.modal.active {
+    opacity: 1;
 }
 
-/* Header del Modal */
+/* 2. El Contenedor (La "Tarjeta" flotante) */
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border); /* Borde sutil, no negro */
+    border-radius: 12px; /* Radio idéntico a Profile */
+    /* Sombra difusa y elegante (Clave del look "Clean") */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 
+                0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    
+    width: 90%;
+    max-width: 600px; /* Ancho controlado (Ley de Fitts) */
+    margin: 0 auto; /* Ya no margin-top, usamos flex en el padre */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh; /* Evita que toque los bordes verticales */
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+/* 3. Header Limpio */
 .modal-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border); /* Línea separadora muy suave */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--card-bg);
+    background: transparent; /* Sin color de fondo extra */
 }
 
 .modal-header h3 {
     margin: 0;
-    color: var(--text-primary);
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em; /* Tipografía moderna */
 }
 
-/* Botón de cierre estandarizado */
+/* Botón de cerrar sutil */
 .modal-close {
     background: transparent;
     border: none;
+    font-size: 1.2rem;
     color: var(--text-secondary);
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    transition: all 0.2s;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .modal-close:hover {
-    background-color: var(--light-gray); /* Feedback visual al hover */
+    background: var(--light-gray);
     color: var(--danger);
 }
 
-/* Body y Footer */
+/* 4. Cuerpo y Scroll */
 .modal-body {
-    padding: 2rem; /* Espaciado interno generoso (Whitespace) */
+    padding: 1.5rem;
     overflow-y: auto;
-    max-height: 70vh;
-    color: var(--text-secondary); /* Texto legible por defecto */
+    color: var(--text-secondary);
+    line-height: 1.6;
 }
 
+/* 5. Footer (Acciones) */
 .modal-footer {
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
     border-top: 1px solid var(--border);
-    background-color: rgba(0, 0, 0, 0.02); /* Diferenciación muy sutil */
+    background-color: #fafafa; /* Ligeramente diferente al body, opcional */
     display: flex;
-    justify-content: flex-end;
-    gap: 1rem; /* Espaciado entre botones (Ley de Proximidad) */
+    justify-content: flex-end; /* Botones a la derecha (Patrón Z) */
+    gap: 0.75rem;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* Animación de entrada suave */
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
