@@ -4,26 +4,29 @@
 
 html { font-size: 100%; }
 
+body {
+    background-color: var(--light-gray) !important; 
+}
+
 .groups-layout {
     display: grid;
-    /* Refactoring UI: "Relative sizing doesn't scale" (p.92) - Usamos minmax para control */
-    grid-template-columns: minmax(300px, 350px) 1fr; 
-    gap: 2.5rem; /* Aumentamos el espacio (Laws of UX - Ley de Proximidad) */
-    align-items: start; /* Crucial para que position: sticky funcione */
+    grid-template-columns: minmax(280px, 320px) 1fr; 
+    gap: 2rem; 
+    align-items: start;
     position: relative;
+    margin-top: 2rem; 
 }
 
 /* --- Panel Izquierdo: Lista de Grupos --- */
 .groups-sidebar {
     background: var(--card-bg);
     border-radius: 12px;
-    /* Refactoring UI: "Use shadows to convey elevation" (p.207) - Eliminamos bordes duros */
     border: none; 
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     
     position: sticky;
-    top: 120px; /* Ajuste visual para no chocar con el header */
-    max-height: calc(100vh - 140px); /* Evita que el sticky se rompa al scrollear */
+    top: 120px; 
+    max-height: calc(100vh - 140px);
     display: flex;
     flex-direction: column;
 }
@@ -41,17 +44,16 @@ html { font-size: 100%; }
     font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: -0.025em;
-    color: var(--primaryColor); /* Contraste alto */
+    color: var(--primaryColor); 
 }
 
 .groups-list, .course-list {
     overflow-y: auto;
-    /* Scrollbar suave para reducir distracción visual */
     scrollbar-width: thin;
     padding-bottom: 1rem;
 }
 .group-item.active {
-    background: #e6f0ff; /* Tint de primaryColor */
+    background: #e6f0ff; 
     border-left: 4px solid var(--primaryColor);
 }
 
