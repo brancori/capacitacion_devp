@@ -20,59 +20,6 @@
 (function() {
   'use strict';
 
-  // -----------------------------------------------------------------
-  // 1. CONFIGURACIÓN E INICIALIZACIÓN DE SUPABASE
-  // -----------------------------------------------------------------
-  const CURRENT_ORIGIN = window.location.origin;
-  
-  // IMPORTANTE: URL del proxy (sin barra final)
-  const SUPABASE_URL = window.location.origin + '/api';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
-
-  console.log('🔧 Inicializando Supabase con proxy:', SUPABASE_URL);
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    storage: {
-      getItem: (key) => {
-        const v = document.cookie.match('(^|;)\\s*' + key + '\\s*=\\s*([^;]+)');
-        return v ? decodeURIComponent(v.pop()) : null;
-      },
-      setItem: (key, value) => {
-        document.cookie = `${key}=${encodeURIComponent(value)};path=/;max-age=31536000;SameSite=Lax`;
-      },
-      removeItem: (key) => {
-        document.cookie = `${key}=;path=/;max-age=0`;
-      }
-    }
-  },
-  global: {
-    headers: {
-      'x-proxy-debug': 'true'
-    }
-  }
-});
-
-  // Test del proxy al cargar
-  window.addEventListener('load', async () => {
-    console.log('🧪 Probando conexión del proxy...');
-    try {
-      const testUrl = `${SUPABASE_URL}/rest/v1/`;
-      const response = await fetch(testUrl, {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
-      });
-      const text = await response.text();
-      console.log(`✅ Proxy test - Status: ${response.status}`);
-      console.log(`📄 Response:`, text.substring(0, 200));
-    } catch (e) {
-      console.error('❌ Proxy test falló:', e.message);
-    }
-  });
 
   // -----------------------------------------------------------------
   // 2. CONFIGURACIÓN DE TENANT 
@@ -267,7 +214,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     // ---
     const handleLoginSubmit = async (e) => {
       e.preventDefault();
-
+      const supabase = window.supabase;
       // Determinar qué formulario se usó
       const isEmployeeForm = e.target.id === 'formEmployees';
       const email = (isEmployeeForm ? $('#empUsername') : $('#conUsername')).value.trim();
@@ -406,6 +353,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // ---
   async function showRegistrationModal() {
     const modalRoot = $('#modalRoot');
+    const supabase = window.supabase;
     const config = window.__appConfig || DEFAULTS;
     const companyName = config.companyName || 'Tu Compañía';
 
@@ -543,6 +491,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // ---
   function showResetPasswordModal(user) {
     console.log('🔵 showResetPasswordModal llamado con:', user);
+    const supabase = window.supabase;
     const modalRoot = $('#modalRoot');
     if (!modalRoot) return;
 
