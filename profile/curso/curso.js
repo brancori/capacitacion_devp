@@ -273,7 +273,22 @@ window.renderPage = function(index) {
 
         default:
             pageContentEl.innerHTML = `<p>Tipo de contenido desconocido: ${page.type}</p>`;
-    }
+        case 'flipCards':
+            renderFlipCards(page);
+            break;
+
+        case 'interactive':
+            renderInteractive(page);
+            break;
+
+        case 'stepByStep':
+            renderStepByStep(page);
+            break;
+
+        case 'comparison':
+            renderComparison(page);
+            break;
+            }
 
     updateNavigationUI(index);
 };
@@ -293,6 +308,84 @@ function updateNavigationUI(index) {
             setTimeout(() => btn.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 100);
         }
     });
+}
+
+function renderFlipCards(page) {
+    let html = page.payload.instruction || '';
+    
+    html += '<div class="flip-cards-container">';
+    page.payload.cards.forEach(card => {
+        html += `
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front" style="background:${card.front.color}">
+                        <div class="card-icon">${card.front.icon}</div>
+                        <div class="card-letter">${card.front.letter}</div>
+                        <div class="card-title">${card.front.title}</div>
+                    </div>
+                    <div class="flip-card-back">
+                        <p><strong>${card.back.content}</strong></p>
+                        <hr style="border-color:rgba(255,255,255,0.3); margin:15px 0;">
+                        <p style="font-size:0.85rem;">⚡ ${card.back.action}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    if (page.payload.summary) {
+        html += page.payload.summary;
+    }
+    
+    contentDiv.innerHTML = html;
+}
+
+// ============================================
+// RENDER: Interactive (Contenido interactivo)
+// ============================================
+function renderInteractive(page) {
+    contentDiv.innerHTML = page.payload.html;
+}
+
+// ============================================
+// RENDER: StepByStep (Pasos numerados)
+// ============================================
+function renderStepByStep(page) {
+    let html = page.payload.intro || '';
+    
+    html += '<div class="steps-container">';
+    page.payload.steps.forEach(step => {
+        html += `
+            <div class="step-card">
+                <div class="step-number">${step.number}</div>
+                <div class="step-content">
+                    <div class="step-icon">${step.icon}</div>
+                    <h3 class="step-title">${step.title}</h3>
+                    <p class="step-description">${step.content}</p>
+                    ${step.tip ? `<div class="step-tip">💡 <strong>Tip:</strong> ${step.tip}</div>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    if (page.payload.criticalNumbers) {
+        html += page.payload.criticalNumbers;
+    }
+    
+    if (page.payload.warnings) {
+        html += page.payload.warnings;
+    }
+    
+    contentDiv.innerHTML = html;
+}
+
+// ============================================
+// RENDER: Comparison (Igual que interactive)
+// ============================================
+function renderComparison(page) {
+    contentDiv.innerHTML = page.payload.html;
 }
 
 // ==========================================
