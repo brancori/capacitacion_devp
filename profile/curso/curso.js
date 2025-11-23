@@ -190,33 +190,68 @@ function loadCourseUI(title, data, startIndex = 0) {
 window.renderPage = function(index) {
     console.log(`[RENDER] Intentando ir a página ${index}`);
 
-    // --- BLOQUEO DE SEGURIDAD ---
+    // Bloqueo de Quiz (Sin cambios)
     if (isQuizInProgress) {
-        if(!confirm("⚠️ ¡Evaluación en curso!\n\nSi sales ahora, perderás tu progreso.\n¿Estás seguro de que quieres salir?")) {
-            return;
-        } else {
-            endQuizMode();
-        }
+        if(!confirm("⚠️ ¡Evaluación en curso! Si sales, perderás progreso.")) return;
+        else endQuizMode();
     }
 
-    if (!courseData || !courseData.pages[index]) return;
+    // Validación de datos
+    if (!courseData || !courseData.pages || !courseData.pages[index]) {
+        console.error("❌ [RENDER] Página no encontrada o datos vacíos");
+        return;
+    }
 
-    // Limpiar modal
+    // Limpiar modal si existe
     const modal = document.getElementById('resultModal');
     if (modal) modal.style.display = 'none';
 
     currentPageIndex = index;
     const page = courseData.pages[currentPageIndex];
-    pageContentEl.innerHTML = '';
+    pageContentEl.innerHTML = ''; // Limpiar pantalla anterior
 
-    // ✅ GUARDAR PROGRESO (excepto si es quiz, se guarda al completar)
-    if (page.type !== 'quiz') {
-        saveProgress(index, false);
-    }
+    // Guardar progreso (si no es quiz)
+    if (page.type !== 'quiz') saveProgress(index, false);
 
-    // Renderizado según tipo
+    // =======================================================
+    // AQUÍ ESTÁ LA SOLUCIÓN: MANEJAR CADA TIPO CORRECTAMENTE
+    // =======================================================
     switch (page.type) {
-        // ... resto del código igual ...
+        case 'text':
+            // IMPORTANTE: Tu JSON usa page.payload.html
+            if (page.payload && page.payload.html) {
+                pageContentEl.innerHTML = page.payload.html;
+            } else {
+                pageContentEl.innerHTML = "<p>⚠️ Error: Esta página de texto no tiene contenido HTML.</p>";
+            }
+            break;
+
+        case 'video':
+            // Asumiendo que el JSON de video usa page.payload.url
+            if (page.payload && page.payload.url) {
+                pageContentEl.innerHTML = `
+                    <div class="video-container" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
+                        <iframe style="position:absolute; top:0; left:0; width:100%; height:100%;" 
+                                src="${page.payload.url}" 
+                                frameborder="0" allowfullscreen>
+                        </iframe>
+                    </div>
+                    ${page.payload.description ? `<p style="margin-top:1rem">${page.payload.description}</p>` : ''}
+                `;
+            }
+            break;
+
+        case 'quiz':
+            // Si el quiz viene en el JSON de la página
+            if (page.payload && page.payload.questions) {
+                renderQuizTemplate(page.payload.questions);
+            } else {
+                pageContentEl.innerHTML = "<p>⚠️ Error: Datos del examen no encontrados.</p>";
+            }
+            break;
+
+        default:
+            pageContentEl.innerHTML = `<p>Tipo de contenido desconocido: ${page.type}</p>`;
     }
 
     updateNavigationUI(index);
