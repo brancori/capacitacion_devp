@@ -508,18 +508,7 @@ console.log("🧭 Tenant usado en consulta:", myTenant, "Role:", myRole);
 console.log("DEBUG authData:", authData);
 console.log("DEBUG profileRow:", profileRow);
 console.log("DEBUG myTenant, myRole:", myTenant, myRole);
-// Query base
-/*
-let q = window.supabase
-  .from("articles")
-  .select("id, title, thumbnail_url, status, tenant_id");
 
-if (myRole !== "master") {
-  q = q.eq("tenant_id", myTenant);
-}
-
-const { data: courses, error: coursesError } = await q;
-*/
 
 const { data: assignments, error: coursesError } = await supabase
         .from("user_course_assignments")
@@ -538,20 +527,32 @@ const { data: assignments, error: coursesError } = await supabase
         `)
         .eq('user_id', userId); // <--- FILTRO CRÍTICO
 
-    if (coursesError) {
+if (coursesError) {
         console.error("Error al cargar cursos:", coursesError.message);
         return;
     }
 
-    // 2. PROCESAR Y SEPARAR LOS CURSOS
-    const allCourses = assignments ? assignments.map(a => ({
-        ...a.articles,     
-        progress: a.progress,
-        due_date: a.due_date,
-        assignment_status: a.status // Usamos el status de la asignación, no del artículo
-    })) : [];
+    // 2. PROCESAR Y SEPARAR LOS CURSOS (VERSIÓN CORREGIDA)
+    const allCourses = assignments ? assignments.map(a => {
+        // Validación de seguridad: Verificar si articles existe
+        if (!a.articles) return null;
 
-    // Separamos en dos listas
+        // Supabase a veces devuelve un array si la relación no es 'single'
+        const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
+        
+        // Si el artículo fue borrado pero la asignación existe
+        if (!articleData) return null;
+
+        return {
+            ...articleData, // Esto asegura que 'id', 'title', etc. estén disponibles
+            progress: a.progress,
+            due_date: a.due_date,
+            assignment_status: a.status
+        };
+    }).filter(c => c !== null) : []; // Eliminamos los nulos
+
+    console.log(`📦 Cursos procesados: ${allCourses.length}`);
+
     const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
     const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
 
@@ -609,7 +610,7 @@ const { data: assignments, error: coursesError } = await supabase
                     <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Progreso: ${progress}%</p>
                 </div>
                 <div class="course-actions">
-                    <a href="../curso/curso.html?id=${c.id}" class="btn btn-primary" style="width: 100%;">
+                    <a href="./curso/curso.html?id=${c.id}" class="btn btn-primary" style="width: 100%;">
                         ${btnText}
                     </a>
                 </div>
