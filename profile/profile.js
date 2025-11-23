@@ -533,25 +533,25 @@ if (coursesError) {
     }
 
     // 2. PROCESAR Y SEPARAR LOS CURSOS (VERSIÓN CORREGIDA)
-    const allCourses = assignments ? assignments.map(a => {
-        // Validación de seguridad: Verificar si articles existe
+const allCourses = assignments ? assignments.map(a => {
+        // Validación: Si no hay datos del artículo, saltamos
         if (!a.articles) return null;
 
         // Supabase a veces devuelve un array si la relación no es 'single'
         const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
         
-        // Si el artículo fue borrado pero la asignación existe
         if (!articleData) return null;
 
         return {
-            ...articleData, // Esto asegura que 'id', 'title', etc. estén disponibles
+            ...articleData, // Esto extrae id, title, thumbnail_url, etc.
             progress: a.progress,
             due_date: a.due_date,
             assignment_status: a.status
         };
-    }).filter(c => c !== null) : []; // Eliminamos los nulos
+    }).filter(c => c !== null) : []; // Eliminamos los nulos para evitar errores
 
-    console.log(`📦 Cursos procesados: ${allCourses.length}`);
+    // Logs de depuración para verificar
+    console.log("Cursos procesados:", allCourses);
 
     const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
     const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
