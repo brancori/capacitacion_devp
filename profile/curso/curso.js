@@ -67,11 +67,13 @@ async function fetchCourseData() {
     }
 
     try {
-        // Auth Check
+        // 1. Obtener Usuario
         const { data: userData } = await supabase.auth.getUser();
-        const myTenantId = userData?.user?.user_metadata?.tenant_id;
-        const myRole = userData?.user?.user_metadata?.role;
+        const user = userData?.user;
+        const myTenantId = user?.user_metadata?.tenant_id;
+        const myRole = user?.user_metadata?.role;
 
+        // 2. Cargar Curso (Articles)
         let query = supabase
             .from("articles")
             .select("title, content_json, quiz_json, tenant_id")
@@ -89,21 +91,42 @@ async function fetchCourseData() {
             return;
         }
 
-        console.log("✅ [SUPABASE] Curso descargado:", fetchedCourse.title);
+        // 3. RECUPERAR PROGRESO GUARDADO (NUEVA LÓGICA)
+        let startIndex = 0;
+        if (user) {
+            const { data: assignment } = await supabase
+                .from('user_course_assignments')
+                .select('progress, status')
+                .eq('user_id', user.id)
+                .eq('course_id', courseId)
+                .single();
 
-        // Procesar Datos (Limpieza e Inyección)
+            if (assignment && assignment.status !== 'completed' && assignment.progress > 0) {
+                // Preparamos los datos temporales para calcular cuántas páginas "normales" hay
+                const tempPages = fetchedCourse.content_json.pages.filter(p => p.type !== 'quiz');
+                const totalPages = tempPages.length;
+                
+                // Fórmula inversa a saveProgress: (progress / 90) * totalPages - 1
+                // Math.max para asegurar que no sea negativo
+                startIndex = Math.round((assignment.progress / 90) * totalPages) - 1;
+                startIndex = Math.max(0, startIndex); 
+                
+                console.log(`🔄 [RESUME] Progreso: ${assignment.progress}%. Reanudando en página: ${startIndex}`);
+            }
+        }
+
+        // 4. Procesar Datos del Curso
         let finalCourseData = fetchedCourse.content_json;
 
-        // A. Borrar quizzes viejos del JSON
+        // Limpieza de quizzes viejos
         if (finalCourseData.pages) {
             finalCourseData.pages = finalCourseData.pages.filter(p => 
                 p.type !== 'quiz' && p.title !== 'Evaluación Final'
             );
         }
 
-        // B. Inyectar Quiz desde la columna quiz_json
+        // Inyección del nuevo Quiz
         if (fetchedCourse.quiz_json) {
-            console.log("📦 [DATA] Procesando quiz_json...");
             let quizObj = typeof fetchedCourse.quiz_json === 'string' 
                 ? JSON.parse(fetchedCourse.quiz_json) 
                 : fetchedCourse.quiz_json;
@@ -114,14 +137,11 @@ async function fetchCourseData() {
                     title: 'Evaluación Final',
                     payload: quizObj
                 });
-                console.log(`➕ [DATA] Quiz agregado con ${quizObj.questions.length} preguntas.`);
             }
-        } else {
-            console.warn("⚠️ [DATA] No hay quiz_json en la base de datos.");
         }
 
-        // Cargar UI
-        loadCourseUI(fetchedCourse.title, finalCourseData);
+        // Cargar UI enviando el índice de inicio
+        loadCourseUI(fetchedCourse.title, finalCourseData, startIndex);
 
     } catch (e) {
         console.error("❌ [CRITICO] Error en fetchCourseData:", e);
@@ -131,7 +151,7 @@ async function fetchCourseData() {
 // ==========================================
 // 3. GENERACIÓN DE INTERFAZ (UI)
 // ==========================================
-function loadCourseUI(title, data) {
+function loadCourseUI(title, data, startIndex = 0) {
     courseData = data;
     courseTitleEl.textContent = title;
 
@@ -154,8 +174,13 @@ function loadCourseUI(title, data) {
             </button>`;
     }).join('');
 
-    // Renderizar primera página
-    renderPage(0);
+    // Validar que el startIndex no supere el total de páginas (por seguridad)
+    if (startIndex >= courseData.pages.length) {
+        startIndex = courseData.pages.length - 1;
+    }
+
+    // Renderizar la página recuperada
+    renderPage(startIndex);
 }
 
 // ==========================================
