@@ -338,14 +338,14 @@ function renderFlipCards(page) {
         html += page.payload.summary;
     }
     
-    contentDiv.innerHTML = html;
+    pageContentEl.innerHTML = html; // 
 }
 
 // ============================================
 // RENDER: Interactive (Contenido interactivo)
 // ============================================
 function renderInteractive(page) {
-    contentDiv.innerHTML = page.payload.html;
+     pageContentEl.innerHTML = page.payload.html;
 }
 
 // ============================================
@@ -378,14 +378,14 @@ function renderStepByStep(page) {
         html += page.payload.warnings;
     }
     
-    contentDiv.innerHTML = html;
+    pageContentEl.innerHTML = html;
 }
 
 // ============================================
 // RENDER: Comparison (Igual que interactive)
 // ============================================
 function renderComparison(page) {
-    contentDiv.innerHTML = page.payload.html;
+    pageContentEl.innerHTML = page.payload.html;
 }
 
 // ==========================================
