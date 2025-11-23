@@ -91,7 +91,50 @@ async function fetchCourseData() {
             return;
         }
 
-        // 3. RECUPERAR PROGRESO GUARDADO (NUEVA LÓGICA)
+        // ============================================================
+        // PASO CRÍTICO: PROCESAR Y PARSEAR DATOS **ANTES** DE USARLOS
+        // ============================================================
+        let finalCourseData;
+
+        // A. Parseo seguro (String vs Objeto)
+        if (typeof fetchedCourse.content_json === 'string') {
+            try {
+                finalCourseData = JSON.parse(fetchedCourse.content_json);
+            } catch (e) {
+                console.error("❌ Error parseando JSON:", e);
+                pageContentEl.innerHTML = "<p>Error de formato en el curso.</p>";
+                return;
+            }
+        } else {
+            // Supabase ya lo devolvió como objeto
+            finalCourseData = fetchedCourse.content_json || { pages: [] };
+        }
+
+        // B. Limpieza de quizzes viejos (si existen en el JSON manual)
+        if (finalCourseData.pages) {
+            finalCourseData.pages = finalCourseData.pages.filter(p => 
+                p.type !== 'quiz' && p.title !== 'Evaluación Final'
+            );
+        }
+
+        // C. Inyección del nuevo Quiz desde la columna quiz_json
+        if (fetchedCourse.quiz_json) {
+            let quizObj = typeof fetchedCourse.quiz_json === 'string' 
+                ? JSON.parse(fetchedCourse.quiz_json) 
+                : fetchedCourse.quiz_json;
+
+            if (quizObj && quizObj.questions && quizObj.questions.length > 0) {
+                finalCourseData.pages.push({
+                    type: 'quiz',
+                    title: 'Evaluación Final',
+                    payload: quizObj
+                });
+            }
+        }
+
+        // ============================================================
+        // AHORA SÍ: RECUPERAR PROGRESO (Usando finalCourseData ya listo)
+        // ============================================================
         let startIndex = 0;
         if (user) {
             const { data: assignment } = await supabase
@@ -102,45 +145,23 @@ async function fetchCourseData() {
                 .single();
 
             if (assignment && assignment.status !== 'completed' && assignment.progress > 0) {
-                // Preparamos los datos temporales para calcular cuántas páginas "normales" hay
-                const tempPages = fetchedCourse.content_json.pages.filter(p => p.type !== 'quiz');
-                const totalPages = tempPages.length;
+                // Usamos finalCourseData que ya está limpio y es un objeto seguro
+                // Filtramos el quiz para calcular el progreso real de lectura
+                const contentPages = finalCourseData.pages.filter(p => p.type !== 'quiz');
+                const totalContentPages = contentPages.length;
                 
-                // Fórmula inversa a saveProgress: (progress / 90) * totalPages - 1
-                // Math.max para asegurar que no sea negativo
-                startIndex = Math.round((assignment.progress / 90) * totalPages) - 1;
-                startIndex = Math.max(0, startIndex); 
-                
-                console.log(`🔄 [RESUME] Progreso: ${assignment.progress}%. Reanudando en página: ${startIndex}`);
+                if (totalContentPages > 0) {
+                    // Fórmula: (progress / 90) * totalPages - 1
+                    startIndex = Math.round((assignment.progress / 90) * totalContentPages) - 1;
+                    // Asegurar límites (mínimo 0, máximo última página)
+                    startIndex = Math.max(0, Math.min(startIndex, finalCourseData.pages.length - 1));
+                    
+                    console.log(`🔄 [RESUME] Progreso: ${assignment.progress}%. Reanudando en página: ${startIndex}`);
+                }
             }
         }
 
-        // 4. Procesar Datos del Curso
-        let finalCourseData = fetchedCourse.content_json;
-
-        // Limpieza de quizzes viejos
-        if (finalCourseData.pages) {
-            finalCourseData.pages = finalCourseData.pages.filter(p => 
-                p.type !== 'quiz' && p.title !== 'Evaluación Final'
-            );
-        }
-
-        // Inyección del nuevo Quiz
-        if (fetchedCourse.quiz_json) {
-            let quizObj = typeof fetchedCourse.quiz_json === 'string' 
-                ? JSON.parse(fetchedCourse.quiz_json) 
-                : fetchedCourse.quiz_json;
-
-            if (quizObj.questions && quizObj.questions.length > 0) {
-                finalCourseData.pages.push({
-                    type: 'quiz',
-                    title: 'Evaluación Final',
-                    payload: quizObj
-                });
-            }
-        }
-
-        // Cargar UI enviando el índice de inicio
+        // 5. Cargar UI
         loadCourseUI(fetchedCourse.title, finalCourseData, startIndex);
 
     } catch (e) {
