@@ -16,6 +16,25 @@ try {
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
+// --- 🛑 FUNCIÓN CRÍTICA: Esperar a que Supabase cargue ---
+function waitForSupabase() {
+    return new Promise((resolve) => {
+        // 1. Si ya existe, devolver inmediatamente
+        if (typeof window.supabase !== 'undefined' && typeof window.supabase.auth !== 'undefined') {
+            return resolve(window.supabase);
+        }
+        console.log("⏳ Esperando a Supabase...");
+        // 2. Si no, revisar cada 100ms hasta que aparezca
+        const check = setInterval(() => {
+            if (typeof window.supabase !== 'undefined' && typeof window.supabase.auth !== 'undefined') {
+                clearInterval(check);
+                console.log("✅ Supabase cargado.");
+                resolve(window.supabase);
+            }
+        }, 100);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
 
     const params = new URLSearchParams(window.location.search);
@@ -30,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Limpiar URL
         window.history.replaceState({}, '', window.location.pathname);
     }
-    
+
     renderCalendar();
     updateAccidentFreeDays();
     updateDateDisplay();
