@@ -1,6 +1,16 @@
 (async function earlyRoleCheck() {
   try {
-    // Ocultar la página inmediatamente
+    // Verificar si hay parámetro 'admin=true' en la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdminAccess = urlParams.get('admin') === 'true';
+    
+    // Si es acceso intencional de admin, permitir
+    if (isAdminAccess) {
+      console.log('✅ Acceso administrativo permitido a profile');
+      return; // No hacer nada, dejar cargar normalmente
+    }
+    
+    // Ocultar la página mientras validamos
     document.body.style.visibility = 'hidden';
     
     const { data: { user } } = await window.supabase.auth.getUser();
@@ -12,15 +22,15 @@
         .eq('id', user.id)
         .single();
       
-      // Si es rol administrativo, redirigir SIN mostrar nada
+      // Si es rol administrativo Y no tiene permiso explícito, redirigir
       if (profile && ['master', 'admin', 'supervisor'].includes(profile.role)) {
-        console.log(`🔄 Redirección temprana: ${profile.role} → dashboard`);
+        console.log(`🔄 Redirección automática: ${profile.role} → dashboard`);
         window.location.replace('../dashboard.html');
-        return; // No mostrar la página
+        return;
       }
     }
     
-    // Si llegamos aquí, es un usuario normal → mostrar página
+    // Usuario normal → mostrar página
     document.body.style.visibility = 'visible';
     
   } catch (error) {
