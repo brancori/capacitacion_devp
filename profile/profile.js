@@ -1,41 +1,50 @@
 (async function earlyRoleCheck() {
   try {
-    // Verificar si hay parámetro 'admin=true' en la URL
+    // 1. Verificar parámetro en URL
     const urlParams = new URLSearchParams(window.location.search);
     const isAdminAccess = urlParams.get('admin') === 'true';
     
-    // Si es acceso intencional de admin, permitir
+    console.log('🔍 Validación de acceso - admin param:', isAdminAccess);
+    
+    // 2. Si tiene permiso explícito, permitir acceso inmediato
     if (isAdminAccess) {
-      console.log('✅ Acceso administrativo permitido a profile');
-      return; // No hacer nada, dejar cargar normalmente
+      console.log('✅ Acceso administrativo autorizado');
+      document.body.classList.add('loaded');
+      return;
     }
     
-    // Ocultar la página mientras validamos
-    document.body.style.visibility = 'hidden';
-    
+    // 3. Validar rol del usuario
     const { data: { user } } = await window.supabase.auth.getUser();
     
-    if (user) {
-      const { data: profile } = await window.supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      // Si es rol administrativo Y no tiene permiso explícito, redirigir
-      if (profile && ['master', 'admin', 'supervisor'].includes(profile.role)) {
-        console.log(`🔄 Redirección automática: ${profile.role} → dashboard`);
-        window.location.replace('../dashboard.html');
-        return;
-      }
+    if (!user) {
+      console.warn('⚠️ Sin sesión activa');
+      document.body.classList.add('loaded');
+      return;
     }
     
-    // Usuario normal → mostrar página
-    document.body.style.visibility = 'visible';
+    // 4. Consultar perfil
+    const { data: profile } = await window.supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    console.log('🔍 Rol detectado:', profile?.role);
+    
+    // 5. Redirigir roles administrativos (sin parámetro admin=true)
+    if (profile && ['master', 'admin', 'supervisor'].includes(profile.role)) {
+      console.log(`🔄 Redirigiendo ${profile.role} → dashboard`);
+      window.location.replace('../dashboard.html');
+      return; // No mostrar nada
+    }
+    
+    // 6. Usuario normal: mostrar página
+    console.log('✅ Acceso de usuario normal permitido');
+    document.body.classList.add('loaded');
     
   } catch (error) {
-    console.warn('Error en validación temprana:', error);
-    document.body.style.visibility = 'visible';
+    console.error('❌ Error en validación:', error);
+    document.body.classList.add('loaded'); // Mostrar página en caso de error
   }
 })();
 
@@ -230,13 +239,6 @@ async function loadUserProfile() {
       .single();
 
     if (profileError) throw profileError;
-
-    // ✅ AGREGAR ESTAS LÍNEAS AQUÍ (después de obtener el profile):
-    if (profile && ['master', 'admin', 'supervisor'].includes(profile.role)) {
-      console.log(`🔄 Rol administrativo detectado (${profile.role}) - Redirigiendo a dashboard...`);
-      window.location.href = '../dashboard.html';
-      return; // Detener ejecución
-    }
 
     if (profile) {
       updateProfileView(profile);
