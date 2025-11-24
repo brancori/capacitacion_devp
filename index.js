@@ -57,58 +57,59 @@
 
   const tenantId = detectTenant();
 
+  // =================================================================
+  // ✅ CORRECCIÓN 1: validateLoginPage - Sin trial_expires_at
+  // =================================================================
+  async function validateLoginPage() {
+    try {
+      const { data: tenant, error } = await window.supabase
+        .from('tenants')
+        .select('id, name, slug')  // ✅ REMOVIDO trial_expires_at
+        .eq('slug', tenantId)
+        .single();
 
-async function validateLoginPage() {
-try {
-const { data: tenant, error } = await window.supabase
-.from('tenants')
-.select('id, name, trial_expires_at')
-.eq('slug', tenantId)
-.single();
+      if (error || !tenant) {
+        console.error('❌ Tenant no encontrado en DB:', tenantId, error);
+        return false;
+      }
 
+      console.log('✅ Tenant validado:', tenant.name);
+      return tenant;
 
-if (error || !tenant) {
-  console.error(' Tenant no encontrado en DB:', tenantId, error);
-  return false;
-}
-
-console.log(' Tenant validado:', tenant.name);
-return tenant;
-
-} catch (err) {
-console.error('❌ Error validando tenant:', err);
-return false;
-}
-}
-
-async function loadTenantConfig() {
-  try {
-    const response = await fetch('./tenants/tenants.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Tenant config not found');
-
-    const data = await response.json();
-    const tenantConfig = data[tenantId] || data['default'] || {};
-
-    const config = {
-      ...DEFAULTS,
-      ...tenantConfig,
-      labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
-    };
-
-    config.tenantSlug = tenantId;
-    
-    const tenantDb = await validateLoginPage();
-    if (tenantDb) {
-      config.tenantUUID = tenantDb.id;
+    } catch (err) {
+      console.error('❌ Error validando tenant:', err);
+      return false;
     }
-    
-    console.log(`✅ Tenant Configurado: ${config.companyName} (slug: ${config.tenantSlug})`);
-    return config;
-  } catch (error) {
-    console.warn('⚠️ Error al cargar tenant config:', error);
-    return { ...DEFAULTS, tenantSlug: 'default' };
   }
-}
+
+  async function loadTenantConfig() {
+    try {
+      const response = await fetch('./tenants/tenants.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Tenant config not found');
+
+      const data = await response.json();
+      const tenantConfig = data[tenantId] || data['default'] || {};
+
+      const config = {
+        ...DEFAULTS,
+        ...tenantConfig,
+        labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
+      };
+
+      config.tenantSlug = tenantId;
+      
+      const tenantDb = await validateLoginPage();
+      if (tenantDb) {
+        config.tenantUUID = tenantDb.id;
+      }
+      
+      console.log(`✅ Tenant Configurado: ${config.companyName} (slug: ${config.tenantSlug})`);
+      return config;
+    } catch (error) {
+      console.warn('⚠️ Error al cargar tenant config:', error);
+      return { ...DEFAULTS, tenantSlug: 'default' };
+    }
+  }
 
   function applyConfiguration(config) {
     window.__appConfig = config;
@@ -206,6 +207,9 @@ async function loadTenantConfig() {
       });
     });
 
+    // =================================================================
+    // ✅ CORRECCIÓN 2: handleLoginSubmit - Sin headers problemáticos
+    // =================================================================
     const handleLoginSubmit = async (e) => {
       e.preventDefault();
       const supabase = window.supabase;
@@ -227,21 +231,25 @@ async function loadTenantConfig() {
       try {
         const { tenantSlug } = window.__appConfig;
         
-        // Login personalizado via Edge Function
+        // ✅ Login via Edge Function (sin headers personalizados)
         const { data, error } = await supabase.functions.invoke('custom-login', {
-          body: { email: email, password: password, tenant_slug: tenantSlug }
+          body: { 
+            email: email, 
+            password: password, 
+            tenant_slug: tenantSlug 
+          }
         });
 
         if (error) throw new Error(error.message || 'Error del servidor');
 
         if (data.error) {
           if (data.error_code === 'FORCE_RESET') {
-             showResetPasswordModal({ id: data.user_id });
-             btn.disabled = false;
-             return; 
+            showResetPasswordModal({ id: data.user_id });
+            btn.disabled = false;
+            return; 
           }
           if (data.error_code === 'PENDING_AUTHORIZATION') {
-             throw new Error('Cuenta pendiente de autorización. Contacta a tu administrador.');
+            throw new Error('Cuenta pendiente de autorización. Contacta a tu administrador.');
           }
           throw new Error(data.error);
         }
@@ -253,7 +261,6 @@ async function loadTenantConfig() {
           refresh_token: 'dummy-refresh-token'
         });
 
-        // LÓGICA DE REDIRECCIÓN
         console.log('4️⃣ Sesión establecida. Enrutando...');
         
         showModal(
@@ -261,23 +268,20 @@ async function loadTenantConfig() {
           'Entrando al sistema...',
           'success',
           async () => {
-            // CORREGIDO: Usamos data.jwt directamente
             const token = data.jwt;
             const jwtData = JSON.parse(atob(token.split('.')[1]));
             const userRole = jwtData.role || 'employee';
             
-            // Rutas relativas
             const PATH_DASHBOARD = './dashboard.html'; 
             const PATH_PROFILE = './profile/profile.html';
             const rolesAdmin = ['master', 'admin', 'supervisor']; 
 
             console.log(`Rol detectado: ${userRole}`);
 
-            // Pasamos el token en la URL para recuperar la sesión
             if (rolesAdmin.includes(userRole)) {
-                window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
+              window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
             } else {
-                window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
+              window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
             }
           }
         );
@@ -477,7 +481,7 @@ async function loadTenantConfig() {
       const isMatch = pass.length > 0 && pass === confirm;
       rules.length.classList.toggle('valid', isLength);
       rules.number.classList.toggle('valid', hasNumber);
-      rules.letter.classList.toggle('valid', isMatch);
+      rules.letter.classList.toggle('valid', hasLetter);
       rules.match.classList.toggle('valid', isMatch);
       return isLength && hasNumber && hasLetter && isMatch;
     };
@@ -520,31 +524,52 @@ async function loadTenantConfig() {
   }
 
   // =================================================================
-  // 6. INICIALIZACIÓN PRINCIPAL
+  // ✅ CORRECCIÓN 3: init() - Storage compatible con Tracking Prevention
   // =================================================================
   async function init() {
-    // 1. Limpieza de Tenant
     const currentTenant = detectTenant();
-    const storedTenant = localStorage.getItem('current_tenant');
-    window.safeStorage.get('current_tenant');
+    
+    // Usar safeStorage con fallback seguro
+    let storedTenant = null;
+    try {
+      if (window.safeStorage && typeof window.safeStorage.get === 'function') {
+        storedTenant = window.safeStorage.get('current_tenant');
+      }
+    } catch (e) {
+      console.warn('⚠️ No se pudo acceder a storage:', e.message);
+    }
     
     if (storedTenant && storedTenant !== currentTenant) {
-    console.warn(' Tenant diferente, limpiando sesión…');
-    try {
-    document.cookie = `sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0`;
-    } catch(e) {}
-    window.safeStorage.remove('current_tenant');  
-    window.safeStorage.remove('tenantTheme');   
-    window.safeStorage.remove('tenantSlug');      
+      console.warn('🔄 Tenant diferente, limpiando sesión…');
+      try {
+        document.cookie = `sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0`;
+      } catch(e) {}
+      
+      try {
+        if (window.safeStorage) {
+          window.safeStorage.remove('current_tenant');
+          window.safeStorage.remove('tenantTheme');
+          window.safeStorage.remove('tenantSlug');
+        }
+      } catch(e) {
+        console.warn('⚠️ Error limpiando storage:', e.message);
+      }
     }
 
-    window.safeStorage.set('current_tenant', currentTenant); 
+    // Guardar tenant actual
+    try {
+      if (window.safeStorage && typeof window.safeStorage.set === 'function') {
+        window.safeStorage.set('current_tenant', currentTenant);
+      }
+    } catch(e) {
+      console.warn('⚠️ No se pudo guardar tenant:', e.message);
+    }
 
-    console.log(` Inicializando App - Tenant: ${currentTenant}`);
+    console.log(`🚀 Inicializando App - Tenant: ${currentTenant}`);
     const config = await loadTenantConfig();
     applyConfiguration(config);
-    console.log(' App lista para login');
-}
+    console.log('✅ App lista para login');
+  }
 
   // Disparador
   if (document.readyState === 'loading') {
