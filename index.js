@@ -556,17 +556,34 @@ function $$(selector) { return Array.from(document.querySelectorAll(selector)); 
   // -----------------------------------------------------------------
   // 7. INICIALIZACIÓN
   // -----------------------------------------------------------------
-  async function init() {
-    console.log(`🚀 Initializing v2 - tenant: ${tenantId}`);
-    const config = await loadTenantConfig();
-    applyConfiguration(config);
-    console.log('✅ Application ready');
+async function init() {
+  // ESTE BLOQUE DEBE ESTAR AL INICIO:
+  const currentTenant = detectTenant();
+  const storedTenant = localStorage.getItem('current_tenant');
+  
+  if (storedTenant && storedTenant !== currentTenant) {
+    console.warn('⚠️ Tenant diferente, limpiando sesión...');
+    const cookies = ['sb-hvwygpnuunuuylzondxt-auth-token', 'sb-access-token', 'sb-refresh-token'];
+    cookies.forEach(c => document.cookie = `${c}=;path=/;max-age=0`);
+    localStorage.removeItem('current_tenant');
+    localStorage.removeItem('tenantTheme');
+    localStorage.removeItem('tenantSlug');
   }
+  
+  localStorage.setItem('current_tenant', currentTenant);
+  
+  // Resto del código de init:
+  console.log(`🚀 Initializing v2 - tenant: ${tenantId}`);
+  const config = await loadTenantConfig();
+  applyConfiguration(config);
+  console.log('✅ Application ready');
+}
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
+// ════════════════════════════════════════════════════════════
+// Y ELIMINA ESTE BLOQUE si aún lo tienes (líneas ~30-48):
+// ════════════════════════════════════════════════════════════
+(function validateLoginPage() {
+  const currentTenant = detectTenant();
+  // ... TODO ESTE BLOQUE DEBE SER ELIMINADO
+})();
 })();
