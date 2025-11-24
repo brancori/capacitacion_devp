@@ -4,6 +4,29 @@
 ========================================================================
 */
 
+async function init() {
+  // AGREGAR ESTO AL INICIO:
+  const currentTenant = detectTenant();
+  const storedTenant = localStorage.getItem('current_tenant');
+  
+  if (storedTenant && storedTenant !== currentTenant) {
+    console.warn('⚠️ Tenant diferente, limpiando sesión...');
+    const cookies = ['sb-hvwygpnuunuuylzondxt-auth-token', 'sb-access-token', 'sb-refresh-token'];
+    cookies.forEach(c => document.cookie = `${c}=;path=/;max-age=0`);
+    localStorage.removeItem('current_tenant');
+    localStorage.removeItem('tenantTheme');
+    localStorage.removeItem('tenantSlug');
+  }
+  
+  localStorage.setItem('current_tenant', currentTenant);
+  
+  // Luego continúa el resto del código de init():
+  console.log(`🚀 Initializing v2 - tenant: ${tenantId}`);
+  const config = await loadTenantConfig();
+  applyConfiguration(config);
+  console.log('✅ Application ready');
+}
+
 (function() {
   'use strict';
 
@@ -24,28 +47,6 @@ function $$(selector) { return Array.from(document.querySelectorAll(selector)); 
   const setStyle = (prop, value) => {
     if (value) document.documentElement.style.setProperty(prop, value);
   };
-
-  // 2. VALIDACIÓN DE SESIÓN (AHORA SÍ FUNCIONARÁ PORQUE detectTenant YA EXISTE)
-  // -----------------------------------------------------------------
-  (function validateLoginPage() {
-    const currentTenant = detectTenant();
-    const storedTenant = localStorage.getItem('current_tenant');
-    
-    if (storedTenant && storedTenant !== currentTenant) {
-      console.warn('⚠️ Tenant diferente detectado en login, limpiando sesión...');
-      
-      const cookies = ['sb-hvwygpnuunuuylzondxt-auth-token', 'sb-access-token', 'sb-refresh-token'];
-      cookies.forEach(c => {
-        document.cookie = `${c}=;path=/;max-age=0`;
-      });
-      
-      localStorage.removeItem('current_tenant');
-      localStorage.removeItem('tenantTheme');
-      localStorage.removeItem('tenantSlug');
-    }
-    
-    localStorage.setItem('current_tenant', currentTenant);
-  })();
 
   // -----------------------------------------------------------------
   // 3. CONFIGURACIÓN DE TENANT 
