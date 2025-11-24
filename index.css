@@ -121,8 +121,7 @@ body {
   border: 1px solid var(--borderForm);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  display: grid;
-  grid-template-columns: 1fr 420px;
+  display: flex;
   overflow: hidden;
   animation: cardEnter 600ms var(--transition-smooth) backwards;
   will-change: transform, opacity;
