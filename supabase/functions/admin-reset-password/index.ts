@@ -7,9 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const supabaseAdmin = createClient(
@@ -17,31 +15,34 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { userId, newPassword } = await req.json()
+    const { userId } = await req.json() // Ya no pedimos newPassword
 
-    if (!userId || !newPassword) {
-      throw new Error('userId y newPassword son requeridos')
-    }
+    if (!userId) throw new Error('userId es requerido')
 
-    // Actualizar contraseña directamente
-    const { data: user, error } = await supabaseAdmin.auth.admin.updateUserById(
+    // 1. Generar contraseña temporal aleatoria (8 caracteres)
+    const tempPassword = Math.random().toString(36).slice(-8);
+
+    // 2. Actualizar Auth con la temporal
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
       userId, 
-      { password: newPassword }
+      { password: tempPassword }
     )
+    if (authError) throw authError
 
-    if (error) throw error
-
-    // Reactivar usuario y limpiar bandera de reset
-    await supabaseAdmin
+    // 3. Activar force_reset en Profile
+    const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({ 
-          force_reset: false,
-          status: 'active'
+          force_reset: true, // 🛑 ESTO OBLIGA AL CAMBIO
+          status: 'active' 
       })
-      .eq('id', userId) 
+      .eq('id', userId)
 
+    if (profileError) throw profileError
+
+    // 4. Devolver la temporal al Admin
     return new Response(
-      JSON.stringify({ success: true, message: 'Contraseña actualizada' }),
+      JSON.stringify({ success: true, tempPassword: tempPassword }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

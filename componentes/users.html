@@ -724,42 +724,45 @@ userListBody.addEventListener('click', async (e) => {
             openEditModal(target);
 
         // 2. RESETEAR CONTRASEÑA (Lógica Nueva)
-        } else if (target.classList.contains('btn-reset-pass')) {
+} else if (target.classList.contains('btn-reset-pass')) {
             e.preventDefault();
             const userId = target.dataset.userId;
             const userEmail = target.dataset.userEmail;
 
-            // A. Pedir nueva contraseña
-            const newPassword = prompt(`Ingresa la nueva contraseña para ${userEmail}:`);
-            
-            // Validación básica
-            if (newPassword === null) return; // Usuario canceló
-            if (newPassword.trim().length < 6) {
-                alert("La contraseña debe tener al menos 6 caracteres.");
-                return;
-            }
+            // A. Confirmación bonita (Sin alerts feos)
+            const confirm = await showModalConfirm(
+                'Restablecer Acceso',
+                `¿Estás seguro de restablecer la cuenta de ${userEmail}?\n\nEl sistema generará una contraseña temporal y pedirá al usuario que la cambie en su próximo inicio de sesión.`
+            );
 
-            // B. UI Feedback (Spinner)
+            if (!confirm) return;
+
+            // B. UI Feedback
             const originalContent = target.innerHTML;
             target.disabled = true;
             target.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             try {
-                // C. Llamada a Edge Function
+                // C. Llamada a Edge Function (Solo mandamos ID)
                 const { data, error } = await window.supabase.functions.invoke('admin-reset-password', {
-                    body: { userId: userId, newPassword: newPassword }
+                    body: { userId: userId }
                 });
 
                 if (error) throw new Error(error.message || 'Error de conexión');
                 if (data && !data.success) throw new Error(data.error || 'Error en el servidor');
 
-                showModal('Éxito', `Contraseña actualizada correctamente para ${userEmail}`, 'success');
+                // D. Mostrar la contraseña temporal al Admin
+                showModal(
+                    'Acceso Restablecido', 
+                    `Copia esta contraseña temporal y envíala al usuario:\n\n👉  ${data.tempPassword}  👈\n\nAl ingresar con ella, el sistema le obligará a crear una nueva.`, 
+                    'success'
+                );
 
             } catch (err) {
                 console.error(err);
-                showModal('Error', 'No se pudo cambiar la contraseña: ' + err.message, 'error');
+                showModal('Error', 'No se pudo resetear: ' + err.message, 'error');
             } finally {
-                // D. Restaurar botón
+                // E. Restaurar botón
                 target.innerHTML = originalContent;
                 target.disabled = false;
             }
