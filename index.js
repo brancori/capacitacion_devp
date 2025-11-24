@@ -526,7 +526,7 @@ async function loadTenantConfig() {
     window.safeStorage.get('current_tenant');
     
     if (storedTenant && storedTenant !== currentTenant) {
-    console.warn(‘ Tenant diferente, limpiando sesión…’);
+    console.warn(' Tenant diferente, limpiando sesión…');
     try {
     document.cookie = `sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0`;
     } catch(e) {}
