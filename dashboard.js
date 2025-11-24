@@ -37,6 +37,7 @@ function waitForSupabase() {
 
 document.addEventListener('DOMContentLoaded', async () => {
 
+    const sb = await waitForSupabase();
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
 
