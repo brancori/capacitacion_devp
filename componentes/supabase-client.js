@@ -28,21 +28,23 @@ if (typeof window.supabase === 'undefined' || typeof window.supabase.createClien
   
   // Configuración explícita de opciones
 const clientOptions = {
-    auth: {
-      persistSession: false,      // Importante: No guardar en disco
-      autoRefreshToken: false,    // No intentar refrescar token guardado
-      detectSessionInUrl: false,  // Manejo manual de URL
-      storage: undefined          // Elimina el adaptador de cookies
-    },
-    realtime: {
-        params: {
-            eventsPerSecond: 10,
-        },
-        headers: {
-            'x-client-info': 'supa-ehs-v3'
-        }
+  auth: {
+    persistSession: false,      // Obligatorio para evitar bloqueo de cookies (Tracking Prevention)
+    autoRefreshToken: false,    // El proxy/firewall puede bloquear el refresh automático
+    detectSessionInUrl: false,
+    storage: undefined          // Solo RAM
+  },
+  // Desactivamos los intentos agresivos de Realtime
+  realtime: {
+    params: {
+      eventsPerSecond: 0, // Intentar anular eventos
     }
-  };
+  },
+  // Forzar uso de fetch compatible con proxies
+  global: {
+    headers: { 'x-application-name': 'siresi-proxy-client' }
+  }
+};
   window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
   console.log('✅ Cliente Supabase (Fix WSS + Privacy)');
 
