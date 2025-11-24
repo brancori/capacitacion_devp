@@ -7,26 +7,23 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Manejo de CORS (Preflight)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // 1. Crear cliente con permisos de Super Admin (Service Role)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 2. Obtener datos enviados desde el frontend
     const { userId, newPassword } = await req.json()
 
     if (!userId || !newPassword) {
       throw new Error('userId y newPassword son requeridos')
     }
 
-    // 3. Actualizar la contraseña del usuario (Sin preguntar nada más)
+    // Actualizar contraseña directamente
     const { data: user, error } = await supabaseAdmin.auth.admin.updateUserById(
       userId, 
       { password: newPassword }
@@ -34,16 +31,14 @@ serve(async (req) => {
 
     if (error) throw error
 
-    // 4. (Opcional) Asegurar que el usuario quede activo en la tabla profiles
-    // Si tenías alguna bandera de bloqueo, esto la limpia.
-    // Nota: Asumo que la PK de profiles es 'id' y coincide con userId.
+    // Reactivar usuario y limpiar bandera de reset
     await supabaseAdmin
       .from('profiles')
       .update({ 
-          force_reset: false, // Ya la cambió el admin, no obligar de nuevo
-          status: 'active'    // Reactivar si estaba inactivo
+          force_reset: false,
+          status: 'active'
       })
-      .eq('id', userId)       // O usa .eq('user_id', userId) según tu esquema exacto
+      .eq('id', userId) 
 
     return new Response(
       JSON.stringify({ success: true, message: 'Contraseña actualizada' }),

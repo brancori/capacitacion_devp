@@ -714,24 +714,65 @@ async function handleApproveRequest(requestId, requestEmail) {
         editForm.addEventListener('submit', handleEditFormSubmit);
 
         // Delegación de eventos - Lista de usuarios
-        userListBody.addEventListener('click', (e) => {
-            const target = e.target.closest('button, input[type="checkbox"]');
-            if (!target) return;
+userListBody.addEventListener('click', async (e) => {
+        const target = e.target.closest('button, input[type="checkbox"]');
+        if (!target) return;
 
-            if (target.classList.contains('btn-edit')) {
-                e.preventDefault();
-                openEditModal(target);
-            } else if (target.classList.contains('btn-reset-pass')) {
-                e.preventDefault();
-                const userId = target.dataset.userId;
-                const userEmail = target.dataset.userEmail;
-                showModal('Función no disponible', 'La función de reseteo de contraseña requiere una Edge Function.', 'info');
-            } else if (target.classList.contains('toggle-status')) {
-                const userId = target.dataset.userId;
-                const newStatus = target.checked;
-                handleToggleStatus(userId, newStatus);
+        // 1. EDITAR USUARIO
+        if (target.classList.contains('btn-edit')) {
+            e.preventDefault();
+            openEditModal(target);
+
+        // 2. RESETEAR CONTRASEÑA (Lógica Nueva)
+        } else if (target.classList.contains('btn-reset-pass')) {
+            e.preventDefault();
+            const userId = target.dataset.userId;
+            const userEmail = target.dataset.userEmail;
+
+            // A. Pedir nueva contraseña
+            const newPassword = prompt(`Ingresa la nueva contraseña para ${userEmail}:`);
+            
+            // Validación básica
+            if (newPassword === null) return; // Usuario canceló
+            if (newPassword.trim().length < 6) {
+                alert("La contraseña debe tener al menos 6 caracteres.");
+                return;
             }
-        });
+
+            // B. UI Feedback (Spinner)
+            const originalContent = target.innerHTML;
+            target.disabled = true;
+            target.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                // C. Llamada a Edge Function
+                const { data, error } = await window.supabase.functions.invoke('admin-reset-password', {
+                    body: { userId: userId, newPassword: newPassword }
+                });
+
+                if (error) throw new Error(error.message || 'Error de conexión');
+                if (data && !data.success) throw new Error(data.error || 'Error en el servidor');
+
+                showModal('Éxito', `Contraseña actualizada correctamente para ${userEmail}`, 'success');
+
+            } catch (err) {
+                console.error(err);
+                showModal('Error', 'No se pudo cambiar la contraseña: ' + err.message, 'error');
+            } finally {
+                // D. Restaurar botón
+                target.innerHTML = originalContent;
+                target.disabled = false;
+            }
+
+        // 3. CAMBIAR ESTADO (ACTIVO/INACTIVO)
+        } else if (target.classList.contains('toggle-status')) {
+            const userId = target.dataset.userId;
+            const newStatus = target.checked;
+            // No usamos await aquí para que la UI sea rápida ("Optimistic UI"), 
+            // pero handleToggleStatus maneja el error si falla.
+            handleToggleStatus(userId, newStatus);
+        }
+    });
 
         // Delegación de eventos - Solicitudes pendientes
         document.getElementById('request-list-body').addEventListener('click', async (e) => {
