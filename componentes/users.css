@@ -209,3 +209,8 @@ input:checked + .slider:before { transform: translateX(22px); }
     /* Ocultar columna tenant vacía si aplica */
     .tenant-col:empty { display: none; }
 }
+
+
+.user-table.simple-view {
+    grid-template-columns: minmax(200px, 1.5fr) minmax(200px, 1.5fr) minmax(100px, 1fr) 100px 120px;
+}
