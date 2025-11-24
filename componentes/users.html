@@ -729,10 +729,10 @@ userListBody.addEventListener('click', async (e) => {
             const userId = target.dataset.userId;
             const userEmail = target.dataset.userEmail;
 
-            // A. Confirmación bonita (Sin alerts feos)
+            // A. Confirmación actualizada
             const confirm = await showModalConfirm(
-                'Restablecer Acceso',
-                `¿Estás seguro de restablecer la cuenta de ${userEmail}?\n\nEl sistema generará una contraseña temporal y pedirá al usuario que la cambie en su próximo inicio de sesión.`
+                'Forzar Cambio de Contraseña',
+                `¿Deseas obligar al usuario ${userEmail} a cambiar su contraseña en el próximo inicio de sesión?\n\n(El usuario deberá ingresar con su contraseña actual para realizar el cambio).`
             );
 
             if (!confirm) return;
@@ -743,7 +743,7 @@ userListBody.addEventListener('click', async (e) => {
             target.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             try {
-                // C. Llamada a Edge Function (Solo mandamos ID)
+                // C. Llamada a Edge Function
                 const { data, error } = await window.supabase.functions.invoke('admin-reset-password', {
                     body: { userId: userId }
                 });
@@ -751,18 +751,17 @@ userListBody.addEventListener('click', async (e) => {
                 if (error) throw new Error(error.message || 'Error de conexión');
                 if (data && !data.success) throw new Error(data.error || 'Error en el servidor');
 
-                // D. Mostrar la contraseña temporal al Admin
+                // D. Mensaje de éxito simple (Sin contraseña temporal)
                 showModal(
-                    'Acceso Restablecido', 
-                    `Copia esta contraseña temporal y envíala al usuario:\n\n👉  ${data.tempPassword}  👈\n\nAl ingresar con ella, el sistema le obligará a crear una nueva.`, 
+                    'Acción Completada', 
+                    `Se ha activado el cambio forzoso para ${userEmail}.\n\nLa próxima vez que ingrese, el sistema le pedirá definir una nueva clave.`, 
                     'success'
                 );
 
             } catch (err) {
                 console.error(err);
-                showModal('Error', 'No se pudo resetear: ' + err.message, 'error');
+                showModal('Error', 'No se pudo actualizar el estado: ' + err.message, 'error');
             } finally {
-                // E. Restaurar botón
                 target.innerHTML = originalContent;
                 target.disabled = false;
             }

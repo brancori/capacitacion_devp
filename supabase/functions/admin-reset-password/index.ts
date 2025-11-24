@@ -15,34 +15,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { userId } = await req.json() // Ya no pedimos newPassword
+    const { userId } = await req.json()
 
     if (!userId) throw new Error('userId es requerido')
 
-    // 1. Generar contraseña temporal aleatoria (8 caracteres)
-    const tempPassword = Math.random().toString(36).slice(-8);
-
-    // 2. Actualizar Auth con la temporal
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-      userId, 
-      { password: tempPassword }
-    )
-    if (authError) throw authError
-
-    // 3. Activar force_reset en Profile
+    // 1. Solo activamos la bandera force_reset y aseguramos que el usuario esté activo
+    // NO CAMBIAMOS LA CONTRASEÑA AQUÍ
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({ 
-          force_reset: true, // 🛑 ESTO OBLIGA AL CAMBIO
+          force_reset: true, 
           status: 'active' 
       })
       .eq('id', userId)
 
     if (profileError) throw profileError
 
-    // 4. Devolver la temporal al Admin
+    // 2. Devolvemos éxito simple
     return new Response(
-      JSON.stringify({ success: true, tempPassword: tempPassword }),
+      JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
