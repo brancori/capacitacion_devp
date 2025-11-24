@@ -9,17 +9,17 @@
 
   // 1. DEFINICIONES DE UTILIDAD (MOVIDAS AL PRINCIPIO PARA EVITAR ERRORES)
   // -----------------------------------------------------------------
-  const detectTenant = () => {
-    const host = location.hostname || 'localhost';
-    if (host === 'localhost') return 'demo';
-    if (host === '127.0.0.1') return 'default';
-    const parts = host.split('.');
-    if (parts.length > 2 && parts[0] !== 'www') return parts[0];
-    return 'default';
-  };
+function detectTenant() {
+  const host = location.hostname || 'localhost';
+  if (host === 'localhost') return 'demo';
+  if (host === '127.0.0.1') return 'default';
+  const parts = host.split('.');
+  if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+  return 'default';
+}
 
-  const $ = (selector) => document.querySelector(selector);
-  const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+function $(selector) { return document.querySelector(selector); }
+function $$(selector) { return Array.from(document.querySelectorAll(selector)); }
 
   const setStyle = (prop, value) => {
     if (value) document.documentElement.style.setProperty(prop, value);
