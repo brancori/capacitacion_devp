@@ -72,6 +72,30 @@
     overflow: hidden; /* Ocultamos el scroll del contenedor padre */
 }
 
+.course-sidebar {
+    width: 280px;          /* Ancho fijo obligatorio */
+    min-width: 280px;      /* Evita que se encoja */
+    max-width: 280px;      /* Evita que crezca */
+    flex-shrink: 0;        /* Evita deformación en Flexbox */
+    overflow-y: auto;      /* Scroll si la lista es muy larga */
+}
+
+.page-btn {
+    width: 100%;           /* Ocupa el ancho del sidebar */
+    white-space: normal;   /* Permite texto en múltiples líneas */
+    height: auto;          /* Altura automática según el texto */
+    min-height: 50px;      /* Altura mínima para clic fácil */
+    display: flex;         
+    align-items: center;   
+    text-align: left;
+    padding: 12px 15px;
+}
+
+.page-btn span {
+    display: block;        /* Comportamiento de bloque para el texto */
+    line-height: 1.3;      /* Espaciado entre líneas de texto */
+}
+
 .course-sidebar h2 {
     color: var(--primaryColor); /* 🎨 Color primario */
     border-bottom: 2px solid var(--primaryColor);

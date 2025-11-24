@@ -56,6 +56,26 @@
     return 'default';
   };
 
+// Validar sesión al cargar el perfil
+(function validateProfileAccess() {
+  const detectTenant = () => {
+    const host = location.hostname || 'localhost';
+    if (host === 'localhost' || host === '127.0.0.1') return 'demo';
+    const parts = host.split('.');
+    return (parts.length > 2 && parts[0] !== 'www') ? parts[0] : 'default';
+  };
+  
+  const currentTenant = detectTenant();
+  const storedTenant = localStorage.getItem('current_tenant');
+  
+  if (storedTenant && storedTenant !== currentTenant) {
+    console.error('❌ Acceso denegado: Tenant no coincide');
+    alert('Sesión inválida. Serás redirigido al login.');
+    window.location.href = '../index.html';
+    return;
+  }
+})();
+
   async function loadTenantConfig() {
     const tenantId = detectTenant();
     console.log(`🔍 Detectando tenant: ${tenantId}`);

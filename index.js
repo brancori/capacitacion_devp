@@ -19,11 +19,31 @@
 
 (function() {
   'use strict';
-
+// Validar sesión al cargar la página de login
+(function validateLoginPage() {
+  const currentTenant = detectTenant();
+  const storedTenant = localStorage.getItem('current_tenant');
+  
+  if (storedTenant && storedTenant !== currentTenant) {
+    console.warn('⚠️ Tenant diferente detectado en login, limpiando sesión...');
+    
+    const cookies = ['sb-hvwygpnuunuuylzondxt-auth-token', 'sb-access-token', 'sb-refresh-token'];
+    cookies.forEach(c => {
+      document.cookie = `${c}=;path=/;max-age=0`;
+    });
+    
+    localStorage.removeItem('current_tenant');
+    localStorage.removeItem('tenantTheme');
+    localStorage.removeItem('tenantSlug');
+  }
+  
+  localStorage.setItem('current_tenant', currentTenant);
+})();
 
   // -----------------------------------------------------------------
   // 2. CONFIGURACIÓN DE TENANT 
   // -----------------------------------------------------------------
+
   const DEFAULTS = {
     companyName: "Aula Corporativa",
     logoText: "AC",
