@@ -66,7 +66,7 @@ const { data: tenant, error } = await window.supabase
 .eq('slug', tenantId)
 .single();
 
-```
+
 if (error || !tenant) {
   console.error(' Tenant no encontrado en DB:', tenantId, error);
   return false;
@@ -74,7 +74,6 @@ if (error || !tenant) {
 
 console.log(' Tenant validado:', tenant.name);
 return tenant;
-```
 
 } catch (err) {
 console.error('❌ Error validando tenant:', err);
