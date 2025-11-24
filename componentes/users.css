@@ -1,36 +1,26 @@
 /* ========================================================================
-   ESTILOS ESPECÍFICOS DE ADMIN.CSS (LIMPIO)
-   ========================================================================
-   Este archivo SOLO contiene los estilos que son únicos para la 
-   página de admin. Todos los estilos base (botones, modales, 
-   inputs, :root, body) se cargan desde global.css.
-======================================================================== */
+   ESTILOS DE ESCRITORIO (BASE)
+   ======================================================================== */
 
-/* --- CORRECCIÓN DE TAMAÑO --- */
-/* global.css define html { font-size: 80%; } */
-/* Lo restauramos a 100% (default) para que no haya cambios visuales */
-html {
-    font-size: 100%;
-}
-/* --- FIN DE CORRECCIÓN --- */
-
+/* Restaurar tamaño de fuente base */
+html { font-size: 100%; }
 
 /* Contenedor principal */
 .user-list-container {
     background: var(--card-bg);
     border-radius: 12px;
     box-shadow: 0 4px 12px var(--shadow);
-    overflow: hidden; 
+    overflow: hidden;
 }
 
-/* Cabecera con título y filtro */
+/* Header y Filtros */
 .list-header {
     padding: 1.5rem 2rem;
     border-bottom: 2px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap; 
+    flex-wrap: wrap;
     gap: 1rem;
 }
 
@@ -43,400 +33,179 @@ html {
     gap: 0.75rem;
 }
 
-/* Barra de Filtro (específica) */
-.filter-bar {
-    padding: 0;
-    background: none;
-    box-shadow: none;
-    min-width: 300px; 
-}
+.filter-bar { min-width: 300px; }
 
-/* Wrapper de la tabla para scroll */
-.user-table-wrapper {
-    overflow-x: auto;
-    width: 100%;
-}
+/* Tabla General (Desktop Grid) */
+.user-table-wrapper { overflow-x: auto; width: 100%; }
 
-/* Tabla de Usuarios (CSS Grid) */
 .user-table {
     width: 100%;
     display: grid;
-    /* Columnas: auto, 1fr, 1fr, 1fr, 100px, 100px */
-    grid-template-columns: minmax(200px, 1.5fr) minmax(200px, 1.5fr) minmax(150px, 1fr) minmax(100px, 0.5fr) 110px 100px;
-    min-width: 800px; /* Ancho mínimo para forzar scroll */
+    /* Definición de columnas para PC */
+    grid-template-columns: minmax(200px, 1.5fr) minmax(200px, 1.5fr) minmax(100px, 1fr) minmax(100px, 0.8fr) 100px 120px;
+    min-width: 900px;
 }
 
-#user-list-body {
-    display: contents;
-}
+.user-row { display: contents; }
 
-.user-row {
-    display: contents; /* Hace que los hijos se pongan en el grid */
-}
-
-/* Celdas (header y body) */
+/* Estilos de Celdas Desktop */
 .user-row > div {
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    align-items: center; /* Centrado vertical */
 }
 
-/* Celdas de la cabecera */
+/* Utilidad específica para desktop */
+.user-row > div.text-center {
+    justify-content: center; /* Centrado horizontal solo en desktop */
+}
+
 .user-row.header > div {
     background: var(--light-gray);
-    font-weight: 600;
+    font-weight: 700;
     color: var(--primaryColor);
-    padding: 1.25rem 1.5rem;
-    position: sticky; /* Opcional: cabecera pegajosa */
+    position: sticky;
     top: 0;
 }
 
-/* Celdas de datos */
-.user-row:not(.header) > div {
-    background: var(--card-bg);
-    transition: background 0.2s ease;
-}
+.user-row:not(.header):hover > div { background: #f9f9f9; }
 
-.user-row:not(.header):hover > div {
-    background: var(--light-gray);
-}
-
-.user-row div[data-label="Nombre"] strong {
-    color: var(--primaryColor);
-    font-size: 1rem;
-    font-weight: 600;
-}
-.user-row div[data-label="Nombre"] small {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    text-transform: capitalize;
-}
-
-.text-center {
-    align-items: center;
-    text-align: center;
-}
-
-.actions {
-    gap: 0.5rem;
-}
-
-/* Modificador específico para botones de acción */
-.actions .btn-outline {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
-}
-
-.loading-row {
-    grid-column: 1 / -1; /* Ocupa todas las columnas */
-    padding: 3rem;
-    text-align: center;
-    font-size: 1.2rem;
-    color: var(--text-secondary);
-}
-
-/* Toggle Switch */
+/* Toggle Switch (Interruptor) */
 .toggle-switch {
     position: relative;
     display: inline-block;
-    width: 50px;
-    height: 28px;
+    width: 46px;
+    height: 24px;
+    flex-shrink: 0;
 }
-
-.toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
 .slider {
     position: absolute;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background-color: #ccc;
     transition: .4s;
-    border-radius: 28px;
+    border-radius: 24px;
 }
-
 .slider:before {
     position: absolute;
     content: "";
-    height: 20px;
-    width: 20px;
-    left: 4px;
-    bottom: 4px;
+    height: 18px; width: 18px;
+    left: 3px; bottom: 3px;
     background-color: white;
     transition: .4s;
     border-radius: 50%;
 }
+input:checked + .slider { background-color: var(--success); }
+input:checked + .slider:before { transform: translateX(22px); }
 
-input:checked + .slider {
-    background-color: var(--success);
+/* Botones de Acción */
+.actions { gap: 8px; }
+.actions .btn-outline {
+    padding: 6px 10px;
+    font-size: 0.9rem;
 }
 
-input:focus + .slider {
-    box-shadow: 0 0 1px var(--success);
-}
-
-input:checked + .slider:before {
-    transform: translateX(22px);
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-    .list-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .filter-bar {
-        width: 100%;
-        min-width: auto;
-    }
-    
-    .user-row > div {
-        /* Reducimos padding en móvil para que quepa más */
-        padding: 0.75rem 1rem;
-    }
-}
-
-@media (max-width: 768px) {
-    /* Sobrescribe global.css para esta página específica */
-    .container {
-        padding: 1rem;
-    }
-    .list-header {
-        padding: 1rem;
-    }
-}
-
-/* --- Estilos para el Modal de Edición --- */
-/* Estilos específicos para el formulario dentro del modal global */
-.modal-content form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-top: 1.5rem;
+/* Loading y Pendientes */
+.loading-row {
+    grid-column: 1 / -1;
+    padding: 3rem;
+    text-align: center;
+    color: var(--text-secondary);
 }
 
 .pending-requests-container {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: #ffffff15;
-    border-radius: 10px;
-}
-
-.request-table-wrapper {
     width: 100%;
-    overflow-x: auto;
+    margin-bottom: 1.5rem;
+    background: #fff3cd; /* Fondo amarillo suave */
+    border: 1px solid #ffeeba;
+    border-radius: 8px;
+    padding: 1rem;
 }
 
-.request-table {
-    display: grid;
-    grid-template-columns: 1fr;
-}
-
-.request-row {
-    display: grid;
-    grid-template-columns: 1.2fr 1.3fr 1fr 1fr 0.8fr;
-    padding: 12px;
-    border-bottom: 1px solid #ffffff22;
+.request-table { display: grid; grid-template-columns: 1fr; }
+.request-row { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr 1fr 1fr 150px; 
+    padding: 0.5rem;
     align-items: center;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
-.request-row.header {
-    font-weight: bold;
-    background: #ffffff10;
-}
 
-.request-row .actions {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-}
-
-@media (max-width: 768px) {
-
-    /* Ocultar encabezados de tabla en móvil */
-    .user-table .header,
-    .request-table .header {
-        display: none;
-    }
-
-    /* Eliminar el ancho mínimo que fuerza el scroll horizontal */
-    .user-table,
-    .request-table {
-        min-width: 100%;
-        grid-template-columns: 1fr; /* Apilar filas */
-    }
-
-    /* Convertir filas en tarjetas */
-    .user-row,
-    .request-row {
-        display: block; /* Dejar de ser 'display: contents' */
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 0.5rem;
-        box-shadow: 0 2px 4px var(--shadow);
-    }
-
-    /* --- INICIO DE CELDAS AJUSTADAS --- */
-
-    /* 1. Regla general para todas las celdas: Layout de Grid */
-    .user-row > div,
-    .request-row > div {
-        display: grid;
-        /* AJUSTE: Usar % para fluidez en 390px. (35% etiqueta, 65% valor) */
-        grid-template-columns: 35% 1fr;
-        gap: 1rem;
-        padding: 0.8rem 0.5rem;
-        text-align: left; /* <-- CORRECCIÓN: Alinear el VALOR a la izquierda */
-        border-bottom: 1px dashed var(--border);
-        align-items: center; /* Centrar verticalmente etiqueta y valor */
-    }
+/* ========================================================================
+   📱 ESTILOS MÓVILES (CORRECCIÓN TOTAL)
+   ======================================================================== */
+@media (max-width: 900px) {
     
-    .user-row > div:last-child,
-    .request-row > div:last-child {
-        border-bottom: none;
-    }
-
-    /* 2. Regla general para todas las etiquetas (::before) */
-    .user-row > div[data-label]::before,
-    .request-row > div[data-label]::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: var(--primaryColor);
-        text-align: right; /* <-- La ETIQUETA se alinea a la derecha */
-    }
-
-    /* 3. Excepción ÚNICA para la celda de ACCIONES */
-    /* Queremos que esta celda rompa el grid para que los botones usen todo el ancho */
-    .user-row > div[data-label="Acciones"],
-    .request-row > div[data-label="Acciones"] {
-        display: block; /* Sobrescribir el display: grid */
-        padding-top: 1rem;
-    }
-
-    /* 4. Regla para los botones DENTRO de la celda de Acciones */
-    /* Esta regla ahora es más específica y aplica flexbox correctamente */
-    .user-row .actions,
-    .request-row .actions {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        width: 100%; /* Asegurar que ocupe todo */
-    }
+    /* 1. Ajustes generales */
+    .container { padding: 10px; }
+    .list-header { padding: 1rem; flex-direction: column; align-items: stretch; }
+    .filter-bar { width: 100%; margin-top: 10px; }
     
-    .actions .btn {
-        width: 100%;
-        font-size: 1rem;
-        padding: 0.75rem 1rem;
-        box-sizing: border-box; 
-    }
+    /* Ocultar cabeceras de tabla */
+    .user-table .header, .request-row.header { display: none; }
 
-    /* * NOTA: La celda "Estado" ahora usará automáticamente la Regla 1 (display: grid).
-     * Su etiqueta "Estado" se alineará a la derecha y el "toggle-switch" 
-     * se alineará a la izquierda en la columna de valor, corrigiendo el centrado.
-     */
+    /* 2. Transformar Tabla en Tarjetas */
+    .user-table, .request-table { display: block; min-width: 100%; }
     
-    /* Ocultar columna de Tenant si está vacía (en vista de admin/supervisor) */
-    .user-row > div[data-label="Tenant"]:not(:has(*)) {
-        display: none;
-    }
-    .logo-section h2{
-        font-size: 1rem;
-    }
-    .top-navbar{
-        display: flex;
-        flex-direction: column;
-        gap: 1rem ;
-    }
-    .user-row > div[data-label="Acciones"] {
-        padding-top: 0.5rem;
-        display: flex;
-        flex-direction: row;
-    }
-}
-
-@media (max-width: 768px) {
-
-    /* 1. Ajustes generales de contenedor */
-    .logo-section h2 { font-size: 1rem; }
-    .top-navbar { display: flex; flex-direction: column; gap: 1rem; }
-    .user-table .header, .request-table .header { display: none; }
-    .user-table, .request-table { min-width: 100%; display: block; }
-
-    /* 2. Convertir filas en Tarjetas */
     .user-row, .request-row {
-        display: block;
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        display: flex; /* Cambiamos display contents por Flex column */
+        flex-direction: column;
+        background: white;
         margin-bottom: 1rem;
-        padding: 0.5rem 1rem; /* Un poco más de aire lateral */
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        border: 1px solid var(--border);
+        overflow: hidden;
     }
 
-    /* 3. CELDAS: Grid de 2 columnas (Etiqueta | Valor) */
-    .user-row > div,
-    .request-row > div {
-        display: grid;
-        grid-template-columns: 35% 1fr; /* 35% Etiqueta, Resto Valor */
-        gap: 1rem;
-        padding: 0.8rem 0;
-        border-bottom: 1px dashed var(--border);
-        align-items: center; /* Centrado vertical */
-        text-align: left !important; /* Forzar alineación izquierda anulando desktop */
-        justify-items: start; /* Alinea el contenido (toggle, textos) a la izquierda */
+    /* 3. Celdas internas (Filas de la tarjeta) */
+    .user-row > div, .request-row > div {
+        display: flex; /* Usamos Flex para alinear etiqueta y valor */
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start !important; /* Forzar alineación izquierda siempre */
+        text-align: left !important;
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--light-gray);
+        width: 100%;
     }
 
-    /* Quitar borde al último elemento */
-    .user-row > div:last-child,
-    .request-row > div:last-child {
-        border-bottom: none;
-    }
+    /* Quitar borde al último */
+    .user-row > div:last-child { border-bottom: none; }
 
-    /* 4. ETIQUETAS GENERADAS (Lado Izquierdo) */
-    .user-row > div[data-label]::before,
-    .request-row > div[data-label]::before {
+    /* 4. Etiqueta Generada (La clave de la alineación) */
+    .user-row > div[data-label]:before,
+    .request-row > div[data-label]:before {
         content: attr(data-label);
+        flex-basis: 35%;     /* Ocupa siempre el 35% del ancho */
+        flex-shrink: 0;      /* No encogerse */
         font-weight: 700;
         color: var(--primaryColor);
-        text-align: right; /* Etiqueta alineada a la derecha */
-        justify-self: end; /* Pegada a la columna del valor */
         font-size: 0.9rem;
+        margin-right: 1rem;  /* Separación con el valor */
     }
 
-    /* 5. ARREGLO DE BOTONES DE ACCIÓN */
-    /* Mantenemos el grid, pero forzamos que los botones (que están dentro de un div .actions) se vean bien */
-    .user-row > div[data-label="Acciones"] {
-        /* No usamos display:flex aquí para no romper el grid etiqueta/valor */
-        display: grid; 
-    }
-
-    .user-row .actions,
-    .request-row .actions {
-        display: flex;
-        flex-direction: row; /* Botones horizontales */
-        justify-content: flex-start; /* Alineados a la izquierda */
+    /* 5. Corrección específica para "Acciones" */
+    /* Como hay múltiples botones, flex-wrap ayuda si no caben */
+    .user-row > div.actions, .request-row .actions {
+        flex-wrap: wrap;
         gap: 10px;
-        width: 100%;
     }
-
-    /* Botones un poco más grandes para el dedo */
-    .actions .btn {
-        padding: 0.6rem 1rem;
-    }
-
-    /* 6. LIMPIEZA EXTRA */
-    /* Ocultar columna tenant vacía */
-    .user-row > div[data-label="Tenant"]:not(:has(*)) { display: none; }
     
-    /* Asegurar que el toggle switch no se deforme */
-    .toggle-switch { flex-shrink: 0; }
+    .actions button {
+        flex: 1; /* Botones crecen para llenar espacio */
+        justify-content: center;
+    }
+
+    /* 6. Corrección específica para "Estado" (Toggle) */
+    /* Forzamos que el toggle NO se expanda, solo ocupe su espacio natural */
+    .toggle-switch {
+        margin: 0; /* Quitar márgenes automáticos */
+    }
+
+    /* Ocultar columna tenant vacía si aplica */
+    .tenant-col:empty { display: none; }
 }
