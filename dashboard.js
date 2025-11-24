@@ -43,10 +43,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (urlToken && typeof supabase !== 'undefined') {
         console.log("📲 Recuperando sesión desde URL (Mobile fix)");
-        await supabase.auth.setSession({
-            access_token: urlToken,
-            refresh_token: 'dummy-refresh-token'
-        });
+        await sb.auth.setSession({
+                    access_token: urlToken,
+                    refresh_token: 'dummy-refresh-token'
+                });
         // Limpiar URL
         window.history.replaceState({}, '', window.location.pathname);
     }
