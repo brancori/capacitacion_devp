@@ -57,28 +57,56 @@
 
   const tenantId = detectTenant();
 
-  async function loadTenantConfig() {
-    try {
-      const response = await fetch('./tenants/tenants.json', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Tenant config not found');
-
-      const data = await response.json();
-      const tenantConfig = data[tenantId] || data['default'] || {};
-
-      const config = {
-        ...DEFAULTS,
-        ...tenantConfig,
-        labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
-      };
-
-      config.tenantSlug = tenantId;
-      console.log(`✅ Tenant Configurado: ${config.companyName} (slug: ${config.tenantSlug})`);
-      return config;
-    } catch (error) {
-      console.warn('⚠️ Error al cargar tenant config:', error);
-      return { ...DEFAULTS, tenantSlug: 'default' };
+  async function validateLoginPage() {
+  try {
+    const { data: tenant, error } = await window.supabase
+      .from('tenants')
+      .select('id, name, trial_expires_at')
+      .eq('slug', tenantId)
+      .single();
+    
+    if (error || !tenant) {
+      console.error('❌ Tenant no encontrado en DB:', tenantId);
+      return false;
     }
+
+    console.log('✅ Tenant validado:', tenant.name);
+    return tenant;
+  } catch (err) {
+    console.error('❌ Error validando tenant:', err);
+    return false;
   }
+}
+
+async function loadTenantConfig() {
+  try {
+    const response = await fetch('./tenants/tenants.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Tenant config not found');
+
+    const data = await response.json();
+    const tenantConfig = data[tenantId] || data['default'] || {};
+
+    const config = {
+      ...DEFAULTS,
+      ...tenantConfig,
+      labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
+    };
+
+    config.tenantSlug = tenantId;
+    
+    // 👇 OPCIONAL: Validar tenant en DB y obtener UUID
+    const tenantDb = await validateLoginPage();
+    if (tenantDb) {
+      config.tenantUUID = tenantDb.id;
+    }
+    
+    console.log(`✅ Tenant Configurado: ${config.companyName} (slug: ${config.tenantSlug})`);
+    return config;
+  } catch (error) {
+    console.warn('⚠️ Error al cargar tenant config:', error);
+    return { ...DEFAULTS, tenantSlug: 'default' };
+  }
+}
 
   function applyConfiguration(config) {
     window.__appConfig = config;
