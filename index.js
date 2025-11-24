@@ -313,58 +313,62 @@
         }
 
         // 3. ÉXITO
-console.log('4️⃣ Sesión establecida. Verificando rol...');
+console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inteligente...');
         
         showModal(
           '¡Bienvenido!',
-          'Validando credenciales...',
+          'Entrando al sistema...',
           'success',
           async () => {
             const token = data.jwt;
-            
-            try {
-                // --- INICIO LÓGICA DE REDIRECCIÓN POR ROL ---
-                
-                // 1. Obtener usuario decodificado de la sesión actual
-                const { data: { user } } = await supabase.auth.getUser();
+            // USAMOS EL ID QUE VIENE DIRECTO DE LA RESPUESTA DE LA EDGE FUNCTION (custom-login)
+            // Esto evita el error de "Tracking Prevention" porque no leemos cookies del navegador.
+            const userId = data.user_id || (data.user && data.user.id);
 
-                if (user) {
-                    // 2. Consultar rol específico en tabla profiles
+            try {
+                if (userId) {
+                    console.log(`🔍 ID Usuario obtenido de respuesta: ${userId}`);
+
+                    // Consultamos el rol directamente usando ese ID
                     const { data: profile, error: roleError } = await supabase
                         .from('profiles')
                         .select('role')
-                        .eq('id', user.id)
+                        .eq('id', userId)
                         .single();
 
-                    if (!roleError && profile) {
+                    if (roleError) {
+                        console.error("❌ Error consultando perfil:", roleError.message);
+                    }
+
+                    if (profile) {
                         const role = profile.role;
+                        console.log(`✅ Rol detectado en BD: ${role}`);
                         
-                        // DEFINICIÓN DE RUTAS (Ajusta si dashboard está en otra carpeta)
-                        // Opción A: si dashboard.html está junto a index.html
+                        // DEFINICIÓN DE RUTAS
                         const PATH_DASHBOARD = './dashboard.html'; 
-                        // Opción B: si dashboard está en carpeta (ej: ./dashboard/dashboard.html)
-                        // const PATH_DASHBOARD = './dashboard/dashboard.html'; 
-                        
                         const PATH_PROFILE = './profile/profile.html';
+                        
+                        // LISTA DE ROLES QUE VAN AL DASHBOARD
                         const rolesAdministrativos = ['master', 'admin', 'supervisor'];
 
                         if (rolesAdministrativos.includes(role)) {
-                            // Es Jefe -> Va al Dashboard
-                            console.log(`👑 Rol ${role} detectado. Redirigiendo a Dashboard.`);
+                            console.log(`👑 Redirigiendo a DASHBOARD (Rol: ${role})`);
                             window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
                         } else {
-                            // Es Empleado -> Va directo a su Perfil
-                            console.log(`👤 Rol ${role} detectado. Redirigiendo a Perfil.`);
+                            console.log(`👤 Redirigiendo a PERFIL (Rol: ${role})`);
                             window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
                         }
-                        return;
+                        return; // Detenemos aquí para que no se ejecute el fallback
                     }
+                } else {
+                    console.warn("⚠️ No se recibió user_id en la respuesta del login.");
                 }
             } catch (err) {
-                console.warn('⚠️ Error verificando rol, usando redirección por defecto:', err);
+                console.warn('⚠️ Error en lógica de roles:', err);
             }
 
-            // Fallback: Si algo falla en la consulta de rol, mandamos al perfil por seguridad
+            // Fallback: Solo si todo lo anterior falla
+            console.log("🚀 Usando ruta por defecto (Profile)");
             window.location.href = `./profile/profile.html?token=${encodeURIComponent(token)}`;
           }
         );
