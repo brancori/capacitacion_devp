@@ -1,21 +1,15 @@
-// supabase/functions/custom-login/index.ts
-
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// --- IMPORTANTE: Headers de CORS movidos aquí ---
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-// ---------------------------------------------
 
 Deno.serve(async (req) => {
-  // --- MANEJO DE CORS (PREFLIGHT) ---
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
-  // ----------------------------------
 
   try {
     const { email, password, tenant_slug } = await req.json();
@@ -28,10 +22,9 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-    // 1. Crear cliente Admin (Service Role) para bypassear RLS
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 2. Buscar el ID del tenant basado en el slug (ej: 'demo' -> uuid)
+    // 2. Validar Tenant
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from("tenants")
       .select("id")
@@ -39,7 +32,6 @@ Deno.serve(async (req) => {
       .single();
 
     if (tenantError || !tenant) {
-      // Si el slug no existe, comprobamos si el que llama es 'master'
       const { data: userByEmail } = await supabaseAdmin
         .from("profiles")
         .select("role")
@@ -51,7 +43,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3. Autenticar al usuario (validar email y contraseña)
+    // 3. Autenticar
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { data: authData, error: authError } = await supabase.auth
       .signInWithPassword({
@@ -63,10 +55,10 @@ Deno.serve(async (req) => {
       throw new Error("Usuario o contraseña incorrectos.");
     }
 
-    // 4. (Éxito de Auth) Ahora verificamos el *estado* en 'profiles'
+    // 4. Verificar Perfil (AQUÍ AGREGAMOS force_reset)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("status, tenant_id, role")
+      .select("status, tenant_id, role, force_reset") // <--- CAMBIO 1
       .eq("id", authData.user.id)
       .single();
 
@@ -74,54 +66,50 @@ Deno.serve(async (req) => {
       throw new Error("Perfil de usuario no encontrado.");
     }
 
-    // 5. REGLAS DE NEGOCIO (Manifiesto)
-    
-    // Regla 0: Si es 'master', saltar validación de tenant
+    // 🛑 CAMBIO 2: Bloqueo por cambio de contraseña forzoso
+    if (profile.force_reset === true) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Password reset required', 
+          error_code: 'FORCE_RESET', 
+          user_id: authData.user.id 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    // 5. Reglas de Negocio
     if (profile.role !== 'master') {
-      // Regla 1: ¿El usuario pertenece a este tenant?
-      // Comprobamos que tenant.id exista antes de comparar
       if (!tenant || profile.tenant_id !== tenant.id) {
         throw new Error("Acceso denegado. El usuario no pertenece a este tenant.");
       }
     }
 
-    // Regla 2: ¿El usuario está pendiente?
     if (profile.status === 'pending') {
       return new Response(
         JSON.stringify({
           error: "Cuenta pendiente de autorización. Contacta a tu administrador.",
           error_code: "PENDING_AUTHORIZATION",
         }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401, // 401 Unauthorized
-        },
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       );
     }
 
-    // Regla 3: ¿El usuario está suspendido o inactivo?
     if (profile.status === 'suspended' || profile.status === 'inactive') {
       return new Response(
         JSON.stringify({
           error: "Tu cuenta ha sido suspendida o está inactiva.",
           error_code: "ACCOUNT_SUSPENDED",
         }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 403, // 403 Forbidden
-        },
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
       );
     }
 
-    // Regla 4: ¿El usuario está activo?
     if (profile.status !== 'active') {
       throw new Error("La cuenta no está activa.");
     }
 
-    // 6. ¡ÉXITO TOTAL!
-// 6. ¡ÉXITO TOTAL! - ACTUALIZAR APP_METADATA EN EL JWT
-    
-    // Actualizar el app_metadata del usuario con rol y tenant_id
+    // 6. Actualizar app_metadata y retornar Token
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       authData.user.id,
       {
@@ -132,11 +120,8 @@ Deno.serve(async (req) => {
       }
     );
 
-    if (updateError) {
-      console.error('Error actualizando app_metadata:', updateError);
-    }
+    if (updateError) console.error('Error actualizando app_metadata:', updateError);
 
-    // Generar un nuevo JWT con el app_metadata actualizado
     const { data: refreshData } = await supabaseAdmin.auth.refreshSession({
       refresh_token: authData.session.refresh_token
     });
@@ -153,8 +138,8 @@ Deno.serve(async (req) => {
         status: 200,
       },
     );
+
   } catch (err) {
-    // 7. Manejo de errores generales
     return new Response(
       JSON.stringify({ success: false, error: err.message }),
       {
