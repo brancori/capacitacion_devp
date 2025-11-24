@@ -6,7 +6,7 @@
     <title>Gestión de Usuarios</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./global.css">
-    <link rel="stylesheet" href="./users.css?v=3">
+    <link rel="stylesheet" href="./users.css?v=4">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -769,6 +769,9 @@ async function handleApproveRequest(requestId, requestEmail) {
             await loadTenantsIntoSelect();
             console.log('✅ Tenants cargados en el modal');
             
+        }
+        if (currentAdmin.role !== 'master') {
+            document.querySelector('.user-table').classList.add('simple-view');
         }
 
         // 4. Cargar solicitudes pendientes

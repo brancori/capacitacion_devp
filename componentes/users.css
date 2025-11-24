@@ -36,17 +36,33 @@ html { font-size: 100%; }
 .filter-bar { min-width: 300px; }
 
 /* Tabla General (Desktop Grid) */
-.user-table-wrapper { overflow-x: auto; width: 100%; }
-
-.user-table {
+.user-table-wrapper {
+    overflow-x: auto;
     width: 100%;
-    display: grid;
-    /* Definición de columnas para PC */
-    grid-template-columns: minmax(200px, 1.5fr) minmax(200px, 1.5fr) minmax(100px, 1fr) minmax(100px, 0.8fr) 100px 120px;
-    min-width: 900px;
+    background: var(--card-bg); /* Fondo blanco para todo */
 }
 
-.user-row { display: contents; }
+.user-table {
+    display: flex;
+    flex-direction: column;
+    min-width: 900px; /* Forzar scroll si es muy pequeño */
+    width: 100%;
+}
+
+.user-table.simple-view .user-row {
+    /* Nombre | Email | Rol | Estado | Acciones */
+    grid-template-columns: 1.5fr 1.5fr 1fr 100px 120px;
+}
+
+.user-row {
+    display: grid;
+    width: 100%;
+    /* Definición por defecto (MASTER - 6 Columnas) */
+    /* Nombre | Email | Rol | Tenant | Estado | Acciones */
+    grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 100px 120px;
+    border-bottom: 1px solid var(--border);
+    align-items: center; /* Centrado vertical del contenido */
+}
 
 /* Estilos de Celdas Desktop */
 .user-row > div {
