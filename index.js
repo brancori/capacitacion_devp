@@ -58,12 +58,12 @@
   const tenantId = detectTenant();
 
   async function validateLoginPage() {
-  try {
-    const { data: tenant, error } = await window.supabase
-      .from('tenants')
-      .select('id, name, trial_expires_at')
-      .eq('slug', tenantId)
-      .single();
+  try {s
+  const { data: tenant, error } = await window.supabase
+  .from('tenants')
+  .select('id, name, trial_expires_at')
+  .eq('slug', tenantId)
+  .single();
     
     if (error || !tenant) {
       console.error('❌ Tenant no encontrado en DB:', tenantId);

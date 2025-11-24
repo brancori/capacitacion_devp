@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -7,11 +8,7 @@
   <title>Aula Corporativa - Acceso Seguro (v2)</title>
   <link rel="icon" href="data:,">
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-  <!-- 
-    NOTA: Cambiado a index.css como solicitaste. 
-    Este archivo es una copia de tu index.css original.
-  -->
-  <link  rel="stylesheet" href="./index.css"> </link>
+  <link rel="stylesheet" href="./index.css">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -20,7 +17,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- 🔧 FIX CDN: Versión específica con fallback -->
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+
 </head>
 <body>
   <!-- Animated Background -->
@@ -33,168 +34,176 @@
   </div>
 
   <!-- Main Container -->
+
   <div class="container">
     <div class="main-card" id="mainCard">
+
+```
+  <!-- LEFT: Branding Section -->
+  <div class="brand-section">
+    <div class="logo-container">
+      <div class="logo-icon" id="logoIcon">AC</div>
+      <i class="fas fa-graduation-cap"></i>
+      <div class="logo-text" id="logoText"> Aula Corporativa</div>
+    </div>
+
+    <div class="brand-content">
+      <h1 class="brand-title" id="brandTitle">¡Bienvenido!</h1>
+      <p class="brand-description" id="brandDescription">
+        Accede a tu plataforma de capacitación corporativa. Aprende, y mejorar tus habilidades profesionales.
+      </p>
+      <div class="brand-features" id="brandFeatures"></div>
+    </div>
+
+    <div class="brand-footer">
+      <small>&copy; <span id="currentYear"></span> Aula Corporativa. Todos los derechos reservados.</small>
+    </div>
+  </div>
+
+  <!-- RIGHT: Form Section -->
+  <div class="form-section">
+    <!-- Tab Navigation -->
+    <nav class="tab-nav" role="tablist" aria-label="Tipo de usuario">
+      <button class="tab-btn active" role="tab" aria-selected="true" data-tab="employees" id="tabEmployees">
+        Trabajadores
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="contractors" id="tabContractors">
+        Contratistas
+      </button>
+    </nav>
+
+    <!-- Form Container -->
+    <div class="form-container">
       
-      <!-- LEFT: Branding Section (Sin cambios) -->
-      <div class="brand-section">
-        <div class="logo-container">
-          <div class="logo-icon" id="logoIcon">AC</div>
-          <i class="fas fa-graduation-cap"></i>
-          <div class="logo-text" id="logoText"> Aula Corporativa</div>
+      <!-- Employees Form -->
+      <form class="login-form active" id="formEmployees" role="tabpanel" aria-labelledby="tabEmployees">
+        <div>
+          <h2 class="form-title">Iniciar Sesión</h2>
+          <p class="form-subtitle">Ingresa tu correo o ID</p>
         </div>
 
-        <div class="brand-content">
-          <h1 class="brand-title" id="brandTitle">¡Bienvenido!</h1>
-          <p class="brand-description" id="brandDescription">
-            Accede a tu plataforma de capacitación corporativa. Aprende, y mejorar tus habilidades profesionales.
-          </p>
-          <div class="brand-features" id="brandFeatures"></div>
+        <div class="form-group">
+          <label class="form-label" for="empUsername" id="labelEmpUser">Usuario</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <input 
+              type="text" 
+              id="empUsername" 
+              class="form-input" 
+              placeholder="usuario@empresa.com"
+              autocomplete="username"
+              required
+            />
+          </div>
         </div>
 
-        <div class="brand-footer">
-          <small>&copy; <span id="currentYear"></span> Aula Corporativa. Todos los derechos reservados.</small>
+        <div class="form-group">
+          <label class="form-label" for="empPassword" id="labelEmpPass">Contraseña</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <input 
+              type="password" 
+              id="empPassword" 
+              class="form-input" 
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+          </div>
         </div>
-      </div>
 
-      <!-- RIGHT: Form Section (Sin cambios) -->
-      <div class="form-section">
-        <!-- Tab Navigation -->
-        <nav class="tab-nav" role="tablist" aria-label="Tipo de usuario">
-          <button class="tab-btn active" role="tab" aria-selected="true" data-tab="employees" id="tabEmployees">
-            Trabajadores
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-block" id="btnLoginEmp">
+            <span>Ingresar</span>
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
           </button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="contractors" id="tabContractors">
-            Contratistas
-          </button>
-        </nav>
-
-        <!-- Form Container -->
-        <div class="form-container">
-          
-          <!-- Employees Form -->
-          <form class="login-form active" id="formEmployees" role="tabpanel" aria-labelledby="tabEmployees">
-            <div>
-              <h2 class="form-title">Iniciar Sesión</h2>
-              <p class="form-subtitle">Ingresa tu correo o ID</p>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="empUsername" id="labelEmpUser">Usuario</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
-                <input 
-                  type="text" 
-                  id="empUsername" 
-                  class="form-input" 
-                  placeholder="usuario@empresa.com"
-                  autocomplete="username"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="empPassword" id="labelEmpPass">Contraseña</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-                <input 
-                  type="password" 
-                  id="empPassword" 
-                  class="form-input" 
-                  placeholder="••••••••"
-                  autocomplete="current-password"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary btn-block" id="btnLoginEmp">
-                <span>Ingresar</span>
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                </svg>
-              </button>
-            </div>
-
-            <div class="form-footer">
-              <a href="#" class="form-link" id="forgotEmp">¿Olvidaste tu contraseña?</a>
-              <div>¿No tienes cuenta? <a href="#" class="form-link" id="registerEmp">Regístrate aquí</a></div>
-            </div>
-          </form>
-
-          <!-- Contractors Form -->
-          <form class="login-form" id="formContractors" role="tabpanel" aria-labelledby="tabContractors">
-            <div>
-              <h2 class="form-title">Acceso Contratistas</h2>
-              <p class="form-subtitle">Ingresa tu correo</p>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="conUsername" id="labelConUser">ID Contratista</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
-                </svg>
-                <input 
-                  type="text" 
-                  id="conUsername" 
-                  class="form-input" 
-                  placeholder="contratista@empresa.com"
-                  autocomplete="username"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="conPassword" id="labelConPass">Contraseña</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-                <input 
-                  type="password" 
-                  id="conPassword" 
-                  class="form-input" 
-                  placeholder="••••••••"
-                  autocomplete="current-password"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary btn-block" id="btnLoginCon">
-                <span>Ingresar</span>
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                </svg>
-              </button>
-            </div>
-
-            <div class="form-footer">
-              <a href="#" class="form-link" id="supportCon">Soporte para contratistas</a>
-              <div>¿Problemas de acceso? <a href="#" class="form-link" id="helpCon">Contactar supervisor</a></div>
-            </div>
-          </form>
-
         </div>
-      </div>
+
+        <div class="form-footer">
+          <a href="#" class="form-link" id="forgotEmp">¿Olvidaste tu contraseña?</a>
+          <div>¿No tienes cuenta? <a href="#" class="form-link" id="registerEmp">Regístrate aquí</a></div>
+        </div>
+      </form>
+
+      <!-- Contractors Form -->
+      <form class="login-form" id="formContractors" role="tabpanel" aria-labelledby="tabContractors">
+        <div>
+          <h2 class="form-title">Acceso Contratistas</h2>
+          <p class="form-subtitle">Ingresa tu correo</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="conUsername" id="labelConUser">ID Contratista</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+            </svg>
+            <input 
+              type="text" 
+              id="conUsername" 
+              class="form-input" 
+              placeholder="contratista@empresa.com"
+              autocomplete="username"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="conPassword" id="labelConPass">Contraseña</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <input 
+              type="password" 
+              id="conPassword" 
+              class="form-input" 
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-block" id="btnLoginCon">
+            <span>Ingresar</span>
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="form-footer">
+          <a href="#" class="form-link" id="supportCon">Soporte para contratistas</a>
+          <div>¿Problemas de acceso? <a href="#" class="form-link" id="helpCon">Contactar supervisor</a></div>
+        </div>
+      </form>
 
     </div>
   </div>
 
+</div>
+```
+
+  </div>
+
   <!-- Modal Root -->
+
   <div id="modalRoot" role="dialog" aria-live="polite"></div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<!-- 🔧 Scripts en orden correcto -->
+
 <script src="./componentes/supabase-client.js"></script> 
-<script src="./index.js?v=5"></script>
+
+<script src="./index.js?v=6"></script>
+
 </body>
 </html>

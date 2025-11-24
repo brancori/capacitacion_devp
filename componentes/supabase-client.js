@@ -1,11 +1,42 @@
 // componentes/supabase-client.js
-// VERSIÓN AUDITADA: Fix WebSockets + Tracking Prevention
+// VERSIÓN 3.0.7: Fix Tracking Prevention + CDN Fallback
 
 const SUPABASE_URL = 'https://hvwygpnuunuuylzondxt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
 
-const APP_VERSION = '3.0.5';
 
+// ============================================
+// SAFE STORAGE (Fix Tracking Prevention)
+// ============================================
+window.safeStorage = {
+  get(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn('⚠️ localStorage bloqueado, usando memoria');
+      return window.__memStorage?.[key] || null;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      if (!window.__memStorage) window.__memStorage = {};
+      window.__memStorage[key] = value;
+    }
+  },
+  remove(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      if (window.__memStorage) delete window.__memStorage[key];
+    }
+  }
+};
+
+// ============================================
+// DETECCIÓN DE TENANT
+// ============================================
 function detectTenant() {
   const host = location.hostname || 'localhost';
   if (host === 'localhost' || host === '127.0.0.1') return 'demo';
@@ -13,80 +44,129 @@ function detectTenant() {
   return (parts.length > 2 && parts[0] !== 'www') ? parts[0] : 'default';
 }
 
+// ============================================
+// LIMPIEZA DE DATOS
+// ============================================
 function clearAllAuthData() {
   const keysToRemove = ['tenantTheme', 'tenantSlug', 'current_tenant', 'app_version'];
-  // Fix: Try/Catch para evitar crash por Tracking Prevention
-  keysToRemove.forEach(key => {
-    try { localStorage.removeItem(key); } catch (e) { console.warn('Storage bloqueado (limpieza):', e); }
-  });
-}
+  keysToRemove.forEach(key => window.safeStorage.remove(key));
 
-// Inicialización del Cliente
-if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient !== 'function') {
-  console.error('❌ La librería de Supabase no está cargada.');
-} else {
-  
-  // Configuración explícita de opciones
-const clientOptions = {
-  auth: {
-    persistSession: false,      // Obligatorio para evitar bloqueo de cookies (Tracking Prevention)
-    autoRefreshToken: false,    // El proxy/firewall puede bloquear el refresh automático
-    detectSessionInUrl: false,
-    storage: undefined          // Solo RAM
-  },
-  // Desactivamos los intentos agresivos de Realtime
-  realtime: {
-    params: {
-      eventsPerSecond: 0, // Intentar anular eventos
-    }
-  },
-  // Forzar uso de fetch compatible con proxies
-  global: {
-    headers: { 'x-application-name': 'siresi-proxy-client' }
+  try {
+    document.cookie = 'sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0';
+  } catch (e) {
+    console.warn('No se pudo limpiar cookie');
   }
-};
-  window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
-  console.log('✅ Cliente Supabase (Fix WSS + Privacy)');
-
-  // Autorecuperación de sesión
-  (async function recoverSessionFromUrl() {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token') || params.get('access_token');
-        const refreshToken = params.get('refresh_token') || 'dummy-refresh-token';
-
-        if (token) {
-            console.log('🔄 [Global] Detectado token en URL. Restaurando sesión...');
-            const { error } = await window.supabase.auth.setSession({
-                access_token: token,
-                refresh_token: refreshToken
-            });
-
-            if (!error) {
-                console.log('✅ [Global] Sesión restaurada.');
-                const newUrl = window.location.pathname; 
-                window.history.replaceState({}, document.title, newUrl);
-            } else {
-                console.error('❌ [Global] Error restaurando sesión:', error);
-            }
-        }
-      } catch (err) {
-          console.warn('⚠️ Error en recuperación de sesión:', err);
-      }
-  })();
 }
 
-function setupLogoutButton() {
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await window.supabase.auth.signOut();
-            clearAllAuthData();
-            window.location.href = window.location.pathname.includes('/') ? '../index.html' : './index.html';
-        });
+// ============================================
+// INICIALIZACIÓN CON ESPERA
+// ============================================
+async function initSupabaseClient() {
+  // Esperar a que Supabase esté disponible
+  let attempts = 0;
+  const maxAttempts = 30; // 3 segundos
+
+  while (attempts < maxAttempts) {
+    if (typeof window.supabase?.createClient === 'function') {
+      console.log('✅ Supabase detectado del CDN');
+      setupClient();
+      return;
     }
+    await new Promise(resolve => setTimeout(resolve, 100));
+    attempts++;
+  }
+
+  console.error('❌ Supabase no se cargó. Verifica tu conexión o firewall.');
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupLogoutButton);
-else setupLogoutButton();
+// ============================================
+// CONFIGURACIÓN DEL CLIENTE
+// ============================================
+function setupClient() {
+  const clientOptions = {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storage: undefined
+    },
+    realtime: {
+      params: { eventsPerSecond: 0 }
+    },
+    global: {
+      headers: { 'x-application-name': 'siresi-proxy-client' }
+    }
+  };
+
+  window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
+  console.log('✅ Cliente Supabase inicializado (Proxy Compatible)');
+
+  // Recuperación de sesión desde URL
+  recoverSessionFromUrl();
+}
+
+// ============================================
+// RECUPERACIÓN DE SESIÓN
+// ============================================
+async function recoverSessionFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token') || params.get('access_token');
+
+    if (token) {
+      console.log('🔄 Token detectado, restaurando sesión...');
+
+      const { error } = await window.supabase.auth.setSession({
+        access_token: token,
+        refresh_token: 'dummy-refresh-token'
+      });
+
+      if (!error) {
+        console.log('✅ Sesión restaurada');
+
+        // Limpiar URL (mantener hash si existe)
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } else {
+        console.error('❌ Error restaurando sesión:', error);
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Error en recuperación:', err);
+  }
+}
+
+// ============================================
+// LOGOUT GLOBAL
+// ============================================
+function setupLogoutButton() {
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        await window.supabase.auth.signOut();
+      } catch (err) {
+        console.warn('Error en signOut:', err);
+      }
+      clearAllAuthData();
+
+      // Detectar ruta para redirección
+      const isInSubfolder = window.location.pathname.includes('/profile') ||
+                           window.location.pathname.includes('/dashboard');
+      window.location.href = isInSubfolder ? '../index.html' : './index.html';
+    });
+  }
+}
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initSupabaseClient();
+    setupLogoutButton();
+  });
+} else {
+  initSupabaseClient();
+  setupLogoutButton();
+}
