@@ -69,7 +69,6 @@
       console.error('❌ Tenant no encontrado en DB:', tenantId);
       return false;
     }
-
     console.log('✅ Tenant validado:', tenant.name);
     return tenant;
   } catch (err) {
@@ -269,7 +268,7 @@ async function loadTenantConfig() {
             const PATH_PROFILE = './profile/profile.html';
             const rolesAdmin = ['master', 'admin', 'supervisor']; 
 
-            console.log(`✅ Rol detectado: ${userRole}`);
+            console.log(`Rol detectado: ${userRole}`);
 
             // Pasamos el token en la URL para recuperar la sesión
             if (rolesAdmin.includes(userRole)) {
@@ -524,22 +523,25 @@ async function loadTenantConfig() {
     // 1. Limpieza de Tenant
     const currentTenant = detectTenant();
     const storedTenant = localStorage.getItem('current_tenant');
+    window.safeStorage.get('current_tenant');
     
     if (storedTenant && storedTenant !== currentTenant) {
-      console.warn('⚠️ Tenant diferente, limpiando sesión...');
-      document.cookie = `sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0`;
-      localStorage.removeItem('current_tenant');
-      localStorage.removeItem('tenantTheme');
-      localStorage.removeItem('tenantSlug');
+    console.warn(‘ Tenant diferente, limpiando sesión…’);
+    try {
+    document.cookie = `sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0`;
+    } catch(e) {}
+    window.safeStorage.remove('current_tenant');  
+    window.safeStorage.remove('tenantTheme');   
+    window.safeStorage.remove('tenantSlug');      
     }
-    
-    localStorage.setItem('current_tenant', currentTenant);
-    
-    console.log(`🚀 Inicializando App - Tenant: ${currentTenant}`);
+
+    window.safeStorage.set('current_tenant', currentTenant); 
+
+    console.log(` Inicializando App - Tenant: ${currentTenant}`);
     const config = await loadTenantConfig();
     applyConfiguration(config);
-    console.log('✅ App lista para login');
-  }
+    console.log(' App lista para login');
+}
 
   // Disparador
   if (document.readyState === 'loading') {
