@@ -57,24 +57,29 @@
 
   const tenantId = detectTenant();
 
-  async function validateLoginPage() {
-  try {s
-  const { data: tenant, error } = await window.supabase
-  .from('tenants')
-  .select('id, name, trial_expires_at')
-  .eq('slug', tenantId)
-  .single();
-    
-    if (error || !tenant) {
-      console.error('❌ Tenant no encontrado en DB:', tenantId);
-      return false;
-    }
-    console.log('✅ Tenant validado:', tenant.name);
-    return tenant;
-  } catch (err) {
-    console.error('❌ Error validando tenant:', err);
-    return false;
-  }
+
+async function validateLoginPage() {
+try {
+const { data: tenant, error } = await window.supabase
+.from('tenants')
+.select('id, name, trial_expires_at')
+.eq('slug', tenantId)
+.single();
+
+```
+if (error || !tenant) {
+  console.error(' Tenant no encontrado en DB:', tenantId, error);
+  return false;
+}
+
+console.log(' Tenant validado:', tenant.name);
+return tenant;
+```
+
+} catch (err) {
+console.error('❌ Error validando tenant:', err);
+return false;
+}
 }
 
 async function loadTenantConfig() {
@@ -93,7 +98,6 @@ async function loadTenantConfig() {
 
     config.tenantSlug = tenantId;
     
-    // 👇 OPCIONAL: Validar tenant en DB y obtener UUID
     const tenantDb = await validateLoginPage();
     if (tenantDb) {
       config.tenantUUID = tenantDb.id;
