@@ -172,17 +172,15 @@ async function loadUserProfile() {
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    // DEBUG: Pausar y mostrar info
     console.log('🔍 DEBUG user:', user);
     console.log('🔍 DEBUG authError:', authError);
     
     if (authError || !user) {
       console.error('No hay sesión activa');
-      window.location.href = '../index.html'; // COMENTADO TEMPORALMENTE
+      window.location.href = '../index.html';
       return;
     }
 
-    // ✅ CAMBIO AQUÍ
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, full_name')
@@ -190,6 +188,13 @@ async function loadUserProfile() {
       .single();
 
     if (profileError) throw profileError;
+
+    // ✅ AGREGAR ESTAS LÍNEAS AQUÍ (después de obtener el profile):
+    if (profile && ['master', 'admin', 'supervisor'].includes(profile.role)) {
+      console.log(`🔄 Rol administrativo detectado (${profile.role}) - Redirigiendo a dashboard...`);
+      window.location.href = '../dashboard.html';
+      return; // Detener ejecución
+    }
 
     if (profile) {
       updateProfileView(profile);
