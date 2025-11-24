@@ -1,47 +1,54 @@
 /*
 ========================================================================
-  ÍNDICE DEL ARCHIVO (index2.js)
-========================================================================
-  1. CONFIGURACIÓN E INICIALIZACIÓN DE SUPABASE
-  2. CONFIGURACIÓN DE TENANT (UI)
-  3. SISTEMA DE MODALES
-  4. LÓGICA DE INTERACCIÓN
-     - Sistema de Tabs
-     - Handler de Login (custom-login)
-     - Lógica de Registro (apunta a 'register-user')
-     - Lógica de Olvidar Contraseña (placeholder)
-  5. MODALES DE ACCIÓN
-     - showRegistrationModal (Modificado por Manifiesto)
-     - showResetPasswordModal (Lógica heredada)
-  6. INICIALIZACIÓN DE LA APLICACIÓN
+  ÍNDICE DEL ARCHIVO (index2.js) - CORREGIDO
 ========================================================================
 */
 
 (function() {
   'use strict';
-// Validar sesión al cargar la página de login
-(function validateLoginPage() {
-  const currentTenant = detectTenant();
-  const storedTenant = localStorage.getItem('current_tenant');
-  
-  if (storedTenant && storedTenant !== currentTenant) {
-    console.warn('⚠️ Tenant diferente detectado en login, limpiando sesión...');
+
+  // 1. DEFINICIONES DE UTILIDAD (MOVIDAS AL PRINCIPIO PARA EVITAR ERRORES)
+  // -----------------------------------------------------------------
+  const detectTenant = () => {
+    const host = location.hostname || 'localhost';
+    if (host === 'localhost') return 'demo';
+    if (host === '127.0.0.1') return 'default';
+    const parts = host.split('.');
+    if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+    return 'default';
+  };
+
+  const $ = (selector) => document.querySelector(selector);
+  const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+  const setStyle = (prop, value) => {
+    if (value) document.documentElement.style.setProperty(prop, value);
+  };
+
+  // 2. VALIDACIÓN DE SESIÓN (AHORA SÍ FUNCIONARÁ PORQUE detectTenant YA EXISTE)
+  // -----------------------------------------------------------------
+  (function validateLoginPage() {
+    const currentTenant = detectTenant();
+    const storedTenant = localStorage.getItem('current_tenant');
     
-    const cookies = ['sb-hvwygpnuunuuylzondxt-auth-token', 'sb-access-token', 'sb-refresh-token'];
-    cookies.forEach(c => {
-      document.cookie = `${c}=;path=/;max-age=0`;
-    });
+    if (storedTenant && storedTenant !== currentTenant) {
+      console.warn('⚠️ Tenant diferente detectado en login, limpiando sesión...');
+      
+      const cookies = ['sb-hvwygpnuunuuylzondxt-auth-token', 'sb-access-token', 'sb-refresh-token'];
+      cookies.forEach(c => {
+        document.cookie = `${c}=;path=/;max-age=0`;
+      });
+      
+      localStorage.removeItem('current_tenant');
+      localStorage.removeItem('tenantTheme');
+      localStorage.removeItem('tenantSlug');
+    }
     
-    localStorage.removeItem('current_tenant');
-    localStorage.removeItem('tenantTheme');
-    localStorage.removeItem('tenantSlug');
-  }
-  
-  localStorage.setItem('current_tenant', currentTenant);
-})();
+    localStorage.setItem('current_tenant', currentTenant);
+  })();
 
   // -----------------------------------------------------------------
-  // 2. CONFIGURACIÓN DE TENANT 
+  // 3. CONFIGURACIÓN DE TENANT 
   // -----------------------------------------------------------------
 
   const DEFAULTS = {
@@ -75,30 +82,11 @@
     customCss: null
   };
 
-  const $ = (selector) => document.querySelector(selector);
-  const $$ = (selector) => Array.from(document.querySelectorAll(selector));
-
-  const setStyle = (prop, value) => {
-    if (value) document.documentElement.style.setProperty(prop, value);
-  };
-
-  const detectTenant = () => {
-    const host = location.hostname || 'localhost';
-    if (host === 'localhost') return 'demo';
-    if (host === '127.0.0.1') return 'default';
-    const parts = host.split('.');
-    if (parts.length > 2 && parts[0] !== 'www') return parts[0];
-    return 'default';
-  };
-
   const tenantId = detectTenant(); // Este es el 'tenant_slug'
 
   async function loadTenantConfig() {
     try {
-      // NOTA: tenants.json es solo para ESTILOS. No es para seguridad.
-      const response = await fetch('./tenants/tenants.json', {
-        cache: 'no-store'
-      });
+      const response = await fetch('./tenants/tenants.json', { cache: 'no-store' });
       if (!response.ok) throw new Error('Tenant config not found');
 
       const data = await response.json();
@@ -107,21 +95,15 @@
       const config = {
         ...DEFAULTS,
         ...tenantConfig,
-        labels: { ...DEFAULTS.labels,
-          ...(tenantConfig.labels || {})
-        }
+        labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
       };
 
-      // Guardamos el slug del tenant globalmente para usarlo en el login
       config.tenantSlug = tenantId;
       console.log(`✅ Tenant Configurado: ${config.companyName} (slug: ${config.tenantSlug})`);
-
       return config;
     } catch (error) {
       console.warn('⚠️ Error al cargar tenant config:', error);
-      return { ...DEFAULTS,
-        tenantSlug: 'default'
-      };
+      return { ...DEFAULTS, tenantSlug: 'default' };
     }
   }
 
@@ -170,23 +152,17 @@
     }
 
     window.__loginRedirect = config.successRedirect;
-
-    // La UI está lista, inicializar las interacciones
     initializeInteractions();
   }
 
   // -----------------------------------------------------------------
-  // 3. SISTEMA DE MODALES
+  // 4. SISTEMA DE MODALES
   // -----------------------------------------------------------------
   function showModal(title, message, type = 'info', callback = null) {
     const modalRoot = $('#modalRoot');
     if (!modalRoot) return;
 
-    const iconMap = {
-      success: '✓',
-      error: '✕',
-      info: 'ℹ'
-    };
+    const iconMap = { success: '✓', error: '✕', info: 'ℹ' };
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
@@ -213,7 +189,7 @@
   }
 
   // -----------------------------------------------------------------
-  // 4. LÓGICA DE INTERACCIÓN (Refactorizada)
+  // 5. LÓGICA DE INTERACCIÓN
   // -----------------------------------------------------------------
   function initializeInteractions() {
 
@@ -229,13 +205,10 @@
       });
     });
 
-    // ---
-    // Handler de Login 
-    // ---
+    // --- Handler de Login ---
     const handleLoginSubmit = async (e) => {
       e.preventDefault();
       const supabase = window.supabase;
-      // Determinar qué formulario se usó
       const isEmployeeForm = e.target.id === 'formEmployees';
       const email = (isEmployeeForm ? $('#empUsername') : $('#conUsername')).value.trim();
       const password = (isEmployeeForm ? $('#empPassword') : $('#conPassword')).value.trim();
@@ -252,68 +225,35 @@
       btn.querySelector('span').textContent = 'Validando...';
 
       try {
-        const {
-          tenantSlug
-        } = window.__appConfig;
+        const { tenantSlug } = window.__appConfig;
         console.log(` Invocando 'custom-login' en Edge Function con slug: ${tenantSlug}`);
 
-        // 1. INVOCAR LA EDGE FUNCTION SEGURA
-        // Esta función DEBE validar status, tenant, y roles (según Manifiesto)
-        const {
-          data,
-          error
-        } = await supabase.functions.invoke('custom-login', {
-          body: {
-            email: email,
-            password: password,
-            tenant_slug: tenantSlug
-          }
+        const { data, error } = await supabase.functions.invoke('custom-login', {
+          body: { email: email, password: password, tenant_slug: tenantSlug }
         });
 
-        if (error) {
-          console.error('❌ Error de la Edge Function:', error.message);
-          throw new Error(error.message || 'Error del servidor');
-        }
+        if (error) throw new Error(error.message || 'Error del servidor');
 
         if (data.error) {
-          console.error(' Error lógico del backend:', data.error);
-          
-          // Lógica heredada para 'force_reset'.
-          // Aunque el nuevo flujo del Manifiesto no lo usa,
-          // 'custom-login' podría seguir manejando usuarios antiguos.
           if (data.error_code === 'FORCE_RESET') {
-            console.log(' Detectado FORCE_RESET desde el backend');
-            showResetPasswordModal({
-              id: data.user_id
-            });
+            showResetPasswordModal({ id: data.user_id });
             return; 
           }
-          
-          // MANIFIESTO UX: "Cuenta pendiente de autorización"
           if (data.error_code === 'PENDING_AUTHORIZATION') {
              throw new Error('Cuenta pendiente de autorización. Contacta a tu administrador.');
           }
-
           throw new Error(data.error);
         }
 
-        console.log('3️ Edge Function exitosa, token recibido.');
+        console.log('3️⃣ Edge Function exitosa, token recibido.');
 
-        // 2. ESTABLECER LA SESIÓN CON EL NUEVO TOKEN
-        const {
-          error: sessionError
-        } = await supabase.auth.setSession({
+        await supabase.auth.setSession({
           access_token: data.jwt,
-          refresh_token: 'dummy-refresh-token' // El refresh no es necesario para esta demo
+          refresh_token: 'dummy-refresh-token'
         });
 
-        if (sessionError) {
-          console.error(' Error al establecer la sesión:', sessionError.message);
-          throw new Error('Error al iniciar sesión localmente.');
-        }
-
-        // 3. ÉXITO
-console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inteligente...');
+        // 3. ÉXITO (LÓGICA BLINDADA CONTRA TRACKING PREVENTION)
+        console.log('4️⃣ Sesión establecida. Iniciando enrutamiento inteligente...');
         
         showModal(
           '¡Bienvenido!',
@@ -321,8 +261,7 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
           'success',
           async () => {
             const token = data.jwt;
-            // USAMOS EL ID QUE VIENE DIRECTO DE LA RESPUESTA DE LA EDGE FUNCTION (custom-login)
-            // Esto evita el error de "Tracking Prevention" porque no leemos cookies del navegador.
+            // FIX: Usamos el ID directo de la respuesta para evitar bloqueos de cookie
             const userId = data.user_id || (data.user && data.user.id);
 
             try {
@@ -336,19 +275,16 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
                         .eq('id', userId)
                         .single();
 
-                    if (roleError) {
-                        console.error("❌ Error consultando perfil:", roleError.message);
-                    }
+                    if (roleError) console.error("❌ Error consultando perfil:", roleError.message);
 
                     if (profile) {
                         const role = profile.role;
                         console.log(`✅ Rol detectado en BD: ${role}`);
                         
-                        // DEFINICIÓN DE RUTAS
+                        // RUTAS RELATIVAS (Dashboard en raíz, Profile en subcarpeta)
                         const PATH_DASHBOARD = './dashboard.html'; 
                         const PATH_PROFILE = './profile/profile.html';
                         
-                        // LISTA DE ROLES QUE VAN AL DASHBOARD
                         const rolesAdministrativos = ['master', 'admin', 'supervisor'];
 
                         if (rolesAdministrativos.includes(role)) {
@@ -358,7 +294,7 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
                             console.log(`👤 Redirigiendo a PERFIL (Rol: ${role})`);
                             window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
                         }
-                        return; // Detenemos aquí para que no se ejecute el fallback
+                        return; // Detenemos aquí para evitar fallback
                     }
                 } else {
                     console.warn("⚠️ No se recibió user_id en la respuesta del login.");
@@ -367,7 +303,7 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
                 console.warn('⚠️ Error en lógica de roles:', err);
             }
 
-            // Fallback: Solo si todo lo anterior falla
+            // Fallback final
             console.log("🚀 Usando ruta por defecto (Profile)");
             window.location.href = `./profile/profile.html?token=${encodeURIComponent(token)}`;
           }
@@ -375,31 +311,26 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
 
       } catch (error) {
         console.error('❌ Error en el flujo de login:', error.message);
-        await supabase.auth.signOut(); // Limpiar cualquier sesión parcial
+        await supabase.auth.signOut();
         btn.disabled = false;
         btn.querySelector('span').textContent = 'Ingresar';
         showModal('Error de Acceso', error.message, 'error');
       }
     };
 
-    // Asignar el handler a AMBOS formularios
     $('#formEmployees').addEventListener('submit', handleLoginSubmit);
     $('#formContractors').addEventListener('submit', handleLoginSubmit);
 
-    // ---
-    // Lógica de Registro (Modificada por Manifiesto)
-    // ---
+    // --- Registro ---
     const registerBtn = $('#registerEmp');
     if (registerBtn) {
       registerBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        showRegistrationModal(); // Esta función ahora llama a 'register-user'
+        showRegistrationModal();
       });
     }
 
-    // ---
-    // Lógica de Olvidar Contraseña
-    // ---
+    // --- Olvidar Contraseña ---
     const forgotBtn = $('#forgotEmp');
     if (forgotBtn) {
       forgotBtn.addEventListener('click', (e) => {
@@ -412,12 +343,9 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
 
 
   // -----------------------------------------------------------------
-  // 5. MODALES DE ACCIÓN (Refactorizados)
+  // 6. MODALES DE ACCIÓN
   // -----------------------------------------------------------------
 
-  // ---
-  // MODIFICADO: Modal de Registro (Apunta a Edge Function 'register-user' del Manifiesto)
-  // ---
   async function showRegistrationModal() {
     const modalRoot = $('#modalRoot');
     const supabase = window.supabase;
@@ -456,9 +384,7 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
 
     const closeModal = () => {
       modal.style.animation = 'fadeOut 200ms ease-out forwards';
-      setTimeout(() => {
-        modalRoot.innerHTML = '';
-      }, 200);
+      setTimeout(() => { modalRoot.innerHTML = ''; }, 200);
     };
 
     const passInput = modal.querySelector('#regPassword');
@@ -499,50 +425,27 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
       try {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Enviando...';
+        const { tenantSlug } = window.__appConfig;
 
-        const {
-          tenantSlug
-        } = window.__appConfig;
-
-        // *** INICIO DE CAMBIO (MANIFIESTO) ***
-        // El payload ahora coincide con el Manifiesto
-        // Asumimos 'employee' porque este es el formulario 'registerEmp'
         const payload = {
           email: modal.querySelector('#regEmail').value.trim(),
           password: modal.querySelector('#regPassword').value.trim(),
           full_name: modal.querySelector('#regName').value.trim(),
           tenant_slug: tenantSlug,
           user_type: 'employee',
-          meta: {
-            area: modal.querySelector('#regArea').value.trim()
-          }
+          meta: { area: modal.querySelector('#regArea').value.trim() }
         };
 
         console.log("🚀 Enviando a 'register-user':", payload);
-        
-        // INVOCAR LA EDGE FUNCTION DE REGISTRO
-        const {
-          data,
-          error
-        } = await supabase.functions.invoke('register-user', {
-          body: payload
-        });
+        const { data, error } = await supabase.functions.invoke('register-user', { body: payload });
 
-        if (error || data.error) {
-          throw new Error(data.error || error.message);
-        }
+        if (error || data.error) throw new Error(data.error || error.message);
 
         console.log('✅ Solicitud de registro exitosa:', data.message);
         closeModal();
         setTimeout(() => {
-          // Mensaje de UX exacto del Manifiesto
-          showModal(
-            'Solicitud Recibida',
-            'Tu cuenta está pendiente de aprobación por el administrador del tenant.',
-            'success'
-          );
+          showModal('Solicitud Recibida', 'Tu cuenta está pendiente de aprobación por el administrador del tenant.', 'success');
         }, 300);
-        // *** FIN DE CAMBIO (MANIFIESTO) ***
 
       } catch (error) {
         console.error('❌ Error de registro:', error.message);
@@ -553,9 +456,6 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
     });
   }
 
-  // ---
-  // Modal de Reseteo de Contraseña 
-  // ---
   function showResetPasswordModal(user) {
     console.log('🔵 showResetPasswordModal llamado con:', user);
     const supabase = window.supabase;
@@ -629,15 +529,8 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
         submitBtn.disabled = true;
         submitBtn.textContent = 'Guardando...';
 
-        // Esta es la Edge Function que ya tenías
-        const {
-          data,
-          error
-        } = await supabase.functions.invoke('reset-password-user', {
-          body: {
-            userId: user.id,
-            newPassword: passInput.value
-          }
+        const { data, error } = await supabase.functions.invoke('reset-password-user', {
+          body: { userId: user.id, newPassword: passInput.value }
         });
 
         if (error || (data && data.success === false)) {
@@ -660,7 +553,7 @@ console.log('4️⃣ Login correcto. Token recibido. Iniciando enrutamiento inte
   }
 
   // -----------------------------------------------------------------
-  // 6. INICIALIZACIÓN DE LA APLICACIÓN
+  // 7. INICIALIZACIÓN
   // -----------------------------------------------------------------
   async function init() {
     console.log(`🚀 Initializing v2 - tenant: ${tenantId}`);
