@@ -50,33 +50,32 @@
 
 
 (function() {
-        try {
-          // 1. Obtener el slug actual SÍNCRONAMENTE
-          const host = location.hostname || 'localhost';
-          const parts = host.split('.');
-          const currentSlug = parts.length > 2 && parts[0] !== 'www' ? parts[0] : 'default';
+  try {
+    // 1. Obtener el slug actual SÍNCRONAMENTE
+    const host = location.hostname || 'localhost';
+    const parts = host.split('.');
+    const currentSlug = parts.length > 2 && parts[0] !== 'www' ? parts[0] : 'default';
 
-          // 2. Intentar cargar el tema cacheado
-          const cachedTheme = localStorage.getItem('tenantTheme');
-          const cachedSlug = localStorage.getItem('tenantSlug');
+    // 2. Intentar cargar el tema cacheado
+    const cachedTheme = localStorage.getItem('tenantTheme');
+    const cachedSlug = localStorage.getItem('tenantSlug');
 
-          // 3. Validar y aplicar el tema
-          if (cachedTheme && cachedSlug === currentSlug) {
-            const theme = JSON.parse(cachedTheme);
-            const root = document.documentElement;
-            
-            // Aplicar estilos, asumiendo que el caché guarda primaryColor y secondaryColor
-            if (theme.primaryColor) root.style.setProperty('--primaryColor', theme.primaryColor);
-            if (theme.secondaryColor) root.style.setProperty('--secondaryColor', theme.secondaryColor);
-            
-            // Mostrar la página inmediatamente ya que el tema es correcto
-            document.body.style.opacity = 1;
-          }
-        } catch (e) {
-          console.error('Error aplicando tema cacheado', e);
-          // Si hay error, la página se quedará oculta y la lógica principal la mostrará
-        }
-      })();
+    // 3. Validar y aplicar el tema
+    if (cachedTheme && cachedSlug === currentSlug) {
+      const theme = JSON.parse(cachedTheme);
+      const root = document.documentElement;
+      
+      // Aplicar estilos, asumiendo que el caché guarda primaryColor y secondaryColor
+      if (theme.primaryColor) root.style.setProperty('--primaryColor', theme.primaryColor);
+      if (theme.secondaryColor) root.style.setProperty('--secondaryColor', theme.secondaryColor);
+      
+      // NO uses opacity aquí, el control lo tiene earlyRoleCheck con .loaded
+      console.log('🎨 Tema cacheado aplicado');
+    }
+  } catch (e) {
+    console.error('Error aplicando tema cacheado', e);
+  }
+})();
 
 // ═══════════════════════════════════════════════════════════
 // BLOQUE ÚNICO DE INICIALIZACIÓN
@@ -107,25 +106,6 @@
     return 'default';
   };
 
-// Validar sesión al cargar el perfil
-(function validateProfileAccess() {
-  const detectTenant = () => {
-    const host = location.hostname || 'localhost';
-    if (host === 'localhost' || host === '127.0.0.1') return 'demo';
-    const parts = host.split('.');
-    return (parts.length > 2 && parts[0] !== 'www') ? parts[0] : 'default';
-  };
-  
-  const currentTenant = detectTenant();
-  const storedTenant = localStorage.getItem('current_tenant');
-  
-  if (storedTenant && storedTenant !== currentTenant) {
-    console.error('❌ Acceso denegado: Tenant no coincide');
-    alert('Sesión inválida. Serás redirigido al login.');
-    window.location.href = '../index.html';
-    return;
-  }
-})();
 
   async function loadTenantConfig() {
     const tenantId = detectTenant();
@@ -544,7 +524,6 @@ async function mainInit() {
     applyConfiguration(config);
     console.log('✅ Tenant listo');
 
-    document.body.style.opacity = 1;
     // 2. Carga el perfil de usuario (para permisos)
     await loadUserProfile();
     console.log('✅ Perfil de usuario cargado');
@@ -694,6 +673,7 @@ const allCourses = assignments ? assignments.map(a => {
     console.log('✅ Cursos renderizados correctamente por tabs');
 
     initUI();
+    document.body.classList.add('loaded');
 }
 
   // --- Disparador de Carga ---
