@@ -14,6 +14,17 @@
     }
     
     // 3. Validar rol del usuario
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+
+    if (urlToken) {
+    console.log('🔑 Restaurando sesión desde URL');
+    await window.supabase.auth.setSession({
+        access_token: urlToken,
+        refresh_token: 'dummy'
+    });
+    window.history.replaceState({}, '', window.location.pathname);
+    }
     const { data: { user } } = await window.supabase.auth.getUser();
     
     if (!user) {
@@ -209,7 +220,7 @@ async function loadUserProfile() {
     
     if (authError || !user) {
       console.error('No hay sesión activa');
-      window.location.href = '../index.html';
+      window.location.replace = '../index.html';
       return;
     }
 

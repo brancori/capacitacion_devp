@@ -261,8 +261,14 @@ async function init() {
           'Entrando al sistema...',
           'success',
           async () => {
-const token = data.jwt;
-            const userId = data.user_id || (data.user && data.user.id);
+          const jwtData = JSON.parse(atob(token.split('.')[1]));
+          const userRole = jwtData.role || 'employee';
+
+          if (rolesAdmin.includes(userRole)) {
+            window.location.replace(`${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`);
+          } else {
+            window.location.replace(`${PATH_PROFILE}?token=${encodeURIComponent(token)}`);
+          }
             
             // Rutas relativas
             const PATH_DASHBOARD = './dashboard.html'; 
