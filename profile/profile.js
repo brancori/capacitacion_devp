@@ -68,6 +68,7 @@
       // Aplicar estilos, asumiendo que el caché guarda primaryColor y secondaryColor
       if (theme.primaryColor) root.style.setProperty('--primaryColor', theme.primaryColor);
       if (theme.secondaryColor) root.style.setProperty('--secondaryColor', theme.secondaryColor);
+      document.body.style.opacity = 1;
       
       // NO uses opacity aquí, el control lo tiene earlyRoleCheck con .loaded
       console.log('🎨 Tema cacheado aplicado');
