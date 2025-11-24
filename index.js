@@ -313,7 +313,7 @@
         }
 
         // 3. ÉXITO
-      console.log('4️⃣ Sesión establecida. Verificando rol...');
+console.log('4️⃣ Sesión establecida. Verificando rol...');
         
         showModal(
           '¡Bienvenido!',
@@ -324,10 +324,12 @@
             
             try {
                 // --- INICIO LÓGICA DE REDIRECCIÓN POR ROL ---
+                
+                // 1. Obtener usuario decodificado de la sesión actual
                 const { data: { user } } = await supabase.auth.getUser();
 
                 if (user) {
-                    // Consultamos el rol en la tabla profiles
+                    // 2. Consultar rol específico en tabla profiles
                     const { data: profile, error: roleError } = await supabase
                         .from('profiles')
                         .select('role')
@@ -336,20 +338,22 @@
 
                     if (!roleError && profile) {
                         const role = profile.role;
-                        const rolesAdministrativos = ['master', 'admin', 'supervisor'];
-
-                        // RUTAS BASADAS EN TU ESTRUCTURA DE ARCHIVOS
-                        // dashboard.html está en la raíz
+                        
+                        // DEFINICIÓN DE RUTAS (Ajusta si dashboard está en otra carpeta)
+                        // Opción A: si dashboard.html está junto a index.html
                         const PATH_DASHBOARD = './dashboard.html'; 
-                        // profile.html está dentro de la carpeta profile
+                        // Opción B: si dashboard está en carpeta (ej: ./dashboard/dashboard.html)
+                        // const PATH_DASHBOARD = './dashboard/dashboard.html'; 
+                        
                         const PATH_PROFILE = './profile/profile.html';
+                        const rolesAdministrativos = ['master', 'admin', 'supervisor'];
 
                         if (rolesAdministrativos.includes(role)) {
                             // Es Jefe -> Va al Dashboard
                             console.log(`👑 Rol ${role} detectado. Redirigiendo a Dashboard.`);
                             window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
                         } else {
-                            // Es Empleado -> Se salta el Dashboard y va a su Perfil
+                            // Es Empleado -> Va directo a su Perfil
                             console.log(`👤 Rol ${role} detectado. Redirigiendo a Perfil.`);
                             window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
                         }
@@ -357,10 +361,10 @@
                     }
                 }
             } catch (err) {
-                console.warn('⚠️ Error verificando rol, usando redirección segura:', err);
+                console.warn('⚠️ Error verificando rol, usando redirección por defecto:', err);
             }
 
-            // Fallback de seguridad: Si algo falla, siempre mandamos al perfil
+            // Fallback: Si algo falla en la consulta de rol, mandamos al perfil por seguridad
             window.location.href = `./profile/profile.html?token=${encodeURIComponent(token)}`;
           }
         );

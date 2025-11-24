@@ -94,16 +94,21 @@ function setupLogoutButton() {
       e.preventDefault();
       console.log(' Cerrando sesión...');
       
-      try {
+try {
         const { error } = await window.supabase.auth.signOut();
         if (error) throw error;
         
         clearAllAuthData();
-        window.location.href = '../index.html';
+        // Detectar si estamos en una subcarpeta (ej: profile/) o en la raíz
+        const isSubfolder = window.location.pathname.split('/').length > 2;
+        window.location.href = isSubfolder ? '../index.html' : './index.html';
+        
       } catch (error) {
         console.error(' Error al cerrar sesión:', error.message);
         clearAllAuthData();
-        window.location.href = '../index.html';
+        // Mismo fallback
+        const isSubfolder = window.location.pathname.split('/').length > 2;
+        window.location.href = isSubfolder ? '../index.html' : './index.html';
       }
     });
   }
