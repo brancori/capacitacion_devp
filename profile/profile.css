@@ -1,3 +1,4 @@
+body { visibility: hidden; }
 /* Notification Bell with Badge */
 .notification-btn {
     position: relative;

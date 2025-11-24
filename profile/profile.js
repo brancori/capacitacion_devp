@@ -1,3 +1,35 @@
+(async function earlyRoleCheck() {
+  try {
+    // Ocultar la página inmediatamente
+    document.body.style.visibility = 'hidden';
+    
+    const { data: { user } } = await window.supabase.auth.getUser();
+    
+    if (user) {
+      const { data: profile } = await window.supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      // Si es rol administrativo, redirigir SIN mostrar nada
+      if (profile && ['master', 'admin', 'supervisor'].includes(profile.role)) {
+        console.log(`🔄 Redirección temprana: ${profile.role} → dashboard`);
+        window.location.replace('../dashboard.html');
+        return; // No mostrar la página
+      }
+    }
+    
+    // Si llegamos aquí, es un usuario normal → mostrar página
+    document.body.style.visibility = 'visible';
+    
+  } catch (error) {
+    console.warn('Error en validación temprana:', error);
+    document.body.style.visibility = 'visible';
+  }
+})();
+
+
 (function() {
         try {
           // 1. Obtener el slug actual SÍNCRONAMENTE
