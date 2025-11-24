@@ -477,15 +477,15 @@ window.submitQuiz = async function() {
     const questionDivs = document.querySelectorAll('.quiz-options');
     let correctCount = 0;
 
-    // Calificar (código existente)
+    // 1. Calcular calificación
     questionDivs.forEach((div, idx) => {
         const correctAns = parseInt(div.getAttribute('data-correct'));
         const userAns = currentAnswers[idx];
         if (userAns === correctAns) correctCount++;
 
+        // Deshabilitar UI y mostrar correcciones visuales
         const btns = div.querySelectorAll('.quiz-btn');
         btns.forEach(b => b.disabled = true);
-
         if (userAns !== undefined && btns[userAns]) {
             btns[userAns].classList.add(userAns === correctAns ? 'correct' : 'incorrect');
         }
@@ -497,10 +497,14 @@ window.submitQuiz = async function() {
 
     console.log(`[QUIZ] Resultado: ${finalScore}% (Aprobado: ${passed})`);
 
-    // Desbloquear navegación
+    // 2. Definir estado y progreso según resultado
+    // Si reprueba: Vuelve a 0% y se queda 'in_progress'
+    const statusToSave = passed ? 'completed' : 'in_progress';
+    const progressToSave = passed ? 100 : 0;
+
     endQuizMode();
 
-    // ✅ GUARDAR CALIFICACIÓN Y PROGRESO 100%
+    // 3. Guardar en Supabase
     try {
         const { data: { user } } = await supabase.auth.getUser();
         const courseId = new URLSearchParams(location.search).get("id");
@@ -510,19 +514,26 @@ window.submitQuiz = async function() {
                 user_id: user.id,
                 course_id: courseId,
                 score: finalScore,
-                progress: 100, // ✅ Siempre 100% al completar quiz
-                status: passed ? 'completed' : 'failed',
-                assigned_at: new Date()
+                progress: progressToSave, 
+                status: statusToSave,
+                assigned_at: new Date() // Actualizamos fecha para registrar el intento reciente
             }, { onConflict: 'user_id, course_id' });
             
-            console.log(`[QUIZ] Guardado: Score=${finalScore}%, Progress=100%, Status=${passed ? 'completed' : 'failed'}`);
+            console.log(`[DB] Guardado: Score=${finalScore}, Status=${statusToSave}, Progress=${progressToSave}%`);
         }
     } catch (e) {
         console.error("[ERROR] Guardando resultado:", e);
     }
 
-    // Mostrar modal
+    // 4. Mostrar resultados
     showResultModal(passed, finalScore);
+
+    // Opcional: Si reprobó, forzar recarga visual o llevar al inicio al cerrar el modal
+    if (!passed) {
+        // Esto asegura que la UI entienda que volvimos al inicio
+        // Puedes agregarlo dentro del botón del modal o dejarlo que suceda al recargar
+        console.log("Usuario reprobado. Progreso reiniciado.");
+    }
 };
 
 

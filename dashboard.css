@@ -16,7 +16,6 @@
 
 body {
     background-color: var(--bgPage);
-    color: var(--textPage);
     display: flex;
     height: 100vh;
     overflow: hidden;

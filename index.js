@@ -255,7 +255,7 @@
         const {
           tenantSlug
         } = window.__appConfig;
-        console.log(`2️⃣ Invocando 'custom-login' en Edge Function con slug: ${tenantSlug}`);
+        console.log(` Invocando 'custom-login' en Edge Function con slug: ${tenantSlug}`);
 
         // 1. INVOCAR LA EDGE FUNCTION SEGURA
         // Esta función DEBE validar status, tenant, y roles (según Manifiesto)
@@ -276,13 +276,13 @@
         }
 
         if (data.error) {
-          console.error('❌ Error lógico del backend:', data.error);
+          console.error(' Error lógico del backend:', data.error);
           
           // Lógica heredada para 'force_reset'.
           // Aunque el nuevo flujo del Manifiesto no lo usa,
           // 'custom-login' podría seguir manejando usuarios antiguos.
           if (data.error_code === 'FORCE_RESET') {
-            console.log('3️⃣ Detectado FORCE_RESET desde el backend');
+            console.log(' Detectado FORCE_RESET desde el backend');
             showResetPasswordModal({
               id: data.user_id
             });
@@ -297,7 +297,7 @@
           throw new Error(data.error);
         }
 
-        console.log('3️⃣ Edge Function exitosa, token recibido.');
+        console.log('3️ Edge Function exitosa, token recibido.');
 
         // 2. ESTABLECER LA SESIÓN CON EL NUEVO TOKEN
         const {
@@ -308,23 +308,62 @@
         });
 
         if (sessionError) {
-          console.error('❌ Error al establecer la sesión:', sessionError.message);
+          console.error(' Error al establecer la sesión:', sessionError.message);
           throw new Error('Error al iniciar sesión localmente.');
         }
 
         // 3. ÉXITO
-        console.log('4️⃣ Sesión establecida. Redirigiendo...');
-        console.log('🔑 Token disponible:', data.jwt);
-      showModal(
-        '¡Bienvenido!',
-        'Inicio de sesión exitoso. Redirigiendo...',
-        'success',
-        () => {
-          const token = data.jwt;
-          console.log('🔑 Token a enviar:', token);
-          window.location.href = `./profile/profile.html?token=${encodeURIComponent(token)}`;
-        }
-      );
+      console.log('4️⃣ Sesión establecida. Verificando rol...');
+        
+        showModal(
+          '¡Bienvenido!',
+          'Validando credenciales...',
+          'success',
+          async () => {
+            const token = data.jwt;
+            
+            try {
+                // --- INICIO LÓGICA DE REDIRECCIÓN POR ROL ---
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (user) {
+                    // Consultamos el rol en la tabla profiles
+                    const { data: profile, error: roleError } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (!roleError && profile) {
+                        const role = profile.role;
+                        const rolesAdministrativos = ['master', 'admin', 'supervisor'];
+
+                        // RUTAS BASADAS EN TU ESTRUCTURA DE ARCHIVOS
+                        // dashboard.html está en la raíz
+                        const PATH_DASHBOARD = './dashboard.html'; 
+                        // profile.html está dentro de la carpeta profile
+                        const PATH_PROFILE = './profile/profile.html';
+
+                        if (rolesAdministrativos.includes(role)) {
+                            // Es Jefe -> Va al Dashboard
+                            console.log(`👑 Rol ${role} detectado. Redirigiendo a Dashboard.`);
+                            window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
+                        } else {
+                            // Es Empleado -> Se salta el Dashboard y va a su Perfil
+                            console.log(`👤 Rol ${role} detectado. Redirigiendo a Perfil.`);
+                            window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
+                        }
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn('⚠️ Error verificando rol, usando redirección segura:', err);
+            }
+
+            // Fallback de seguridad: Si algo falla, siempre mandamos al perfil
+            window.location.href = `./profile/profile.html?token=${encodeURIComponent(token)}`;
+          }
+        );
 
       } catch (error) {
         console.error('❌ Error en el flujo de login:', error.message);
