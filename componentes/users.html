@@ -399,29 +399,18 @@
     }
 
     // Configurar suscripción a cambios en pending_registrations
-function setupRealtimeSubscription(adminRole, adminTenantId, tenantSlug) {
-    const channel = window.supabase
-        .channel('pending-requests-changes')
-        .on(
-            'postgres_changes',
-            {
-                event: '*', // INSERT, UPDATE, DELETE
-                schema: 'public',
-                table: 'pending_registrations'
-            },
-            (payload) => {
-                console.log('🔔 Cambio detectado en pending_registrations:', payload);
-                
-                // Recargar la lista automáticamente
-                loadPendingRequests(adminRole, adminTenantId, tenantSlug);
-            }
-        )
-        .subscribe();
-
-    console.log('✅ Suscripción a Realtime activada');
+function startPollingUpdates(adminRole, adminTenantId, tenantSlug) {
+    console.log('📡 Modo Firewall: Iniciando Polling (recarga cada 10s)...');
     
-    // Retornar el canal para poder desuscribirse después si es necesario
-    return channel;
+    // Guardamos el intervalo en window para poder limpiarlo si salimos
+    window.pollingInterval = setInterval(async () => {
+        // Solo recargamos si la pestaña está visible (ahorra recursos)
+        if (document.visibilityState === 'visible') {
+            console.log('🔄 Polling: Verificando nuevos registros...');
+            // Llamamos a tu función existente de carga
+            await loadPendingRequests(adminRole, adminTenantId, tenantSlug);
+        }
+    }, 10000); // 10000 ms = 10 segundos
 }
 async function handleApproveRequest(requestId, requestEmail) {
     try {
@@ -787,7 +776,7 @@ async function handleApproveRequest(requestId, requestEmail) {
         console.log('✅ Solicitudes pendientes cargadas');
 
         // 4.5 Activar Realtime para solicitudes pendientes
-        setupRealtimeSubscription(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
+        startPollingUpdates(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
 
         // 5. Cargar lista de usuarios autorizados
         await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
