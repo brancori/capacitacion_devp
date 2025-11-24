@@ -1,37 +1,9 @@
-/*
-========================================================================
-  ÍNDICE DEL ARCHIVO (index2.js) - CORREGIDO
-========================================================================
-*/
-
-async function init() {
-  // AGREGAR ESTO AL INICIO:
-  const currentTenant = detectTenant();
-  const storedTenant = localStorage.getItem('current_tenant');
-  
-  if (storedTenant && storedTenant !== currentTenant) {
-    console.warn('⚠️ Tenant diferente, limpiando sesión...');
-    const cookies = ['sb-hvwygpnuunuuylzondxt-auth-token', 'sb-access-token', 'sb-refresh-token'];
-    cookies.forEach(c => document.cookie = `${c}=;path=/;max-age=0`);
-    localStorage.removeItem('current_tenant');
-    localStorage.removeItem('tenantTheme');
-    localStorage.removeItem('tenantSlug');
-  }
-  
-  localStorage.setItem('current_tenant', currentTenant);
-  
-  // Luego continúa el resto del código de init():
-  console.log(`🚀 Initializing v2 - tenant: ${tenantId}`);
-  const config = await loadTenantConfig();
-  applyConfiguration(config);
-  console.log('✅ Application ready');
-}
-
 (function() {
   'use strict';
 
-  // 1. DEFINICIONES DE UTILIDAD (MOVIDAS AL PRINCIPIO PARA EVITAR ERRORES)
-  // -----------------------------------------------------------------
+  // =================================================================
+  // 1. DEFINICIONES DE UTILIDAD
+  // =================================================================
   function detectTenant() {
     const host = location.hostname || 'localhost';
     if (host === 'localhost') return 'demo';
@@ -48,16 +20,16 @@ async function init() {
     if (value) document.documentElement.style.setProperty(prop, value);
   };
 
-  // -----------------------------------------------------------------
-  // 3. CONFIGURACIÓN DE TENANT 
-  // -----------------------------------------------------------------
+  // =================================================================
+  // 2. CONFIGURACIÓN DE TENANT 
+  // =================================================================
 
   const DEFAULTS = {
     companyName: "Aula Corporativa",
     logoText: "AC",
     logoUrl: null,
     tagline: "¡Bienvenido!",
-    description: "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
+    description: "Accede a tu plataforma de capacitación corporativa.",
     bgPage: "#141E30",
     textPage: "#ffffff",
     primaryColor: "#234B95",
@@ -83,7 +55,7 @@ async function init() {
     customCss: null
   };
 
-  const tenantId = detectTenant(); // Este es el 'tenant_slug'
+  const tenantId = detectTenant();
 
   async function loadTenantConfig() {
     try {
@@ -156,9 +128,9 @@ async function init() {
     initializeInteractions();
   }
 
-  // -----------------------------------------------------------------
-  // 4. SISTEMA DE MODALES
-  // -----------------------------------------------------------------
+  // =================================================================
+  // 3. SISTEMA DE MODALES
+  // =================================================================
   function showModal(title, message, type = 'info', callback = null) {
     const modalRoot = $('#modalRoot');
     if (!modalRoot) return;
@@ -189,12 +161,10 @@ async function init() {
     });
   }
 
-  // -----------------------------------------------------------------
-  // 5. LÓGICA DE INTERACCIÓN
-  // -----------------------------------------------------------------
+  // =================================================================
+  // 4. LÓGICA DE INTERACCIÓN (LOGIN)
+  // =================================================================
   function initializeInteractions() {
-
-    // Sistema de Tabs 
     const tabButtons = $$('.tab-btn');
     const forms = $$('.login-form');
     tabButtons.forEach(button => {
@@ -206,7 +176,6 @@ async function init() {
       });
     });
 
-    // --- Handler de Login ---
     const handleLoginSubmit = async (e) => {
       e.preventDefault();
       const supabase = window.supabase;
@@ -227,8 +196,8 @@ async function init() {
 
       try {
         const { tenantSlug } = window.__appConfig;
-        console.log(` Invocando 'custom-login' en Edge Function con slug: ${tenantSlug}`);
-
+        
+        // Login personalizado via Edge Function
         const { data, error } = await supabase.functions.invoke('custom-login', {
           body: { email: email, password: password, tenant_slug: tenantSlug }
         });
@@ -237,8 +206,9 @@ async function init() {
 
         if (data.error) {
           if (data.error_code === 'FORCE_RESET') {
-            showResetPasswordModal({ id: data.user_id });
-            return; 
+             showResetPasswordModal({ id: data.user_id });
+             btn.disabled = false;
+             return; 
           }
           if (data.error_code === 'PENDING_AUTHORIZATION') {
              throw new Error('Cuenta pendiente de autorización. Contacta a tu administrador.');
@@ -253,59 +223,32 @@ async function init() {
           refresh_token: 'dummy-refresh-token'
         });
 
-        // 3. ÉXITO (LÓGICA BLINDADA CONTRA TRACKING PREVENTION)
-        console.log('4️⃣ Sesión establecida. Iniciando enrutamiento inteligente...');
+        // LÓGICA DE REDIRECCIÓN
+        console.log('4️⃣ Sesión establecida. Enrutando...');
         
         showModal(
           '¡Bienvenido!',
           'Entrando al sistema...',
           'success',
           async () => {
-          const jwtData = JSON.parse(atob(token.split('.')[1]));
-          const userRole = jwtData.role || 'employee';
-
-          if (rolesAdmin.includes(userRole)) {
-            window.location.replace(`${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`);
-          } else {
-            window.location.replace(`${PATH_PROFILE}?token=${encodeURIComponent(token)}`);
-          }
+            // CORREGIDO: Usamos data.jwt directamente
+            const token = data.jwt;
+            const jwtData = JSON.parse(atob(token.split('.')[1]));
+            const userRole = jwtData.role || 'employee';
             
             // Rutas relativas
             const PATH_DASHBOARD = './dashboard.html'; 
             const PATH_PROFILE = './profile/profile.html';
+            const rolesAdmin = ['master', 'admin', 'supervisor']; 
 
-            try {
-                if (userId) {
-                    // Consultar rol para decidir ruta
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq('id', userId)
-                        .single();
+            console.log(`✅ Rol detectado: ${userRole}`);
 
-                    const rolesAdmin = ['master', 'admin', 'supervisor']; 
-                    const userRole = profile ? profile.role : 'employee';
-
-                    console.log(`✅ Rol detectado: ${userRole} -> Redirigiendo...`);
-
-                    // NOTA: Pasamos el token en la URL (?token=...) para que dashboard.js lo capture
-                    if (rolesAdmin.includes(userRole)) {
-                        window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
-                    } else {
-                        window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
-                    }
-                } else {
-                    // Fallback a perfil si no hay ID
-                    window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
-                }
-            } catch (err) {
-                console.warn('⚠️ Error de red/rol, usando fallback seguro:', err);
+            // Pasamos el token en la URL para recuperar la sesión
+            if (rolesAdmin.includes(userRole)) {
+                window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
+            } else {
                 window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
             }
-
-            // Fallback final
-            console.log("🚀 Usando ruta por defecto (Profile)");
-            window.location.href = `./profile/profile.html?token=${encodeURIComponent(token)}`;
           }
         );
 
@@ -321,7 +264,7 @@ async function init() {
     $('#formEmployees').addEventListener('submit', handleLoginSubmit);
     $('#formContractors').addEventListener('submit', handleLoginSubmit);
 
-    // --- Registro ---
+    // Registro
     const registerBtn = $('#registerEmp');
     if (registerBtn) {
       registerBtn.addEventListener('click', (e) => {
@@ -330,7 +273,7 @@ async function init() {
       });
     }
 
-    // --- Olvidar Contraseña ---
+    // Olvidar contraseña
     const forgotBtn = $('#forgotEmp');
     if (forgotBtn) {
       forgotBtn.addEventListener('click', (e) => {
@@ -338,14 +281,11 @@ async function init() {
         showModal('Función no disponible', 'La recuperación de contraseña aún no está implementada.', 'info');
       });
     }
+  }
 
-  }; // Fin de initializeInteractions
-
-
-  // -----------------------------------------------------------------
-  // 6. MODALES DE ACCIÓN
-  // -----------------------------------------------------------------
-
+  // =================================================================
+  // 5. MODALES (REGISTRO Y RESET)
+  // =================================================================
   async function showRegistrationModal() {
     const modalRoot = $('#modalRoot');
     const supabase = window.supabase;
@@ -395,6 +335,7 @@ async function init() {
       letter: modal.querySelector('#rule-letter'),
       match: modal.querySelector('#rule-match')
     };
+
     const validatePassword = () => {
       const pass = passInput.value;
       const confirm = confirmInput.value;
@@ -436,19 +377,16 @@ async function init() {
           meta: { area: modal.querySelector('#regArea').value.trim() }
         };
 
-        console.log("🚀 Enviando a 'register-user':", payload);
         const { data, error } = await supabase.functions.invoke('register-user', { body: payload });
 
         if (error || data.error) throw new Error(data.error || error.message);
 
-        console.log('✅ Solicitud de registro exitosa:', data.message);
         closeModal();
         setTimeout(() => {
           showModal('Solicitud Recibida', 'Tu cuenta está pendiente de aprobación por el administrador del tenant.', 'success');
         }, 300);
 
       } catch (error) {
-        console.error('❌ Error de registro:', error.message);
         submitBtn.disabled = false;
         submitBtn.textContent = 'Crear Cuenta';
         showModal('Error', error.message, 'error');
@@ -457,7 +395,6 @@ async function init() {
   }
 
   function showResetPasswordModal(user) {
-    console.log('🔵 showResetPasswordModal llamado con:', user);
     const supabase = window.supabase;
     const modalRoot = $('#modalRoot');
     if (!modalRoot) return;
@@ -552,18 +489,17 @@ async function init() {
     });
   }
 
-  // -----------------------------------------------------------------
-  // 7. INICIALIZACIÓN
-  // -----------------------------------------------------------------
+  // =================================================================
+  // 6. INICIALIZACIÓN PRINCIPAL
+  // =================================================================
   async function init() {
-    // ✅ Validación de sesión DENTRO de init()
+    // 1. Limpieza de Tenant
     const currentTenant = detectTenant();
     const storedTenant = localStorage.getItem('current_tenant');
     
     if (storedTenant && storedTenant !== currentTenant) {
       console.warn('⚠️ Tenant diferente, limpiando sesión...');
-      const cookies = ['sb-hvwygpnuunuuylzondxt-auth-token'];
-      cookies.forEach(c => document.cookie = `${c}=;path=/;max-age=0`);
+      document.cookie = `sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0`;
       localStorage.removeItem('current_tenant');
       localStorage.removeItem('tenantTheme');
       localStorage.removeItem('tenantSlug');
@@ -571,22 +507,17 @@ async function init() {
     
     localStorage.setItem('current_tenant', currentTenant);
     
-    console.log(`🚀 Initializing - tenant: ${tenantId}`);
+    console.log(`🚀 Inicializando App - Tenant: ${currentTenant}`);
     const config = await loadTenantConfig();
     applyConfiguration(config);
-    console.log('✅ Application ready');
+    console.log('✅ App lista para login');
   }
 
-    if (document.readyState === 'loading') {
+  // Disparador
+  if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-// ════════════════════════════════════════════════════════════
-// Y ELIMINA ESTE BLOQUE si aún lo tienes (líneas ~30-48):
-// ════════════════════════════════════════════════════════════
-(function validateLoginPage() {
-  const currentTenant = detectTenant();
-})();
 })();
