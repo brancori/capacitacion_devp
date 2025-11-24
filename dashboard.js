@@ -17,6 +17,20 @@ try {
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 document.addEventListener('DOMContentLoaded', async () => {
+
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+
+    if (urlToken && typeof supabase !== 'undefined') {
+        console.log("📲 Recuperando sesión desde URL (Mobile fix)");
+        await supabase.auth.setSession({
+            access_token: urlToken,
+            refresh_token: 'dummy-refresh-token'
+        });
+        // Limpiar URL
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+    
     renderCalendar();
     updateAccidentFreeDays();
     updateDateDisplay();
