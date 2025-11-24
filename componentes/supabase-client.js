@@ -27,43 +27,22 @@ if (typeof window.supabase === 'undefined' || typeof window.supabase.createClien
 } else {
   
   // Configuración explícita de opciones
-  const clientOptions = {
+const clientOptions = {
     auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storage: {
-        getItem: (key) => {
-            try {
-                const v = document.cookie.match('(^|;)\\s*' + key + '\\s*=\\s*([^;]+)');
-                return v ? decodeURIComponent(v.pop()) : null;
-            } catch (e) { return null; }
-        },
-        setItem: (key, value) => {
-            try {
-                // Fix: Añadido Secure y SameSite para evitar bloqueos modernos
-                document.cookie = `${key}=${encodeURIComponent(value)};path=/;max-age=31536000;SameSite=Lax;Secure`;
-            } catch (e) { console.warn('Cookie bloqueada:', e); }
-        },
-        removeItem: (key) => {
-            try {
-                document.cookie = `${key}=;path=/;max-age=0;SameSite=Lax;Secure`;
-            } catch (e) {}
-        }
-      }
+      persistSession: false,      // Importante: No guardar en disco
+      autoRefreshToken: false,    // No intentar refrescar token guardado
+      detectSessionInUrl: false,  // Manejo manual de URL
+      storage: undefined          // Elimina el adaptador de cookies
     },
-    // Fix: Configuración Realtime explícita
     realtime: {
         params: {
             eventsPerSecond: 10,
         },
-        // Forzamos conexión al heartbeat por defecto si falla
         headers: {
             'x-client-info': 'supa-ehs-v3'
         }
     }
   };
-
   window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
   console.log('✅ Cliente Supabase (Fix WSS + Privacy)');
 
