@@ -782,12 +782,45 @@ window.addMemberByEmail = async () => {
 };
 
     async function loadGroupCourses() {
-        const container = document.getElementById('courses-list');
-        container.innerHTML = `
-            <div class="empty-state">
-                <p>Las asignaciones se generan individualmente para cada usuario.</p>
-                <p>Usa el botón de abajo para asignar masivamente.</p>
-            </div>`;
+        try {
+            const { data, error } = await window.supabase
+                .from('group_courses')
+                .select(`
+                    id,
+                    course_id,
+                    due_date,
+                    articles (
+                        id,
+                        title,
+                        instructor_name,
+                        duration_text
+                    )
+                `)
+                .eq('group_id', currentGroup.id);
+
+            if (error) throw error;
+
+            const container = document.getElementById('courses-list');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); padding: 2rem; text-align: center;">No hay cursos asignados a este grupo.</p>';
+                return;
+            }
+
+            container.innerHTML = data.map(gc => `
+                <div class="course-item" style="justify-content: space-between;">
+                    <div class="course-details">
+                        <div class="course-title">${gc.articles.title}</div>
+                        <small>${gc.articles.instructor_name || 'Sin instructor'} • ${gc.articles.duration_text || 'Sin duración'}</small>
+                    </div>
+                    <button class="btn btn-danger" onclick="removeGroupCourse('${gc.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error('Error cargando cursos del grupo:', err);
+            showToast('Error', 'No se pudieron cargar los cursos', 'error');
+        }
     }
 
     window.openNewGroupModal = async () => {
@@ -936,6 +969,81 @@ window.confirmAssignment = async () => {
             showToast('Error', 'Hubo un problema al asignar los cursos', 'error');
         }
     };
+
+    window.removeGroupCourse = async (groupCourseId) => {
+    if (!confirm('¿Eliminar este curso del grupo? Se quitará la asignación a todos los miembros.')) return;
+    
+    try {
+        const { error } = await window.supabase
+            .from('group_courses')
+            .delete()
+            .eq('id', groupCourseId);
+
+        if (error) throw error;
+        
+        showToast('Éxito', 'Curso eliminado del grupo', 'success');
+        await loadGroupCourses();
+    } catch (err) {
+        console.error('Error:', err);
+        showToast('Error', 'No se pudo eliminar el curso', 'error');
+    }
+};
+
+// Modificar openAssignModal (reemplazar desde línea ~477)
+window.openAssignModal = async () => {
+    if (!currentGroup) return;
+    document.getElementById('assign-modal').classList.add('active');
+    
+    // Cargar catálogo completo
+    const { data: allCoursesData } = await window.supabase
+        .from('articles')
+        .select('id, title, duration_text, instructor_name')
+        .eq('tenant_id', currentAdmin.tenant_id)
+        .eq('status', 'published');
+        
+    // Cargar cursos ya asignados al grupo
+    const { data: assignedCourses } = await window.supabase
+        .from('group_courses')
+        .select('course_id')
+        .eq('group_id', currentGroup.id);
+
+    const assignedIds = assignedCourses?.map(c => c.course_id) || [];
+    
+    // Filtrar solo los disponibles
+    allCourses = (allCoursesData || []).filter(c => !assignedIds.includes(c.id));
+    selectedCoursesToAssign = [];
+    
+    renderCatalog();
+    updateSelectedList();
+};
+
+// Modificar confirmAssignment (reemplazar desde línea ~530)
+window.confirmAssignment = async () => {
+    if (selectedCoursesToAssign.length === 0) {
+        return showToast('Alerta', 'Selecciona al menos un curso', 'warning');
+    }
+
+    try {
+        // Insertar en group_courses (el trigger se encarga de asignar a usuarios)
+        const inserts = selectedCoursesToAssign.map(course => ({
+            group_id: currentGroup.id,
+            course_id: course.id
+        }));
+
+        const { error } = await window.supabase
+            .from('group_courses')
+            .insert(inserts);
+
+        if (error) throw error;
+
+        showToast('Éxito', `${selectedCoursesToAssign.length} curso(s) asignado(s) al grupo`, 'success');
+        closeAssignModal();
+        await loadGroupCourses();
+    } catch (err) {
+        console.error('Error:', err);
+        showToast('Error', 'No se pudieron asignar los cursos', 'error');
+    }
+};
 
     function showToast(title, msg, type) {
         const container = document.getElementById('toast-container');
