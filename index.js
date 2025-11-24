@@ -261,47 +261,40 @@ async function init() {
           'Entrando al sistema...',
           'success',
           async () => {
-            const token = data.jwt;
-            // FIX: Usamos el ID directo de la respuesta para evitar bloqueos de cookie
+const token = data.jwt;
             const userId = data.user_id || (data.user && data.user.id);
+            
+            // Rutas relativas
+            const PATH_DASHBOARD = './dashboard.html'; 
+            const PATH_PROFILE = './profile/profile.html';
 
             try {
                 if (userId) {
-                    console.log(`🔍 ID Usuario obtenido de respuesta: ${userId}`);
-
-                    // Consultamos el rol directamente usando ese ID
-                    const { data: profile, error: roleError } = await supabase
+                    // Consultar rol para decidir ruta
+                    const { data: profile } = await supabase
                         .from('profiles')
                         .select('role')
                         .eq('id', userId)
                         .single();
 
-                    if (roleError) console.error("❌ Error consultando perfil:", roleError.message);
+                    const rolesAdmin = ['master', 'admin', 'supervisor']; 
+                    const userRole = profile ? profile.role : 'employee';
 
-                    if (profile) {
-                        const role = profile.role;
-                        console.log(`✅ Rol detectado en BD: ${role}`);
-                        
-                        // RUTAS RELATIVAS (Dashboard en raíz, Profile en subcarpeta)
-                        const PATH_DASHBOARD = './dashboard.html'; 
-                        const PATH_PROFILE = './profile/profile.html';
-                        
-                        const rolesAdministrativos = ['master', 'admin', 'supervisor'];
+                    console.log(`✅ Rol detectado: ${userRole} -> Redirigiendo...`);
 
-                        if (rolesAdministrativos.includes(role)) {
-                            console.log(`👑 Redirigiendo a DASHBOARD (Rol: ${role})`);
-                            window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
-                        } else {
-                            console.log(`👤 Redirigiendo a PERFIL (Rol: ${role})`);
-                            window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
-                        }
-                        return; // Detenemos aquí para evitar fallback
+                    // NOTA: Pasamos el token en la URL (?token=...) para que dashboard.js lo capture
+                    if (rolesAdmin.includes(userRole)) {
+                        window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
+                    } else {
+                        window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
                     }
                 } else {
-                    console.warn("⚠️ No se recibió user_id en la respuesta del login.");
+                    // Fallback a perfil si no hay ID
+                    window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
                 }
             } catch (err) {
-                console.warn('⚠️ Error en lógica de roles:', err);
+                console.warn('⚠️ Error de red/rol, usando fallback seguro:', err);
+                window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
             }
 
             // Fallback final
