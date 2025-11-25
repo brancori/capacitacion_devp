@@ -1,3 +1,24 @@
+async function rebuildAppConfig() {
+  const hostname = location.hostname;
+  let slug;
+
+  if (hostname === 'localhost') slug = 'demo';
+  else if (hostname.split('.').length > 2) slug = hostname.split('.')[0];
+  else slug = 'default';
+
+  // cargar tenants.json
+  const res = await fetch('../tenants/tenants.json');
+  const data = await res.json();
+
+  window.__appConfig = {
+    ...data[slug],
+    tenantSlug: slug,
+    tenantUUID: data[slug]?.uuid || null
+  };
+
+  console.log('🔧 AppConfig reconstruido:', window.__appConfig);
+}
+
 (async function earlyRoleCheck() {
   try {
     // 1. Verificar parámetro en URL
@@ -525,6 +546,7 @@ async function mainInit() {
   if (urlToken) {
     console.log('🔑 Token recibido por URL');
     await supabase.auth.setSession({
+        
       access_token: urlToken,
       refresh_token: 'dummy'
     });
@@ -536,6 +558,11 @@ async function mainInit() {
     console.log('✅ Tenant listo');
 
     // 2. Carga el perfil de usuario (para permisos)
+    const role = window.safeStorage.get('role');
+    const tenant = window.safeStorage.get('tenant');
+
+    console.log("📦 Role desde storage:", role);
+    console.log("📦 Tenant desde storage:", tenant);
     await loadUserProfile();
     console.log('✅ Perfil de usuario cargado');
 

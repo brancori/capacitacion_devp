@@ -254,12 +254,31 @@
           throw new Error(data.error);
         }
 
-        console.log('3️⃣ Edge Function exitosa, token recibido.');
+console.log('3️⃣ Edge Function exitosa, token recibido.');
 
-        await supabase.auth.setSession({
+// 1. Crear sesión con el token recibido
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
           access_token: data.jwt,
           refresh_token: 'dummy-refresh-token'
         });
+
+        if (sessionError) {
+          console.error("❌ Error creando sesión:", sessionError);
+          return;
+        }
+
+        const session = sessionData.session;
+
+        // 2. Extraer datos del JWT
+        const jwt = session.access_token.split('.')[1];
+        const jwtData = JSON.parse(atob(jwt));
+
+        // 3. Guardar datos críticos para profile.js
+        window.safeStorage.set('role', jwtData.role);
+        window.safeStorage.set('tenant', jwtData.tenant_id);
+
+        console.log("🔐 Role guardado:", jwtData.role);
+        console.log("🔐 Tenant guardado:", jwtData.tenant_id);
 
         console.log('4️⃣ Sesión establecida. Enrutando...');
         
