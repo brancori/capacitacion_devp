@@ -21,49 +21,40 @@ async function rebuildAppConfig() {
 
 (async function earlyRoleCheck() {
   try {
-    // 1. Verificar parámetro en URL
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true') {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    
+    if (!session) {
+      console.warn('⚠️ Sin sesión activa, mostrando página');
       document.body.classList.add('loaded');
       return;
     }
+
+    console.log('✅ Sesión detectada');
+
+    const cachedRole = window.safeStorage.get('role');
     
-    // 2. Restaurar sesión si hay token
-    const urlToken = urlParams.get('token');
-    if (urlToken) {
-        await window.supabase.auth.setSession({
-            access_token: urlToken,
-            refresh_token: 'dummy'
-        });
+    if (!cachedRole) {
+      console.warn('⚠️ Role no encontrado en storage, consultando DB...');
+      
+      const { data: { user } } = await window.supabase.auth.getUser();
+      const { data: profile } = await window.supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.role) {
+        window.safeStorage.set('role', profile.role);
+        console.log('✅ Role recuperado:', profile.role);
+      }
     }
 
-    const { data: { user } } = await window.supabase.auth.getUser();
+    const finalRole = window.safeStorage.get('role');
+    console.log('🔍 Role detectado (Early Check):', finalRole);
     
-    if (!user) {
-      document.body.classList.add('loaded');
-      return;
-    }
-    
-    // 3. Consultar perfil (SIN .single() para evitar errores de proxy)
-    const { data: rawData } = await window.supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id);
-    
-    // 🔥 FIX: Detectar si es array u objeto
-    const profile = Array.isArray(rawData) ? rawData[0] : rawData;
-    console.log("RAW profile row:", rawData);
-
-    
-    console.log('🔍 Rol detectado (Early Check):', profile?.role);
-    
-    // 4. Redirigir roles administrativos
-    if (profile && ['master', 'admin', 'supervisor'].includes(profile.role)) {
-      console.log(`🔄 Redirigiendo ${profile.role} → dashboard`);
-      // Pasamos el token para que no se pierda la sesión
-      const currentSession = await window.supabase.auth.getSession();
-      const token = currentSession.data.session?.access_token;
-      window.location.replace(`../dashboard.html?token=${token}`);
+    if (['master', 'admin', 'supervisor'].includes(finalRole)) {
+      console.log(`🔄 Redirigiendo ${finalRole} → dashboard`);
+      window.location.replace('../dashboard.html');
       return; 
     }
     
@@ -76,28 +67,23 @@ async function rebuildAppConfig() {
 })();
 
 
+
 (function() {
   try {
-    // 1. Obtener el slug actual SÍNCRONAMENTE
     const host = location.hostname || 'localhost';
     const parts = host.split('.');
     const currentSlug = parts.length > 2 && parts[0] !== 'www' ? parts[0] : 'default';
 
-    // 2. Intentar cargar el tema cacheado
     const cachedTheme = localStorage.getItem('tenantTheme');
     const cachedSlug = localStorage.getItem('tenantSlug');
 
-    // 3. Validar y aplicar el tema
     if (cachedTheme && cachedSlug === currentSlug) {
       const theme = JSON.parse(cachedTheme);
       const root = document.documentElement;
       
-      // Aplicar estilos, asumiendo que el caché guarda primaryColor y secondaryColor
       if (theme.primaryColor) root.style.setProperty('--primaryColor', theme.primaryColor);
       if (theme.secondaryColor) root.style.setProperty('--secondaryColor', theme.secondaryColor);
-      document.body.style.opacity = 1;
       
-      // NO uses opacity aquí, el control lo tiene earlyRoleCheck con .loaded
       console.log('🎨 Tema cacheado aplicado');
     }
   } catch (e) {
@@ -109,675 +95,463 @@ async function rebuildAppConfig() {
 // BLOQUE ÚNICO DE INICIALIZACIÓN
 // ═══════════════════════════════════════════════════════════
 (async () => {
-
-    const supabase = window.supabase;
-  // --- Lógica del Tenant (Tu código original) ---
-  const setStyle = (prop, value) => {
-    if (value) document.documentElement.style.setProperty(prop, value);
-  };
-
-  const detectTenant = () => {
-    const host = location.hostname || 'localhost';
-
-    if (host === 'localhost') {
-      return 'demo';
-    }
-    if (host === '127.0.0.1') {
-      return 'default';
-    }
-    const parts = host.split('.');
-    
-    if (parts.length > 2 && parts[0] !== 'www') {
-      return parts[0];
-    }
-    
-    return 'default';
-  };
-
-
-  async function loadTenantConfig() {
-    const tenantId = detectTenant();
-    console.log(`🔍 Detectando tenant: ${tenantId}`);
-    try {
-      const response = await fetch('../tenants/tenants.json', {
-        cache: 'no-store',
-        headers: { 'Accept': 'application/json' }
-      });
-      if (!response.ok) throw new Error('No se pudo cargar tenants.json');
-      const data = await response.json();
-      return data[tenantId] || data['default'] || {};
-    } catch (error) {
-      console.warn('⚠️ Error al cargar configuración del tenant:', error);
-      return {};
-    }
-  }
-
-function applyConfiguration(config) {
-    if (!config) return;
-    
-    // Colores
-    setStyle('--primaryColor', config.primaryColor);
-    setStyle('--secondaryColor', config.secondaryColor);
-
-    // Nombre de la compañía
-    const companyNameEl = document.getElementById('companyName');
-    if (companyNameEl && config.companyName) {
-      const icon = companyNameEl.querySelector('i');
-      companyNameEl.innerHTML = '';
-      if (icon) companyNameEl.appendChild(icon);
-      companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
-    }
-    console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
-
-    // --- CAMBIO: Guardar la configuración en localStorage ---
-    try {
-        const tenantSlug = detectTenant();
-        localStorage.setItem('tenantTheme', JSON.stringify(config));
-        localStorage.setItem('tenantSlug', tenantSlug);
-        console.log('💾 Configuración de tenant guardada en caché.');
-    } catch (e) {
-        console.warn('Advertencia: No se pudo guardar el tema en localStorage.', e);
-    }
-  }
-
-  // --- Lógica de Permisos (NUEVA) ---
-  const manageUsersBtn = document.getElementById('manageUsersBtn');
-
-  /**
-   * Muestra u oculta elementos basados en el rol del usuario.
-   */
-  function updateProfileView(profile) {
-    // Actualizar el nombre
-    const profileNameEl = document.getElementById('profileName');
-    if (profileNameEl) {
-      // *** CORREGIDO ***
-      profileNameEl.textContent = profile.full_name || 'Usuario';
-    }
-
-    // Lógica de permisos existente
-    // *** CORREGIDO (para incluir 'supervisor') ***
-    const allowedRoles = ['master', 'admin', 'supervisor'];
-    if (allowedRoles.includes(profile.role)) {
-      if (manageUsersBtn) manageUsersBtn.style.display = 'flex';
-    } else {
-      if (manageUsersBtn) manageUsersBtn.style.display = 'none';
-    }
-  }
-function getDueDateStatus(dueDate) {
-  if (!dueDate) return { text: '', urgent: false };
-  
-  const ONE_DAY = 1000 * 60 * 60 * 24;
-  const now = new Date();
-  const due = new Date(dueDate);
-  
-  // Ignorar la hora, comparar solo fechas
-  now.setHours(0, 0, 0, 0);
-  due.setHours(0, 0, 0, 0);
-  
-  const diffTime = due.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / ONE_DAY);
-
-  if (diffDays < 0) return { text: 'Vencido', urgent: true };
-  if (diffDays === 0) return { text: 'Vence hoy', urgent: true };
-  if (diffDays === 1) return { text: 'Vence mañana', urgent: true };
-  if (diffDays <= 7) return { text: `Vence en ${diffDays} días`, urgent: true };
-  
-  return { text: `Vence en ${diffDays} días`, urgent: false };
-}
-  /**
-   * Carga el perfil del usuario desde Supabase y actualiza la vista.
-   */
-async function loadUserProfile() {
-  try {
-    // 1️⃣ Verificar sesión
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('❌ Sin sesión activa');
-      window.location.href = '../index.html';
-      return;
-    }
-
-    // 2️⃣ 🔥 UNA SOLA consulta con .single()
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('role, full_name, tenant_id')
-      .eq('id', user.id)
-      .single(); // ← CRÍTICO para evitar arrays
-
-    if (error) {
-      console.error('❌ Error en profiles:', error);
-      throw error;
-    }
-
-    console.log('✅ Perfil cargado:', {
-      role: profile.role,
-      tenant: profile.tenant_id
-    });
-
-    // 3️⃣ Guardar en storage (backup por si se perdió)
-    window.safeStorage.set('role', profile.role);
-    window.safeStorage.set('tenant', profile.tenant_id);
-
-    // 4️⃣ Actualizar UI
-    updateProfileView(profile);
-    return profile;
-
-  } catch (error) {
-    console.error('❌ Error fatal en loadUserProfile:', error.message);
-    window.location.href = '../index.html';
-  }
-}
-
-  // --- Lógica de UI (Modales, Tabs, Filtros) ---
-  function initUI() {
-    // ... (Todo tu código de UI original va aquí, sin cambios) ...
-    // --- Modal general ---
-    const modal = document.getElementById('modal');
-    const modalIcon = document.getElementById('modalIcon');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalMessage = document.getElementById('modalMessage');
-    const modalClose = document.getElementById('modalClose');
-
-    function showModal(title, message, type = 'success') {
-      modalTitle.textContent = title;
-      modalMessage.textContent = message;
-      modalIcon.className = `modal-icon ${type}`;
-      modalIcon.innerHTML = type === 'success'
-        ? '<i class="fas fa-check-circle"></i>'
-        : '<i class="fas fa-info-circle"></i>';
-      modal.classList.add('show');
-    }
-    function closeModal() {
-      modal.classList.remove('show');
-    }
-    modalClose.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-
-    // --- Tabs ---
-    const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tabContents.forEach(tc => tc.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab).classList.add('active');
-      });
-    });
-
-    // --- Filtros ---
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const courseCards = document.querySelectorAll('.course-card[data-status]');
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const filter = btn.dataset.filter;
-        courseCards.forEach(card => {
-          card.style.display = (filter === 'all' || card.dataset.status === filter) ? 'flex' : 'none';
-        });
-      });
-    });
-
-    // --- Buscador ---
-    const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      document.querySelectorAll('.course-card').forEach(card => {
-        const title = card.querySelector('h3').textContent.toLowerCase();
-        card.style.display = title.includes(searchTerm) ? 'flex' : 'none';
-      });;
-    });
-
-
-
-    // --- Botón de tema ---
-    const themeToggle = document.getElementById('themeToggle');
-    themeToggle?.addEventListener('click', () => {
-      showModal('Cambio de Tema', 'El modo oscuro estará disponible próximamente', 'info');
-    });
-
-    // --- Animación de barras ---
-    const progressBars = document.querySelectorAll('.progress-bar-fill');
-    progressBars.forEach(bar => {
-      const width = bar.style.width;
-      bar.style.width = '0%';
-      setTimeout(() => {
-        bar.style.width = width;
-      }, 100);
-    });
-  }
-
-async function loadUserProfile() {
-  try {
-    // 1️⃣ Verificar sesión
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('❌ Sin sesión activa');
-      window.location.href = '../index.html';
-      return;
-    }
-
-    // 2️⃣ 🔥 UNA SOLA consulta con .single()
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('role, full_name, tenant_id')
-      .eq('id', user.id)
-      .single(); // ← CRÍTICO para evitar arrays
-
-    if (error) {
-      console.error('❌ Error en profiles:', error);
-      throw error;
-    }
-
-    console.log('✅ Perfil cargado:', {
-      role: profile.role,
-      tenant: profile.tenant_id
-    });
-
-    // 3️⃣ Guardar en storage (backup por si se perdió)
-    window.safeStorage.set('role', profile.role);
-    window.safeStorage.set('tenant', profile.tenant_id);
-
-    // 4️⃣ Actualizar UI
-    updateProfileView(profile);
-    return profile;
-
-  } catch (error) {
-    console.error('❌ Error fatal en loadUserProfile:', error.message);
-    window.location.href = '../index.html';
-  }
-}
-
-async function loadRealDashboardData(userId) {
   const supabase = window.supabase;
 
-  // 1️⃣ Usar datos cacheados (ya están desde login)
-  const cachedRole = window.safeStorage.get('role');
-  const cachedTenant = window.safeStorage.get('tenant');
+  // ───────────────────────────────────────────────────────────
+  // HELPERS
+  // ───────────────────────────────────────────────────────────
+  const setStyle = (prop, value) => {
+    if (value) document.documentElement.style.setProperty(prop, value);
+  };
 
-  console.log('📦 Datos en cache:', { cachedRole, cachedTenant });
+  const detectTenant = () => {
+    const host = location.hostname || 'localhost';
+    if (host === 'localhost') return 'demo';
+    if (host === '127.0.0.1') return 'default';
+    const parts = host.split('.');
+    return (parts.length > 2 && parts[0] !== 'www') ? parts[0] : 'default';
+  };
 
-  // 2️⃣ Cargar asignaciones
-  const [assignmentsRes, myBadgesRes, allBadgesRes, logsRes] = await Promise.all([
-    supabase.from('user_course_assignments')
-      .select('*, articles:course_id(title, duration_text)')
-      .eq('user_id', userId),
-    supabase.from('user_badges')
-      .select('badge_id')
-      .eq('user_id', userId), 
-    supabase.from('badges').select('*'),             
-    supabase.from('activity_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(5)
-  ]);
+  // ───────────────────────────────────────────────────────────
+  // TENANT CONFIG
+  // ───────────────────────────────────────────────────────────
+  async function loadTenantConfig() {
+    const tenantId = detectTenant();
+    console.log(`🔍 Detectando tenant: ${tenantId}`);
+    try {
+      const response = await fetch('../tenants/tenants.json', {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) throw new Error('No se pudo cargar tenants.json');
+      const data = await response.json();
+      return data[tenantId] || data['default'] || {};
+    } catch (error) {
+      console.warn('⚠️ Error al cargar configuración del tenant:', error);
+      return {};
+    }
+  }
 
-  const assignments = assignmentsRes.data || [];
-  const myBadgesIds = new Set((myBadgesRes.data || []).map(b => b.badge_id)); 
-  const allBadges = allBadgesRes.data || [];
-  const logs = logsRes.data || [];
-
-  console.log('📊 Datos cargados:', {
-    assignments: assignments.length,
-    badges: allBadges.length,
-    logs: logs.length
-  });
-
-  // 3️⃣ Renderizar perfil (tu código existente)
-  const profile = await loadUserProfile(); // Ya tiene role/tenant
-  if (profile) {
-    document.getElementById('profileName').textContent = profile.full_name || 'Usuario';
-    const initials = (profile.full_name || 'U')
-      .split(' ')
-      .map(n => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+  function applyConfiguration(config) {
+    if (!config) return;
     
+    setStyle('--primaryColor', config.primaryColor);
+    setStyle('--secondaryColor', config.secondaryColor);
+
+    const companyNameEl = document.getElementById('companyName');
+    if (companyNameEl && config.companyName) {
+      const icon = companyNameEl.querySelector('i');
+      companyNameEl.innerHTML = '';
+      if (icon) companyNameEl.appendChild(icon);
+      companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
+    }
+    console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
+
+    try {
+      const tenantSlug = detectTenant();
+      localStorage.setItem('tenantTheme', JSON.stringify(config));
+      localStorage.setItem('tenantSlug', tenantSlug);
+      console.log('💾 Configuración de tenant guardada en caché.');
+    } catch (e) {
+      console.warn('Advertencia: No se pudo guardar el tema en localStorage.', e);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────
+  // PROFILE & PERMISSIONS
+  // ───────────────────────────────────────────────────────────
+  function updateProfileView(profile) {
+    const profileNameEl = document.getElementById('profileName');
+    if (profileNameEl) {
+      profileNameEl.textContent = profile.full_name || 'Usuario';
+    }
+
+    const manageUsersBtn = document.getElementById('manageUsersBtn');
+    const allowedRoles = ['master', 'admin', 'supervisor'];
+    if (manageUsersBtn) {
+      manageUsersBtn.style.display = allowedRoles.includes(profile.role) ? 'flex' : 'none';
+    }
+  }
+
+  // 🔥 FIX 1: UNA SOLA función loadUserProfile (eliminada duplicación)
+  async function loadUserProfile() {
+    try {
+      // Intentar obtener del cache primero
+      let role = window.safeStorage.get('role');
+      let fullName = window.safeStorage.get('full_name');
+      let tenantId = window.safeStorage.get('tenant');
+
+      // Si no hay datos, consultar DB (UNA SOLA VEZ)
+      if (!role || !fullName) {
+        console.warn('⚠️ Datos faltantes, consultando profile...');
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Sin sesión activa');
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role, full_name, tenant_id')
+          .eq('id', user.id)
+          .single(); // ← CRÍTICO
+
+        if (error) throw error;
+
+        role = profile.role;
+        fullName = profile.full_name;
+        tenantId = profile.tenant_id;
+        
+        window.safeStorage.set('role', role);
+        window.safeStorage.set('full_name', fullName);
+        window.safeStorage.set('tenant', tenantId);
+
+        console.log('✅ Perfil consultado y cacheado');
+      } else {
+        console.log('✅ Usando perfil del cache');
+      }
+
+      const profileData = { role, full_name: fullName, tenant_id: tenantId };
+      updateProfileView(profileData);
+
+      console.log('✅ Vista de perfil actualizada:', { role, fullName });
+      return profileData;
+
+    } catch (error) {
+      console.error('❌ Error en loadUserProfile:', error.message);
+      window.location.href = '../index.html';
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────
+  // DASHBOARD DATA
+  // ───────────────────────────────────────────────────────────
+  function getDueDateStatus(dueDate) {
+    if (!dueDate) return { text: '', urgent: false };
+    
+    const ONE_DAY = 1000 * 60 * 60 * 24;
+    const now = new Date();
+    const due = new Date(dueDate);
+    
+    now.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+    
+    const diffTime = due.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / ONE_DAY);
+
+    if (diffDays < 0) return { text: 'Vencido', urgent: true };
+    if (diffDays === 0) return { text: 'Vence hoy', urgent: true };
+    if (diffDays === 1) return { text: 'Vence mañana', urgent: true };
+    if (diffDays <= 7) return { text: `Vence en ${diffDays} días`, urgent: true };
+    
+    return { text: `Vence en ${diffDays} días`, urgent: false };
+  }
+
+  // 🔥 FIX 2: Cerrar correctamente loadRealDashboardData
+  async function loadRealDashboardData(userId) {
+    const cachedRole = window.safeStorage.get('role');
+    const cachedTenant = window.safeStorage.get('tenant');
+    const cachedName = window.safeStorage.get('full_name');
+
+    console.log('📦 Usando datos cacheados para dashboard:', {
+      role: cachedRole,
+      tenant: cachedTenant,
+      name: cachedName
+    });
+
+    const [assignmentsRes, myBadgesRes, allBadgesRes, logsRes] = await Promise.all([
+      supabase.from('user_course_assignments')
+        .select('*, articles:course_id(title, duration_text)')
+        .eq('user_id', userId),
+      supabase.from('user_badges')
+        .select('badge_id')
+        .eq('user_id', userId), 
+      supabase.from('badges').select('*'),             
+      supabase.from('activity_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5)
+    ]);
+
+    const assignments = assignmentsRes.data || [];
+    const myBadgesIds = new Set((myBadgesRes.data || []).map(b => b.badge_id)); 
+    const allBadges = allBadgesRes.data || [];
+    const logs = logsRes.data || [];
+
+    console.log('📊 Datos del dashboard cargados:', {
+      assignments: assignments.length,
+      badges: allBadges.length,
+      logs: logs.length
+    });
+
+    // Renderizar perfil
+    const profileNameEl = document.getElementById('profileName');
+    if (profileNameEl) {
+      profileNameEl.textContent = cachedName || 'Usuario';
+    }
+
     const avatarEl = document.querySelector('.avatar');
-    if (avatarEl) {
+    if (avatarEl && cachedName) {
+      const initials = cachedName
+        .split(' ')
+        .map(n => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
       avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`;
     }
-    
-    const shortId = profile.id ? profile.id.split('-')[0].toUpperCase() : '---';
+
     const roleEl = document.querySelector('.profile-card .role');
-    if (roleEl) {
+    if (roleEl && cachedRole) {
       const roleMap = {
         master: 'Administrador Master',
         admin: 'Administrador',
         supervisor: 'Supervisor',
         employee: 'Colaborador'
       };
-      roleEl.textContent = `${roleMap[profile.role] || 'Colaborador'} | ID: ${shortId}`;
+      const { data: { user } } = await supabase.auth.getUser();
+      const shortId = user.id.split('-')[0].toUpperCase();
+      roleEl.textContent = `${roleMap[cachedRole] || 'Colaborador'} | ID: ${shortId}`;
     }
-  }
 
-  // 4️⃣ Tu código de estadísticas (sin cambios)
-  const totalCursos = assignments.length;
-  const completados = assignments.filter(a => 
-    a.status === 'completed' || Number(a.progress) === 100
-  ).length;
-  const pendientes = totalCursos - completados;
-  const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
+    // Estadísticas
+    const totalCursos = assignments.length;
+    const completados = assignments.filter(a => 
+      a.status === 'completed' || Number(a.progress) === 100
+    ).length;
+    const pendientes = totalCursos - completados;
+    const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
 
     const donutFg = document.querySelector('.progress-donut-fg');
     const donutText = document.querySelector('.progress-text');
     const progressMsg = document.querySelector('.profile-card p[style*="primary"]');
 
     if (donutFg) {
-        const radius = 69;
-        const circumference = 2 * Math.PI * radius;
-        const offset = circumference - (percentage / 100) * circumference;
-
-        donutFg.style.strokeDasharray = `${circumference} ${circumference}`;
-        donutFg.style.transition = 'none'; 
-        donutFg.style.animation = 'none'; 
-        donutFg.style.strokeDashoffset = offset;
-
-        console.log(`📊 Donut Debug: ${percentage}% | Offset: ${offset}`);
+      const radius = 69;
+      const circumference = 2 * Math.PI * radius;
+      const offset = circumference - (percentage / 100) * circumference;
+      donutFg.style.strokeDasharray = `${circumference} ${circumference}`;
+      donutFg.style.strokeDashoffset = offset;
+      console.log(`📊 Donut: ${percentage}%`);
     }
 
     if (donutText) donutText.textContent = `${percentage}%`;
     if (progressMsg) progressMsg.textContent = `${completados} de ${totalCursos} cursos completados`;
 
     const statCards = document.querySelectorAll('.stat-card h3');
-    if(statCards.length >= 3) {
-        if(statCards[0]) statCards[0].textContent = totalCursos;
-        if(statCards[1]) statCards[1].textContent = completados;
-        if(statCards[2]) statCards[2].textContent = pendientes;
-    }
+    if (statCards[0]) statCards[0].textContent = totalCursos;
+    if (statCards[1]) statCards[1].textContent = completados;
+    if (statCards[2]) statCards[2].textContent = pendientes;
 
-    // --- C. RENDERIZADO DE INSIGNIAS ---
+    // Badges
     const badgesContainer = document.querySelector('.badges-grid');
     if (badgesContainer) {
-        if (allBadges.length === 0) {
-            badgesContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; font-size: 0.8rem;">No hay insignias disponibles.</p>';
-        } else {
-            badgesContainer.innerHTML = allBadges.map(badge => {
-                const isEarned = myBadgesIds.has(badge.id);
-                const cssClass = isEarned ? 'badge earned' : 'badge';
-                const tooltip = isEarned ? '¡Insignia Obtenida!' : 'Bloqueado: Completa los requisitos';
-
-                return `
-                <div class="${cssClass}" title="${tooltip}">
-                    <i class="${badge.icon_class || 'fas fa-medal'}"></i>
-                    <span>${badge.name}</span>
-                </div>
-                `;
-            }).join('');
-        }
+      if (allBadges.length === 0) {
+        badgesContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">No hay insignias.</p>';
+      } else {
+        badgesContainer.innerHTML = allBadges.map(badge => {
+          const isEarned = myBadgesIds.has(badge.id);
+          const cssClass = isEarned ? 'badge earned' : 'badge';
+          return `<div class="${cssClass}"><i class="${badge.icon_class || 'fas fa-medal'}"></i><span>${badge.name}</span></div>`;
+        }).join('');
+      }
     }
 
-    // --- D. Calendario (Urgencias) ---
+    // Calendario
     const now = new Date();
     const urgentThreshold = new Date();
     urgentThreshold.setDate(now.getDate() + 7);
 
     const urgentesCount = assignments.filter(a => {
-        if (!a.due_date || a.status === 'completed') return false;
-        const due = new Date(a.due_date);
-        return due <= urgentThreshold && due >= now;
+      if (!a.due_date || a.status === 'completed') return false;
+      const due = new Date(a.due_date);
+      return due <= urgentThreshold && due >= now;
     }).length;
     
-    if(statCards[3]) statCards[3].textContent = urgentesCount;
+    if (statCards[3]) statCards[3].textContent = urgentesCount;
 
-    const calendarContainer = document.querySelector('.calendar-card');
-    const upcomingAssignments = assignments
-        .filter(a => a.due_date && a.status !== 'completed')
-        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
-        .slice(0, 3);
-
-    if (calendarContainer) {
-        const header = '<h3><i class="far fa-calendar-alt"></i> Próximos Vencimientos</h3>';
-        let content = '';
-
-        if (upcomingAssignments.length === 0) {
-            content = '<p style="text-align: center; color: var(--text-secondary); padding: 1rem; font-size: 0.9rem;">¡Estás al día!</p>';
-        } else {
-            content = upcomingAssignments.map(a => {
-                const date = new Date(a.due_date);
-                const day = date.getDate();
-                const month = date.toLocaleString('es-ES', { month: 'short' }).toUpperCase();
-                
-                const diffTime = date - now;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                const isUrgent = diffDays <= 5;
-
-                return `
-                <div class="calendar-event ${isUrgent ? 'urgent' : ''}">
-                    <div class="event-date">
-                        <div class="day">${day}</div>
-                        <div class="month">${month}</div>
-                    </div>
-                    <div class="event-details">
-                        <h4>${a.articles.title}</h4>
-                        <p>${diffDays < 0 ? 'Vencido' : diffDays === 0 ? 'Vence hoy' : `Vence en ${diffDays} días`}</p>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-        calendarContainer.innerHTML = header + content;
-    }
-
-    // --- E. Timeline ---
+    // Timeline
     const timelineContainer = document.querySelector('.timeline');
-    if (timelineContainer) {
-        if (logs.length === 0) {
-            timelineContainer.innerHTML = '<p style="padding: 1rem; color: var(--text-secondary);">Sin actividad reciente.</p>';
-        } else {
-            timelineContainer.innerHTML = logs.map(log => {
-                const date = new Date(log.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-                let icon = 'fa-info-circle';
-                let color = 'var(--primaryColor)';
-                
-                if (log.action_type === 'course_completed') { icon = 'fa-check-circle'; color = 'var(--success)'; }
-                if (log.action_type === 'enrollment') { icon = 'fa-play-circle'; color = 'var(--warning)'; }
-                
-                return `
-                <div class="timeline-item">
-                    <div class="timeline-content">
-                        <div class="timeline-date">${date}</div>
-                        <h3 style="color: ${color}; margin-bottom: 0.5rem; font-size: 1rem;">
-                            <i class="fas ${icon}"></i> ${log.action_type === 'course_completed' ? 'Curso Completado' : 'Actividad'}
-                        </h3>
-                        <p style="font-size: 0.9rem;"><strong>${log.description}</strong></p>
-                    </div>
-                </div>`;
-            }).join('');
-        }
+    if (timelineContainer && logs.length > 0) {
+      timelineContainer.innerHTML = logs.map(log => {
+        const date = new Date(log.created_at).toLocaleDateString('es-ES');
+        return `<div class="timeline-item"><div class="timeline-content"><div class="timeline-date">${date}</div><p>${log.description}</p></div></div>`;
+      }).join('');
     }
-}
+  }
+
+  function initUI() {
+    const modal = document.getElementById('modal');
+    const modalClose = document.getElementById('modalClose');
+
+    if (modalClose) {
+      modalClose.addEventListener('click', () => modal?.classList.remove('show'));
+    }
+
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(tc => tc.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab)?.classList.add('active');
+      });
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        document.querySelectorAll('.course-card').forEach(card => {
+          const title = card.querySelector('h3')?.textContent.toLowerCase() || '';
+          card.style.display = title.includes(term) ? 'flex' : 'none';
+        });
+      });
+    }
+  }
+
+  // 🔥 FIX 3: Agregar función renderCourses
+  function renderCourses(coursesList, containerId, emptyMsg) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+      console.warn(`⚠️ Container ${containerId} no encontrado`);
+      return;
+    }
+
+    if (coursesList.length === 0) {
+      container.innerHTML = `<p style="text-align: center; padding: 2rem; color: var(--text-secondary);">${emptyMsg}</p>`;
+      return;
+    }
+
+    container.innerHTML = coursesList.map(c => {
+      const dueDateInfo = getDueDateStatus(c.due_date);
+      const progress = c.progress || 0;
+      const isUrgent = dueDateInfo.urgent && progress < 100;
+
+      let iconClass = 'pending';
+      let iconFA = 'fa-clock';
+      let btnText = progress > 0 ? 'Continuar' : 'Iniciar';
+      
+      if (isUrgent) {
+        iconClass = 'urgent';
+        iconFA = 'fa-exclamation-triangle';
+      } else if (progress === 100) {
+        iconClass = 'completed';
+        iconFA = 'fa-check-circle';
+        btnText = 'Ver Certificado';
+      }
+
+      return `
+      <div class="course-card" data-status="${iconClass}">
+        <div class="course-icon-lg ${iconClass}">
+          <i class="fas ${iconFA}"></i>
+        </div>
+        <div class="course-info">
+          <h3>${c.title}</h3>
+          ${dueDateInfo.text && progress < 100 ? `
+          <div class="meta-item" style="color: ${isUrgent ? 'var(--danger)' : 'var(--text-secondary)'};">
+            <i class="fas fa-calendar-alt"></i>
+            <span>${dueDateInfo.text}</span>
+          </div>` : ''}
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: ${progress}%;"></div>
+          </div>
+          <p>Progreso: ${progress}%</p>
+        </div>
+        <div class="course-actions">
+          <a href="./curso/curso.html?id=${c.id}" class="btn btn-primary">${btnText}</a>
+        </div>
+      </div>`;
+    }).join('');
+  }
 
   // ═══════════════════════════════════════════════════════════
 
   // FUNCIÓN PRINCIPAL DE ARRANQUE
   // ═══════════════════════════════════════════════════════════
-async function mainInit() {
-  // AGREGAR ESTO AL INICIO:
-  const params = new URLSearchParams(window.location.search);
-  const urlToken = params.get('token');
-  
-  if (urlToken) {
-    console.log('🔑 Token recibido por URL');
-    await supabase.auth.setSession({
-        
-      access_token: urlToken,
-      refresh_token: 'dummy'
-    });
-    window.history.replaceState({}, '', window.location.pathname);
-  }
-    // 1. Carga la config del tenant
-    const config = await loadTenantConfig();
-    applyConfiguration(config);
-    console.log('✅ Tenant listo');
-
-    // 2. Carga el perfil de usuario (para permisos)
-    const role = window.safeStorage.get('role');
-    const tenant = window.safeStorage.get('tenant');
-
-    console.log("📦 Role desde storage:", role);
-    console.log("📦 Tenant desde storage:", tenant);
-    await loadUserProfile();
-    console.log('✅ Perfil de usuario cargado');
-
-// 🔐 Obtener usuario autenticado (LO QUE TE FALTABA)
-const { data: authData, error: authError } = await supabase.auth.getUser();
-if (authError || !authData?.user) {
-  console.error("❌ No hay sesión activa", authError);
-  return;
-}
-const userId = authData.user.id;
-await loadRealDashboardData(userId);
-
-// Obtener profile (tenant + role)
-const { data: rawProfile, error: profileRowError } = await supabase
-  .from("profiles")
-  .select("tenant_id, role")
-  .eq("id", userId)
-
-if (profileRowError) {
-  console.error("❌ Error al leer profileRow:", profileRowError);
-  return;
-}
-
-const profileRow = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
-
-const myTenant = profileRow?.tenant_id;
-const myRole   = profileRow?.role;
-
-console.log(" Tenant usado en consulta:", myTenant, "Role:", myRole);
-console.log("DEBUG authData:", authData);
-console.log("DEBUG profileRow:", profileRow);
-console.log("DEBUG myTenant, myRole:", myTenant, myRole);
-
-
-const { data: assignments, error: coursesError } = await supabase
-        .from("user_course_assignments")
-        .select(`
-            progress,
-            due_date,
-            status, 
-            articles (
-            id,
-            title,
-            thumbnail_url,
-            status,
-            instructor_name,
-            duration_text
-            )
-        `)
-        .eq('user_id', userId); // <--- FILTRO CRÍTICO
-
-if (coursesError) {
-        console.error("Error al cargar cursos:", coursesError.message);
+  async function mainInit() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('❌ Sin sesión activa');
+        window.location.href = '../index.html';
         return;
-    }
+      }
 
-    // 2. PROCESAR Y SEPARAR LOS CURSOS (VERSIÓN CORREGIDA)
-const allCourses = assignments ? assignments.map(a => {
-        // Validación: Si no hay datos del artículo, saltamos
-        if (!a.articles) return null;
+      console.log('✅ Sesión válida detectada');
 
-        // Supabase a veces devuelve un array si la relación no es 'single'
-        const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
+      const config = await loadTenantConfig();
+      applyConfiguration(config);
+
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData?.user) {
+        console.error("❌ Error obteniendo usuario:", authError);
+        window.location.href = '../index.html';
+        return;
+      }
+      
+      const userId = authData.user.id;
+      console.log('👤 Usuario autenticado:', userId);
+
+      let cachedRole = window.safeStorage.get('role');
+      let cachedTenant = window.safeStorage.get('tenant');
+
+      if (!cachedRole || !cachedTenant) {
+        console.warn('⚠️ Consultando DB...');
         
-        if (!articleData) return null;
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("tenant_id, role, full_name")
+          .eq("id", userId)
+          .single();
 
-        return {
-            ...articleData, // Esto extrae id, title, thumbnail_url, etc.
-            progress: a.progress,
-            due_date: a.due_date,
-            assignment_status: a.status
-        };
-    }).filter(c => c !== null) : []; // Eliminamos los nulos para evitar errores
-
-    // Logs de depuración para verificar
-    console.log("Cursos procesados:", allCourses);
-
-    const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
-    const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
-
-    console.log(`📦 Cursos: ${pendingCourses.length} pendientes, ${completedCourses.length} completados`);
-
-    // 3. FUNCIÓN DE RENDERIZADO (Reutilizable)
-    const renderCourses = (coursesList, containerId, emptyMsg) => {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        if (coursesList.length === 0) {
-            container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-secondary);">${emptyMsg}</p>`;
-            return;
+        if (profileError) {
+          console.error("❌ Error:", profileError);
+          window.location.href = '../index.html';
+          return;
         }
 
-        container.innerHTML = coursesList.map(c => {
-            const dueDateInfo = getDueDateStatus(c.due_date);
-            const progress = c.progress || 0;
-            const isUrgent = dueDateInfo.urgent && progress < 100;
+        window.safeStorage.set('role', profile.role);
+        window.safeStorage.set('tenant', profile.tenant_id);
+        window.safeStorage.set('full_name', profile.full_name);
+      }
 
-            let iconClass = 'pending';
-            let iconFA = 'fa-clock';
-            let btnText = progress > 0 ? 'Continuar' : 'Iniciar';
-            
-            if (isUrgent) {
-                iconClass = 'urgent';
-                iconFA = 'fa-exclamation-triangle';
-            } else if (progress === 100) {
-                iconClass = 'completed';
-                iconFA = 'fa-check-circle';
-                btnText = 'Ver Certificado';
-            }
+      await loadUserProfile();
+      await loadRealDashboardData(userId);
 
-            return `
-            <div class="course-card" data-status="${iconClass}">
-                <div class="course-icon-lg ${iconClass}">
-                    <i class="fas ${iconFA}"></i>
-                </div>
-                <div class="course-info">
-                    <h3>${c.title}</h3>
-                    ${dueDateInfo.text && progress < 100 ? `
-                    <div class="meta-item" style="font-size: 0.9rem; color: ${isUrgent ? 'var(--danger)' : 'var(--text-secondary)'}; font-weight: ${isUrgent ? '500' : 'normal'}; margin-bottom: 0.5rem;">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>${dueDateInfo.text}</span>
-                    </div>` : ''}
-                    
-                    <div class="course-meta" style="margin-bottom: 0.75rem;">
-                        <div class="meta-item"><i class="fas fa-user-tie"></i> <span>${c.instructor_name || 'Trox Academy'}</span></div>
-                        <div class="meta-item"><i class="fas fa-clock"></i> <span>${c.duration_text || 'Self-paced'}</span></div>
-                    </div>
+      const { data: assignments } = await supabase
+        .from("user_course_assignments")
+        .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
+        .eq('user_id', userId);
 
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" style="width: ${progress}%;"></div>
-                    </div>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Progreso: ${progress}%</p>
-                </div>
-                <div class="course-actions">
-                    <a href="./curso/curso.html?id=${c.id}" class="btn btn-primary" style="width: 100%;">
-                        ${btnText}
-                    </a>
-                </div>
-            </div>`;
-        }).join("");
-    };
+      const allCourses = (assignments || []).map(a => {
+        if (!a.articles) return null;
+        const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
+        if (!articleData) return null;
+        return { ...articleData, progress: a.progress || 0, due_date: a.due_date, assignment_status: a.status };
+      }).filter(c => c !== null);
 
-    // 4. RENDERIZAR EN LOS CONTENEDORES CORRECTOS
-    renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día! No tienes cursos pendientes.');
-    renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado ningún curso.');
+      const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
+      const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
 
-    console.log('✅ Cursos renderizados correctamente por tabs');
+      renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día!');
+      renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado cursos.');
 
-    initUI();
-    document.body.classList.add('loaded');
-}
+      initUI();
+      document.body.classList.add('loaded');
+      
+      console.log('🎉 Inicialización completa');
 
-  // --- Disparador de Carga ---
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mainInit);
-  } else {
-    mainInit();
-  }
+    } catch (error) {
+      console.error('❌ Error fatal:', error);
+      document.body.classList.add('loaded');
+    }
+  }
 
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mainInit);
+  } else {
+    mainInit();
+  }
 })();
