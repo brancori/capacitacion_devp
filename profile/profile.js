@@ -26,7 +26,18 @@ window.safeStorage = window.safeStorage || {
   get: (k) => localStorage.getItem(k),
   remove: (k) => localStorage.removeItem(k)
 };
+
 (async function earlyRoleCheck() {
+  // Esperar a que window.supabase esté listo (pequeño retry)
+  if (!window.supabase) {
+    console.warn('⏳ Supabase no listo, esperando...');
+    await new Promise(r => setTimeout(r, 100)); // espera 100ms
+    if (!window.supabase) {
+      console.error('❌ Supabase no pudo cargarse (revisar supabase-client.js)');
+      return;
+    }
+  }
+
   try {
     const { data: { session } } = await window.supabase.auth.getSession();
     
@@ -38,44 +49,38 @@ window.safeStorage = window.safeStorage || {
 
     console.log('✅ Sesión detectada');
 
-    const cachedRole = window.safeStorage.get('role') ?? null;
+    let finalRole = window.safeStorage.get('role');
     
-    if (!cachedRole) {
-      console.warn('⚠️ Role no encontrado en storage, consultando DB...');
+    // Si no hay rol en caché o es genérico, buscarlo
+    if (!finalRole || finalRole === 'authenticated') {
+      console.warn('⚠️ Role no encontrado o inválido, consultando DB...');
       
-        const { data: { user } } = await window.supabase.auth.getUser();
-
-        let finalRole = null;
-
-        // 1) intentar leer desde profiles
+      const { data: { user } } = await window.supabase.auth.getUser();
+      
+      if (user) {
+        // 1) Intentar leer desde profiles
         const { data: profile } = await window.supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
 
         if (profile?.role) {
-        finalRole = profile.role;
+          finalRole = profile.role;
         } 
-        // 2) fallback: Auth metadata
-        else if (user?.app_metadata?.role) {
-        finalRole = user.app_metadata.role;
+        // 2) Fallback: Metadata
+        else if (user.app_metadata?.role) {
+          finalRole = user.app_metadata.role;
         }
+
         if (finalRole) {
-  window.safeStorage.set('role', finalRole);
-  console.log('🔥 Role asignado:', finalRole);
-}
+          window.safeStorage.set('role', finalRole);
+          console.log('🔥 Role recuperado y guardado:', finalRole);
+        }
+      }
     }
 
-
-
-    
-    let finalRole = window.safeStorage.get('role');
-    if (!finalRole || finalRole === 'authenticated') {
-    finalRole = user?.app_metadata?.role ?? finalRole;
-    window.safeStorage.set('role', finalRole);
-    }
-    console.log('🔍 Role detectado (Early Check):', finalRole);
+    console.log('🔍 Role final (Early Check):', finalRole);
     
     if (['master', 'admin', 'supervisor'].includes(finalRole)) {
       console.log(`🔄 Redirigiendo ${finalRole} → dashboard`);
