@@ -28,7 +28,7 @@ window.safeStorage = window.safeStorage || {
 };
 
 (async function earlyRoleCheck() {
-        if (typeof window.supabaseClient === 'undefined') {
+        if (typeof window.supabase === 'undefined') {
         setTimeout(earlyRoleCheck, 50);
         return;
     }
@@ -496,7 +496,7 @@ async function loadUserProfile() {
   // FUNCIÓN PRINCIPAL DE ARRANQUE
   // ═══════════════════════════════════════════════════════════
   async function mainInit() {
-        if (!window.supabaseClient) {
+        if (!window.supabase) {
         setTimeout(mainInit, 100);
         return;
     }
