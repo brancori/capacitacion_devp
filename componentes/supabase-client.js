@@ -84,20 +84,30 @@ async function initSupabaseClient() {
 function setupClient() {
   const clientOptions = {
     auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      storage: undefined
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: {
+        getItem: (key) => window.safeStorage.get(key),
+        setItem: (key, value) => window.safeStorage.set(key, value),
+        removeItem: (key) => window.safeStorage.remove(key)
+      }
     },
-    realtime: {
-      params: { eventsPerSecond: 0 }
+    global: {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+      }
     }
   };
 
-  window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
-  console.log('✅ Cliente Supabase inicializado (Modo Proxy)');
+  window.supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    clientOptions
+  );
 
-  // Recuperación de sesión desde URL
+  console.log('✅ Cliente Supabase inicializado (Storage seguro + Proxy compatible)');
+
   recoverSessionFromUrl();
 }
 
