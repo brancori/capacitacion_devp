@@ -1,38 +1,44 @@
 // componentes/supabase-client.js
 // VERSIÓN 5.0.0: PROXY OBLIGATORIO PARA ENTORNOS CORPORATIVOS
 
-// ✅ SIEMPRE usar proxy relativo
 const SUPABASE_URL = '/api';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
 
 // ============================================
 // SAFE STORAGE (Fix Tracking Prevention)
 // ============================================
+window.__memStorage = window.__memStorage || {};
+
 window.safeStorage = {
   get(key) {
     try {
-      return localStorage.getItem(key);
+      const val = localStorage.getItem(key);
+      if (val !== null) return val;
     } catch (e) {
-      console.warn('⚠️ localStorage bloqueado, usando memoria');
-      return window.__memStorage?.[key] || null;
+      console.warn(`⚠️ localStorage bloqueado para ${key}, usando memoria`);
     }
+    return window.__memStorage[key] || null;
   },
+  
   set(key, value) {
     try {
       localStorage.setItem(key, value);
+      window.__memStorage[key] = value; // ← Siempre hacer backup
     } catch (e) {
-      if (!window.__memStorage) window.__memStorage = {};
+      console.warn(`⚠️ localStorage bloqueado para ${key}, solo memoria`);
       window.__memStorage[key] = value;
     }
   },
+  
   remove(key) {
     try {
       localStorage.removeItem(key);
-    } catch (e) {
-      if (window.__memStorage) delete window.__memStorage[key];
-    }
+    } catch (e) {}
+    delete window.__memStorage[key];
   }
 };
+
+console.log('✅ Safe Storage inicializado (Memoria + LocalStorage)');
 
 // ============================================
 // DETECCIÓN DE TENANT

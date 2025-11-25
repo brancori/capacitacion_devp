@@ -210,109 +210,99 @@
     // =================================================================
     // ✅ CORRECCIÓN 2: handleLoginSubmit - Sin headers problemáticos
     // =================================================================
-    const handleLoginSubmit = async (e) => {
-      e.preventDefault();
-      const supabase = window.supabase;
-      const isEmployeeForm = e.target.id === 'formEmployees';
-      const email = (isEmployeeForm ? $('#empUsername') : $('#conUsername')).value.trim();
-      const password = (isEmployeeForm ? $('#empPassword') : $('#conPassword')).value.trim();
-      const btn = isEmployeeForm ? $('#btnLoginEmp') : $('#btnLoginCon');
+const handleLoginSubmit = async (e) => {
+  e.preventDefault();
+  const supabase = window.supabase;
+  const isEmployeeForm = e.target.id === 'formEmployees';
+  const email = (isEmployeeForm ? $('#empUsername') : $('#conUsername')).value.trim();
+  const password = (isEmployeeForm ? $('#empPassword') : $('#conPassword')).value.trim();
+  const btn = isEmployeeForm ? $('#btnLoginEmp') : $('#btnLoginCon');
 
-      console.log(`1️⃣ Iniciando login v2 para: ${email}`);
+  if (!email || !password) {
+    showModal('Error', 'Por favor, ingresa tu usuario y contraseña.', 'error');
+    return;
+  }
 
-      if (!email || !password) {
-        showModal('Error', 'Por favor, ingresa tu usuario y contraseña.', 'error');
-        return;
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Validando...';
+
+try {
+  const { tenantSlug } = window.__appConfig;
+  
+  // 1️⃣ Login via Edge Function
+  const { data, error } = await supabase.functions.invoke('custom-login', {
+    body: { email, password, tenant_slug: tenantSlug }
+  });
+
+  if (error) throw new Error(error.message || 'Error del servidor');
+
+  if (data.error) {
+    if (data.error_code === 'FORCE_RESET') {
+      showResetPasswordModal({ id: data.user_id });
+      btn.disabled = false;
+      return; 
+    }
+    if (data.error_code === 'PENDING_AUTHORIZATION') {
+      throw new Error('Cuenta pendiente de autorización.');
+    }
+    throw new Error(data.error);
+  }
+
+  console.log('✅ Edge Function exitosa');
+
+  // 2️⃣ 🔥 FIX: Decodificar JWT PRIMERO
+  const jwtPayload = JSON.parse(atob(data.jwt.split('.')[1]));
+  
+  // 3️⃣ Guardar en storage (con fallback)
+  window.safeStorage.set('role', jwtPayload.role);
+  window.safeStorage.set('tenant', jwtPayload.tenant_id);
+  window.safeStorage.set('user_email', jwtPayload.email);
+  
+  console.log('🔑 Datos guardados:', {
+    role: jwtPayload.role,
+    tenant: jwtPayload.tenant_id,
+    email: jwtPayload.email
+  });
+
+  // 4️⃣ 🔥 FIX: Usar signInWithPassword en lugar de setSession
+  const { error: authError } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if (authError) {
+    console.error('❌ Error en signInWithPassword:', authError);
+    throw new Error('No se pudo crear la sesión');
+  }
+
+  console.log('✅ Sesión establecida correctamente');
+
+  // 5️⃣ Redirigir según rol
+  showModal(
+    '¡Bienvenido!',
+    'Entrando al sistema...',
+    'success',
+    () => {
+      const rolesAdmin = ['master', 'admin', 'supervisor'];
+      const userRole = jwtPayload.role;
+
+      // NO pasar token por URL si ya hay sesión
+      if (rolesAdmin.includes(userRole)) {
+        window.location.href = './dashboard.html';
+      } else {
+        window.location.href = './profile/profile.html';
       }
+    }
+  );
 
-      btn.disabled = true;
-      btn.querySelector('span').textContent = 'Validando...';
-
-      try {
-        const { tenantSlug } = window.__appConfig;
-        
-        // ✅ Login via Edge Function (sin headers personalizados)
-        const { data, error } = await supabase.functions.invoke('custom-login', {
-          body: { 
-            email: email, 
-            password: password, 
-            tenant_slug: tenantSlug 
-          }
-        });
-
-        if (error) throw new Error(error.message || 'Error del servidor');
-
-        if (data.error) {
-          if (data.error_code === 'FORCE_RESET') {
-            showResetPasswordModal({ id: data.user_id });
-            btn.disabled = false;
-            return; 
-          }
-          if (data.error_code === 'PENDING_AUTHORIZATION') {
-            throw new Error('Cuenta pendiente de autorización. Contacta a tu administrador.');
-          }
-          throw new Error(data.error);
-        }
-
-console.log('3️⃣ Edge Function exitosa, token recibido.');
-
-// 1. Crear sesión con el token recibido
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: data.jwt,
-          refresh_token: 'dummy-refresh-token'
-        });
-
-        if (sessionError) {
-          console.error("❌ Error creando sesión:", sessionError);
-          return;
-        }
-
-        const session = sessionData.session;
-
-        // 2. Extraer datos del JWT
-        const jwt = session.access_token.split('.')[1];
-        const jwtData = JSON.parse(atob(jwt));
-
-        // 3. Guardar datos críticos para profile.js
-        window.safeStorage.set('role', jwtData.role);
-        window.safeStorage.set('tenant', jwtData.tenant_id);
-
-        console.log("🔐 Role guardado:", jwtData.role);
-        console.log("🔐 Tenant guardado:", jwtData.tenant_id);
-
-        console.log('4️⃣ Sesión establecida. Enrutando...');
-        
-        showModal(
-          '¡Bienvenido!',
-          'Entrando al sistema...',
-          'success',
-          async () => {
-            const token = data.jwt;
-            const jwtData = JSON.parse(atob(token.split('.')[1]));
-            const userRole = jwtData.role || 'employee';
-            
-            const PATH_DASHBOARD = './dashboard.html'; 
-            const PATH_PROFILE = './profile/profile.html';
-            const rolesAdmin = ['master', 'admin', 'supervisor']; 
-
-            console.log(`Rol detectado: ${userRole}`);
-
-            if (rolesAdmin.includes(userRole)) {
-              window.location.href = `${PATH_DASHBOARD}?token=${encodeURIComponent(token)}`;
-            } else {
-              window.location.href = `${PATH_PROFILE}?token=${encodeURIComponent(token)}`;
-            }
-          }
-        );
-
-      } catch (error) {
-        console.error('❌ Error en el flujo de login:', error.message);
-        await supabase.auth.signOut();
-        btn.disabled = false;
-        btn.querySelector('span').textContent = 'Ingresar';
-        showModal('Error de Acceso', error.message, 'error');
-      }
-    };
+} catch (error) {
+  console.error('❌ Error en login:', error.message);
+  await supabase.auth.signOut();
+  btn.disabled = false;
+  btn.querySelector('span').textContent = 'Ingresar';
+  showModal('Error de Acceso', error.message, 'error');
+}
+};
 
     $('#formEmployees').addEventListener('submit', handleLoginSubmit);
     $('#formContractors').addEventListener('submit', handleLoginSubmit);

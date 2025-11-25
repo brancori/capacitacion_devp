@@ -229,34 +229,42 @@ function getDueDateStatus(dueDate) {
    */
 async function loadUserProfile() {
   try {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    console.log('🔍 DEBUG user:', user);
-    console.log('🔍 DEBUG authError:', authError);
-    
-    if (authError || !user) {
-      console.error('No hay sesión activa');
-      window.location.replace = '../index.html';
+    // 1️⃣ Verificar sesión
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('❌ Sin sesión activa');
+      window.location.href = '../index.html';
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
+    // 2️⃣ 🔥 UNA SOLA consulta con .single()
+    const { data: profile, error } = await supabase
       .from('profiles')
-      .select('role, full_name')
+      .select('role, full_name, tenant_id')
       .eq('id', user.id)
-      .single();
+      .single(); // ← CRÍTICO para evitar arrays
 
-    if (profileError) throw profileError;
-
-    if (profile) {
-      updateProfileView(profile);
-    } else {
-      console.warn('Usuario autenticado pero sin perfil.');
-      updateProfileView({ role: 'user', full_name: 'Usuario' });
+    if (error) {
+      console.error('❌ Error en profiles:', error);
+      throw error;
     }
+
+    console.log('✅ Perfil cargado:', {
+      role: profile.role,
+      tenant: profile.tenant_id
+    });
+
+    // 3️⃣ Guardar en storage (backup por si se perdió)
+    window.safeStorage.set('role', profile.role);
+    window.safeStorage.set('tenant', profile.tenant_id);
+
+    // 4️⃣ Actualizar UI
+    updateProfileView(profile);
+    return profile;
+
   } catch (error) {
-    console.error('Error al cargar el perfil del usuario:', error.message);
-    updateProfileView({ role: 'user', full_name: 'Usuario' });
+    console.error('❌ Error fatal en loadUserProfile:', error.message);
+    window.location.href = '../index.html';
   }
 }
 
@@ -342,69 +350,119 @@ async function loadUserProfile() {
     });
   }
 
+async function loadUserProfile() {
+  try {
+    // 1️⃣ Verificar sesión
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('❌ Sin sesión activa');
+      window.location.href = '../index.html';
+      return;
+    }
+
+    // 2️⃣ 🔥 UNA SOLA consulta con .single()
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role, full_name, tenant_id')
+      .eq('id', user.id)
+      .single(); // ← CRÍTICO para evitar arrays
+
+    if (error) {
+      console.error('❌ Error en profiles:', error);
+      throw error;
+    }
+
+    console.log('✅ Perfil cargado:', {
+      role: profile.role,
+      tenant: profile.tenant_id
+    });
+
+    // 3️⃣ Guardar en storage (backup por si se perdió)
+    window.safeStorage.set('role', profile.role);
+    window.safeStorage.set('tenant', profile.tenant_id);
+
+    // 4️⃣ Actualizar UI
+    updateProfileView(profile);
+    return profile;
+
+  } catch (error) {
+    console.error('❌ Error fatal en loadUserProfile:', error.message);
+    window.location.href = '../index.html';
+  }
+}
+
 async function loadRealDashboardData(userId) {
-    const supabase = window.supabase;
+  const supabase = window.supabase;
 
-    // 1. CARGA DE DATOS - Obtener perfil primero para tener el role
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+  // 1️⃣ Usar datos cacheados (ya están desde login)
+  const cachedRole = window.safeStorage.get('role');
+  const cachedTenant = window.safeStorage.get('tenant');
 
-    if (profileError) {
-        console.error('❌ Error cargando perfil:', profileError);
-        return;
-    }
+  console.log('📦 Datos en cache:', { cachedRole, cachedTenant });
 
-    // ✅ CORREGIDO: Ahora profile.role viene de la tabla profiles
-    const userRole = profile?.role || 'employee';
-    console.log('🔍 Role del usuario:', userRole);
+  // 2️⃣ Cargar asignaciones
+  const [assignmentsRes, myBadgesRes, allBadgesRes, logsRes] = await Promise.all([
+    supabase.from('user_course_assignments')
+      .select('*, articles:course_id(title, duration_text)')
+      .eq('user_id', userId),
+    supabase.from('user_badges')
+      .select('badge_id')
+      .eq('user_id', userId), 
+    supabase.from('badges').select('*'),             
+    supabase.from('activity_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+  ]);
 
-    // Continuar con las otras consultas
-    const [assignmentsRes, myBadgesRes, allBadgesRes, logsRes] = await Promise.all([
-        supabase.from('user_course_assignments').select('*, articles:course_id(title, duration_text)').eq('user_id', userId),
-        supabase.from('user_badges').select('badge_id'), 
-        supabase.from('badges').select('*'),             
-        supabase.from('activity_logs').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(5)
-    ]);
+  const assignments = assignmentsRes.data || [];
+  const myBadgesIds = new Set((myBadgesRes.data || []).map(b => b.badge_id)); 
+  const allBadges = allBadgesRes.data || [];
+  const logs = logsRes.data || [];
 
-    const assignments = assignmentsRes.data || [];
-    const myBadgesIds = new Set((myBadgesRes.data || []).map(b => b.badge_id)); 
-    const allBadges = allBadgesRes.data || [];
-    const logs = logsRes.data || [];
+  console.log('📊 Datos cargados:', {
+    assignments: assignments.length,
+    badges: allBadges.length,
+    logs: logs.length
+  });
 
-    // --- A. Renderizar Perfil ---
-if (profile) {
-        document.getElementById('profileName').textContent = profile.full_name || 'Usuario';
-        const initials = (profile.full_name || 'U').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-        const avatarEl = document.querySelector('.avatar');
-        if(avatarEl) avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`;
-        
-        // 🔥 CORRECCIÓN AQUÍ: Verificamos que profile.id exista antes de hacer split
-        const shortId = (profile.id) ? profile.id.split('-')[0].toUpperCase() : '---'; 
-
-        const roleEl = document.querySelector('.profile-card .role');
-        if(roleEl) {
-            const roleDisplay = userRole === 'master' ? 'Administrador' : 
-                               userRole === 'admin' ? 'Administrador' :
-                               userRole === 'supervisor' ? 'Supervisor' : 'Colaborador';
-            roleEl.textContent = `${roleDisplay} | ID: ${shortId}`;
-        }
-    } else {
-        // Si no hay perfil, mostramos algo genérico para no romper la UI
-        console.warn("⚠️ Perfil no cargado, mostrando datos por defecto.");
-        document.getElementById('profileName').textContent = "Usuario Desconocido";
-        const roleEl = document.querySelector('.profile-card .role');
-        if(roleEl) roleEl.textContent = "Sin Rol | ID: ---";
-    }
-
-    // --- B. Estadísticas y Donut Chart ---
-    const totalCursos = assignments.length;
-    const completados = assignments.filter(a => a.status === 'completed' || Number(a.progress) === 100).length;
-    const pendientes = assignments.filter(a => a.status !== 'completed' && Number(a.progress) < 100).length;
+  // 3️⃣ Renderizar perfil (tu código existente)
+  const profile = await loadUserProfile(); // Ya tiene role/tenant
+  if (profile) {
+    document.getElementById('profileName').textContent = profile.full_name || 'Usuario';
+    const initials = (profile.full_name || 'U')
+      .split(' ')
+      .map(n => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
     
-    const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
+    const avatarEl = document.querySelector('.avatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`;
+    }
+    
+    const shortId = profile.id ? profile.id.split('-')[0].toUpperCase() : '---';
+    const roleEl = document.querySelector('.profile-card .role');
+    if (roleEl) {
+      const roleMap = {
+        master: 'Administrador Master',
+        admin: 'Administrador',
+        supervisor: 'Supervisor',
+        employee: 'Colaborador'
+      };
+      roleEl.textContent = `${roleMap[profile.role] || 'Colaborador'} | ID: ${shortId}`;
+    }
+  }
+
+  // 4️⃣ Tu código de estadísticas (sin cambios)
+  const totalCursos = assignments.length;
+  const completados = assignments.filter(a => 
+    a.status === 'completed' || Number(a.progress) === 100
+  ).length;
+  const pendientes = totalCursos - completados;
+  const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
 
     const donutFg = document.querySelector('.progress-donut-fg');
     const donutText = document.querySelector('.progress-text');
