@@ -559,8 +559,15 @@ if (profileRowError) {
 
 const profileRow = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
 
-const myTenant = profileRow?.tenant_id;
-const myRole   = profileRow?.role;
+if (!profileRow) {
+        console.error("❌ El usuario no tiene perfil en la base de datos.");
+        return;
+    }
+
+    const myTenant = profileRow.tenant_id;
+    const myRole   = profileRow.role;
+
+
 
 console.log(" Tenant usado en consulta:", myTenant, "Role:", myRole);
 console.log("DEBUG authData:", authData);
