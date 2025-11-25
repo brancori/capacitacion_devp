@@ -250,14 +250,14 @@ try {
 console.log('✅ Edge Function exitosa');
 
   // 🔥 FIX DE SEGURIDAD: Garantizar que safeStorage existe
-  if (!window.safeStorage) {
-    console.warn('⚠️ safeStorage no estaba definido, creando fallback...');
-    window.safeStorage = {
-      set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
-      get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
-      remove: (k) => { try { localStorage.removeItem(k); } catch(e){} }
-    };
-  }
+if (!window.safeStorage) {
+      console.warn('⚠️ safeStorage bloqueado, usando fallback local...');
+      window.safeStorage = {
+        set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
+        get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
+        remove: (k) => { try { localStorage.removeItem(k); } catch(e){} }
+      };
+    }
 
   // Decodificar JWT
   const jwtPayload = JSON.parse(atob(data.jwt.split('.')[1]));
