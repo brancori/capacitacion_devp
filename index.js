@@ -60,27 +60,33 @@
   // =================================================================
   // validateLoginPage - Sin trial_expires_at
   // =================================================================
-  async function validateLoginPage() {
+async function validateLoginPage(slug) {
+    if (!slug) return false;
+
     try {
+      // Aseguramos que window.supabase existe
+      if (!window.supabase) throw new Error("Supabase no inicializado");
+
       const { data: tenant, error } = await window.supabase
         .from('tenants')
-        .select('id, name, slug')  //  REMOVIDO trial_expires_at
-        .eq('slug', tenantId)
+        .select('id, name, slug')
+        .eq('slug', slug)
         .single();
 
       if (error || !tenant) {
-        console.error('❌ Tenant no encontrado en DB:', tenantId, error);
+        console.error('❌ Tenant no encontrado en DB:', slug, error);
         return false;
       }
 
-      console.log(' Tenant validado:', tenant.name);
+      console.log('✅ Tenant validado:', tenant.name);
       return tenant;
 
     } catch (err) {
-      console.error(' Error validando tenant:', err);
+      console.error('❌ Error validando tenant:', err);
       return false;
     }
-  }
+}
+
 
   async function loadTenantConfig() {
     try {
@@ -544,10 +550,26 @@ const handleLoginSubmit = async (e) => {
   // =================================================================
   // Init() - Storage compatible con Tracking Prevention
   // =================================================================
-  async function init() {
-    const currentTenant = detectTenant();
+async function init() {
+    // A) ESPERAR A QUE SUPABASE-CLIENT ESTÉ LISTO
+    if (!window.supabase) {
+        // console.log('⏳ Esperando cliente Supabase...');
+        setTimeout(init, 50);
+        return;
+    }
+
+    const currentTenant = detectTenant(); // Asegúrate de que detectTenant() esté definida antes o sea global
     
-    // Usar safeStorage con fallback seguro
+    // B) VALIDAR TENANT CONTRA DB ANTES DE SEGUIR
+    const validTenantData = await validateLoginPage(currentTenant);
+    
+    if (!validTenantData) {
+        // Opción: Redirigir a 404 o mostrar error visual
+        document.body.innerHTML = "<h1>❌ Error: Organización no encontrada</h1>";
+        return; 
+    }
+
+    // --- LÓGICA DE STORAGE (Tu código original) ---
     let storedTenant = null;
     try {
       if (window.safeStorage && typeof window.safeStorage.get === 'function') {
@@ -560,7 +582,10 @@ const handleLoginSubmit = async (e) => {
     if (storedTenant && storedTenant !== currentTenant) {
       console.warn('🔄 Tenant diferente, limpiando sesión…');
       try {
+        // Borrar cookie específica
         document.cookie = `sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0`;
+        // Intentar logout real si hay sesión vieja
+        await window.supabase.auth.signOut().catch(() => {});
       } catch(e) {}
       
       try {
@@ -579,21 +604,25 @@ const handleLoginSubmit = async (e) => {
       if (window.safeStorage && typeof window.safeStorage.set === 'function') {
         window.safeStorage.set('current_tenant', currentTenant);
       }
-    } catch(e) {
-      console.warn(' No se pudo guardar tenant:', e.message);
+    } catch(e) {}
+
+    console.log(`🚀 Inicializando App - Tenant: ${currentTenant}`);
+    
+    // C) CARGAR CONFIGURACIÓN (Pasando el tenant validado si tu función lo soporta, o el slug)
+    // Asegúrate de que loadTenantConfig esté disponible
+    if (typeof loadTenantConfig === 'function') {
+        const config = await loadTenantConfig(currentTenant); 
+        applyConfiguration(config);
     }
+    
+    console.log('🏁 App lista para login');
+}
 
-    console.log(` Inicializando App - Tenant: ${currentTenant}`);
-    const config = await loadTenantConfig();
-    applyConfiguration(config);
-    console.log(' App lista para login');
-  }
-
-  // Disparador
-  if (document.readyState === 'loading') {
+// Disparador
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
-  } else {
+} else {
     init();
-  }
+}
 
 })();
