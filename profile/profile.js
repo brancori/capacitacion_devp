@@ -359,13 +359,15 @@ async function loadRealDashboardData(userId) {
     const logs = logsRes.data || [];
 
     // --- A. Renderizar Perfil ---
-    if (profile) {
+if (profile) {
         document.getElementById('profileName').textContent = profile.full_name || 'Usuario';
         const initials = (profile.full_name || 'U').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
         const avatarEl = document.querySelector('.avatar');
         if(avatarEl) avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`;
         
-        const shortId = profile.id.split('-')[0].toUpperCase(); 
+        // 🔥 CORRECCIÓN AQUÍ: Verificamos que profile.id exista antes de hacer split
+        const shortId = (profile.id) ? profile.id.split('-')[0].toUpperCase() : '---'; 
+
         const roleEl = document.querySelector('.profile-card .role');
         if(roleEl) {
             const roleDisplay = userRole === 'master' ? 'Administrador' : 
@@ -373,6 +375,12 @@ async function loadRealDashboardData(userId) {
                                userRole === 'supervisor' ? 'Supervisor' : 'Colaborador';
             roleEl.textContent = `${roleDisplay} | ID: ${shortId}`;
         }
+    } else {
+        // Si no hay perfil, mostramos algo genérico para no romper la UI
+        console.warn("⚠️ Perfil no cargado, mostrando datos por defecto.");
+        document.getElementById('profileName').textContent = "Usuario Desconocido";
+        const roleEl = document.querySelector('.profile-card .role');
+        if(roleEl) roleEl.textContent = "Sin Rol | ID: ---";
     }
 
     // --- B. Estadísticas y Donut Chart ---
