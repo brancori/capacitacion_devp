@@ -43,19 +43,33 @@ window.safeStorage = window.safeStorage || {
     if (!cachedRole) {
       console.warn('⚠️ Role no encontrado en storage, consultando DB...');
       
-      const { data: { user } } = await window.supabase.auth.getUser();
-      const { data: profile } = await window.supabase
+        const { data: { user } } = await window.supabase.auth.getUser();
+
+        let finalRole = null;
+
+        // 1) intentar leer desde profiles
+        const { data: profile } = await window.supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
-      
-      if (profile?.role) {
-        window.safeStorage.set('role', profile.role);
-        console.log('✅ Role recuperado:', profile.role);
-      }
+
+        if (profile?.role) {
+        finalRole = profile.role;
+        } 
+        // 2) fallback: Auth metadata
+        else if (user?.app_metadata?.role) {
+        finalRole = user.app_metadata.role;
+        }
+        if (finalRole) {
+  window.safeStorage.set('role', finalRole);
+  console.log('🔥 Role asignado:', finalRole);
+}
     }
 
+
+
+    
     const finalRole = window.safeStorage.get('role') ?? null;
     console.log('🔍 Role detectado (Early Check):', finalRole);
     
@@ -174,7 +188,7 @@ window.safeStorage = window.safeStorage || {
     }
 
     const manageUsersBtn = document.getElementById('manageUsersBtn');
-    const allowedRoles = ['master', 'admin', 'supervisor'];
+    const allowedRoles = ['master', 'admin', 'supervisor', 'authenticated_admin'];
     if (manageUsersBtn) {
       manageUsersBtn.style.display = allowedRoles.includes(profile.role) ? 'flex' : 'none';
     }
@@ -189,14 +203,14 @@ async function loadUserProfile() {
     if (!role || !fullName) {
       console.warn('⚠️ Datos faltantes, consultando profile...');
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Sin sesión activa');
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role, full_name, tenant_id')
+    .eq('id', user.id)
+    .single();
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role, full_name, tenant_id')
-        .eq('id', user.id)
-        .single();
+    let role = profile?.role ?? user?.app_metadata?.role ?? null;
 
       if (error) throw error;
 
