@@ -547,21 +547,22 @@ const userId = authData.user.id;
 await loadRealDashboardData(userId);
 
 // Obtener profile (tenant + role)
-const { data: profileRow, error: profileRowError } = await supabase
+const { data: rawProfile, error: profileRowError } = await supabase
   .from("profiles")
   .select("tenant_id, role")
   .eq("id", userId)
-  .single();
 
 if (profileRowError) {
   console.error("❌ Error al leer profileRow:", profileRowError);
   return;
 }
 
+const profileRow = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
+
 const myTenant = profileRow?.tenant_id;
 const myRole   = profileRow?.role;
 
-console.log("🧭 Tenant usado en consulta:", myTenant, "Role:", myRole);
+console.log(" Tenant usado en consulta:", myTenant, "Role:", myRole);
 console.log("DEBUG authData:", authData);
 console.log("DEBUG profileRow:", profileRow);
 console.log("DEBUG myTenant, myRole:", myTenant, myRole);
