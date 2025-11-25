@@ -136,7 +136,6 @@ window.safeStorage = window.safeStorage || {
     console.log(`🔍 Detectando tenant: ${tenantId}`);
     try {
       const response = await fetch('../tenants/tenants.json', {
-        cache: 'no-store',
         headers: { 'Accept': 'application/json' }
       });
       if (!response.ok) throw new Error('No se pudo cargar tenants.json');
