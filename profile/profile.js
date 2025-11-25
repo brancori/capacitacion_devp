@@ -16,8 +16,9 @@ async function rebuildAppConfig() {
     tenantUUID: data[slug]?.uuid || null
   };
 
-  console.log(' AppConfig reconstruido:', window.__appConfig);
+  console.log('🔧 AppConfig reconstruido:', window.__appConfig);
 }
+
 
 
 window.safeStorage = window.safeStorage || {
@@ -37,47 +38,43 @@ window.safeStorage = window.safeStorage || {
 
     console.log('✅ Sesión detectada');
 
-    let cachedRole = window.safeStorage.get('role') ?? null;
+    const cachedRole = window.safeStorage.get('role') ?? null;
     
     if (!cachedRole) {
       console.warn('⚠️ Role no encontrado en storage, consultando DB...');
       
-      const { data: { user } } = await window.supabase.auth.getUser();
+        const { data: { user } } = await window.supabase.auth.getUser();
 
-      let finalRole = null;
+        let finalRole = null;
 
-      // 1) intentar leer desde profiles
-      const { data: profile } = await window.supabase
+        // 1) intentar leer desde profiles
+        const { data: profile } = await window.supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
 
-      if (profile?.role) {
+        if (profile?.role) {
         finalRole = profile.role;
-      } 
-      // 2) fallback: Auth metadata
-      else if (user?.app_metadata?.role) {
+        } 
+        // 2) fallback: Auth metadata
+        else if (user?.app_metadata?.role) {
         finalRole = user.app_metadata.role;
-      }
-      
-      if (finalRole) {
-        window.safeStorage.set('role', finalRole);
-        console.log('🔥 Role asignado:', finalRole);
-        cachedRole = finalRole; // ⬅️ IMPORTANTE: actualizar la variable local
-      }
+        }
+        if (finalRole) {
+  window.safeStorage.set('role', finalRole);
+  console.log('🔥 Role asignado:', finalRole);
+}
     }
 
-    // ⬇️ FIX: Usar cachedRole en lugar de user (que no existe en este scope)
-    let finalRole = cachedRole;
+
+
     
+    let finalRole = window.safeStorage.get('role');
     if (!finalRole || finalRole === 'authenticated') {
-      // Solo consultar user si es necesario
-      const { data: { user } } = await window.supabase.auth.getUser();
-      finalRole = user?.app_metadata?.role ?? finalRole;
-      window.safeStorage.set('role', finalRole);
+    finalRole = user?.app_metadata?.role ?? finalRole;
+    window.safeStorage.set('role', finalRole);
     }
-    
     console.log('🔍 Role detectado (Early Check):', finalRole);
     
     if (['master', 'admin', 'supervisor'].includes(finalRole)) {
@@ -112,7 +109,7 @@ window.safeStorage = window.safeStorage || {
       if (theme.primaryColor) root.style.setProperty('--primaryColor', theme.primaryColor);
       if (theme.secondaryColor) root.style.setProperty('--secondaryColor', theme.secondaryColor);
       
-      console.log('Tema cacheado aplicado');
+      console.log('🎨 Tema cacheado aplicado');
     }
   } catch (e) {
     console.error('Error aplicando tema cacheado', e);
@@ -173,13 +170,13 @@ window.safeStorage = window.safeStorage || {
       if (icon) companyNameEl.appendChild(icon);
       companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
     }
-    console.log(` Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
+    console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
 
     try {
       const tenantSlug = detectTenant();
       localStorage.setItem('tenantTheme', JSON.stringify(config));
       localStorage.setItem('tenantSlug', tenantSlug);
-      console.log(' Configuración de tenant guardada en caché.');
+      console.log('💾 Configuración de tenant guardada en caché.');
     } catch (e) {
       console.warn('Advertencia: No se pudo guardar el tema en localStorage.', e);
     }
@@ -208,7 +205,7 @@ async function loadUserProfile() {
     let tenantId = window.safeStorage.get('tenant');
 
     if (!role || !fullName) {
-      console.warn(' Datos faltantes, consultando profile...');
+      console.warn('⚠️ Datos faltantes, consultando profile...');
 
       const { data: { user } } = await supabase.auth.getUser();
       const { data: profile, error } = await supabase
@@ -227,9 +224,9 @@ async function loadUserProfile() {
       window.safeStorage.set('full_name', fullName);
       window.safeStorage.set('tenant', tenantId);
 
-      console.log(' PERFIL guardado en cache:', { role, fullName, tenantId });
+      console.log('🔥 PERFIL guardado en cache:', { role, fullName, tenantId });
     } else {
-      console.log(' Perfil leído desde cache');
+      console.log('✔️ Perfil leído desde cache');
     }
 
     const profileData = { role, full_name: fullName, tenant_id: tenantId };
@@ -265,13 +262,13 @@ async function loadUserProfile() {
     return { text: `Vence en ${diffDays} días`, urgent: false };
   }
 
-  // FIX 2: Cerrar correctamente loadRealDashboardData
+  // 🔥 FIX 2: Cerrar correctamente loadRealDashboardData
   async function loadRealDashboardData(userId) {
     const cachedRole = window.safeStorage.get('role');
     const cachedTenant = window.safeStorage.get('tenant');
     const cachedName = window.safeStorage.get('full_name');
 
-    console.log(' Usando datos cacheados para dashboard:', {
+    console.log('📦 Usando datos cacheados para dashboard:', {
       role: cachedRole,
       tenant: cachedTenant,
       name: cachedName
@@ -297,7 +294,7 @@ async function loadUserProfile() {
     const allBadges = allBadgesRes.data || [];
     const logs = logsRes.data || [];
 
-    console.log(' Datos del dashboard cargados:', {
+    console.log('📊 Datos del dashboard cargados:', {
       assignments: assignments.length,
       badges: allBadges.length,
       logs: logs.length
