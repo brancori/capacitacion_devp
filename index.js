@@ -58,13 +58,13 @@
   const tenantId = detectTenant();
 
   // =================================================================
-  // ✅ CORRECCIÓN 1: validateLoginPage - Sin trial_expires_at
+  // validateLoginPage - Sin trial_expires_at
   // =================================================================
   async function validateLoginPage() {
     try {
       const { data: tenant, error } = await window.supabase
         .from('tenants')
-        .select('id, name, slug')  // ✅ REMOVIDO trial_expires_at
+        .select('id, name, slug')  //  REMOVIDO trial_expires_at
         .eq('slug', tenantId)
         .single();
 
@@ -73,11 +73,11 @@
         return false;
       }
 
-      console.log('✅ Tenant validado:', tenant.name);
+      console.log(' Tenant validado:', tenant.name);
       return tenant;
 
     } catch (err) {
-      console.error('❌ Error validando tenant:', err);
+      console.error(' Error validando tenant:', err);
       return false;
     }
   }
@@ -208,7 +208,7 @@
     });
 
     // =================================================================
-    // ✅ CORRECCIÓN 2: handleLoginSubmit - Sin headers problemáticos
+    // handleLoginSubmit - Sin headers problemáticos
     // =================================================================
 const handleLoginSubmit = async (e) => {
   e.preventDefault();
@@ -247,11 +247,11 @@ try {
     throw new Error(data.error);
   }
 
-console.log('✅ Edge Function exitosa');
+console.log(' Edge Function exitosa');
 
-  // 🔥 FIX DE SEGURIDAD: Garantizar que safeStorage existe
+  //  FIX DE SEGURIDAD: Garantizar que safeStorage existe
 if (!window.safeStorage) {
-      console.warn('⚠️ safeStorage bloqueado, usando fallback local...');
+      console.warn(' safeStorage bloqueado, usando fallback local...');
       window.safeStorage = {
         set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
         get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
@@ -262,28 +262,27 @@ if (!window.safeStorage) {
   // Decodificar JWT
   const jwtPayload = JSON.parse(atob(data.jwt.split('.')[1]));
   
-  // Ahora esta línea ya no fallará
   window.safeStorage.set('role', jwtPayload.role);
   window.safeStorage.set('tenant', jwtPayload.tenant_id || window.__appConfig.tenantUUID); // Si es master (null), usa el del tenant actual
   window.safeStorage.set('user_email', jwtPayload.email);
   
-  console.log('🔑 Datos guardados:', {
+  console.log(' Datos guardados:', {
     role: jwtPayload.role,
     tenant: jwtPayload.tenant_id
   });
 
-  // 🔥 FIX: Usar signInWithPassword en lugar de setSession
+  // Usar signInWithPassword en lugar de setSession
   const { error: authError } = await supabase.auth.signInWithPassword({
     email: email,
     password: password
   });
 
   if (authError) {
-    console.error('❌ Error en signInWithPassword:', authError);
+    console.error(' Error en signInWithPassword:', authError);
     throw new Error('No se pudo crear la sesión');
   }
 
-  console.log('✅ Sesión establecida correctamente');
+  console.log(' Sesión establecida correctamente');
 
   showModal(
     '¡Bienvenido!',
@@ -299,14 +298,14 @@ if (!window.safeStorage) {
     }
   );
 
-} catch (error) {
-  console.error('❌ Error en login:', error.message);
-  await supabase.auth.signOut();
-  btn.disabled = false;
-  btn.querySelector('span').textContent = 'Ingresar';
-  showModal('Error de Acceso', error.message, 'error');
-}
-};
+  } catch (error) {
+    console.error('❌ Error en login:', error.message);
+    await supabase.auth.signOut();
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'Ingresar';
+    showModal('Error de Acceso', error.message, 'error');
+  }
+  };
 
     $('#formEmployees').addEventListener('submit', handleLoginSubmit);
     $('#formContractors').addEventListener('submit', handleLoginSubmit);
@@ -537,7 +536,7 @@ if (!window.safeStorage) {
   }
 
   // =================================================================
-  // ✅ CORRECCIÓN 3: init() - Storage compatible con Tracking Prevention
+  // Init() - Storage compatible con Tracking Prevention
   // =================================================================
   async function init() {
     const currentTenant = detectTenant();
@@ -565,7 +564,7 @@ if (!window.safeStorage) {
           window.safeStorage.remove('tenantSlug');
         }
       } catch(e) {
-        console.warn('⚠️ Error limpiando storage:', e.message);
+        console.warn(' Error limpiando storage:', e.message);
       }
     }
 
@@ -575,13 +574,13 @@ if (!window.safeStorage) {
         window.safeStorage.set('current_tenant', currentTenant);
       }
     } catch(e) {
-      console.warn('⚠️ No se pudo guardar tenant:', e.message);
+      console.warn(' No se pudo guardar tenant:', e.message);
     }
 
-    console.log(`🚀 Inicializando App - Tenant: ${currentTenant}`);
+    console.log(` Inicializando App - Tenant: ${currentTenant}`);
     const config = await loadTenantConfig();
     applyConfiguration(config);
-    console.log('✅ App lista para login');
+    console.log(' App lista para login');
   }
 
   // Disparador

@@ -16,19 +16,19 @@ try {
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-// --- 🛑 FUNCIÓN CRÍTICA: Esperar a que Supabase cargue ---
+// ---  FUNCIÓN CRÍTICA: Esperar a que Supabase cargue ---
 function waitForSupabase() {
     return new Promise((resolve) => {
         // 1. Si ya existe, devolver inmediatamente
         if (typeof window.supabase !== 'undefined' && typeof window.supabase.auth !== 'undefined') {
             return resolve(window.supabase);
         }
-        console.log("⏳ Esperando a Supabase...");
+        console.log(" Esperando a Supabase...");
         // 2. Si no, revisar cada 100ms hasta que aparezca
         const check = setInterval(() => {
             if (typeof window.supabase !== 'undefined' && typeof window.supabase.auth !== 'undefined') {
                 clearInterval(check);
-                console.log("✅ Supabase cargado.");
+                console.log(" Supabase cargado.");
                 resolve(window.supabase);
             }
         }, 100);
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlToken = params.get('token');
 
     if (urlToken && typeof supabase !== 'undefined') {
-        console.log("📲 Recuperando sesión desde URL (Mobile fix)");
+        console.log(" Recuperando sesión desde URL (Mobile fix)");
         await sb.auth.setSession({
                     access_token: urlToken,
                     refresh_token: 'dummy-refresh-token'
