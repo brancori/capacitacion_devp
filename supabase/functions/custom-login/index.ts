@@ -49,7 +49,7 @@ serve(async (req) => {
     // 3. Verificar profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, tenant_id, force_password_reset')
+      .select('role, tenant_id, force_reset')
       .eq('id', authData.user.id)
       .single()
 
@@ -67,7 +67,7 @@ serve(async (req) => {
       )
     }
 
-    if (profile.force_password_reset) {
+    if (profile.force_reset) {
       return new Response(
         JSON.stringify({ 
           error: 'Cambio de contraseña requerido', 
