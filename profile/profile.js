@@ -492,6 +492,10 @@ async function loadUserProfile() {
   // FUNCIÓN PRINCIPAL DE ARRANQUE
   // ═══════════════════════════════════════════════════════════
   async function mainInit() {
+        if (!window.supabaseClient) {
+        setTimeout(mainInit, 100);
+        return;
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
