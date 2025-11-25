@@ -1,8 +1,8 @@
 // componentes/supabase-client.js
-// VERSIÓN 4.0.1: EDGE FUNCTIONS + PROXY HÍBRIDO
+// VERSIÓN 5.0.0: PROXY OBLIGATORIO PARA ENTORNOS CORPORATIVOS
 
-// ✅ URL real de Supabase para Edge Functions
-const SUPABASE_URL = 'https://hvwygpnuunuuylzondxt.supabase.co';
+// ✅ SIEMPRE usar proxy relativo
+const SUPABASE_URL = '/api';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
 
 // ============================================
@@ -92,11 +92,10 @@ function setupClient() {
     realtime: {
       params: { eventsPerSecond: 0 }
     }
-    // ✅ SIN headers personalizados que causen CORS
   };
 
   window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
-  console.log('✅ Cliente Supabase inicializado');
+  console.log('✅ Cliente Supabase inicializado (Modo Proxy)');
 
   // Recuperación de sesión desde URL
   recoverSessionFromUrl();
