@@ -229,7 +229,6 @@ const handleLoginSubmit = async (e) => {
 try {
   const { tenantSlug } = window.__appConfig;
   
-  // 1️⃣ Login via Edge Function
   const { data, error } = await supabase.functions.invoke('custom-login', {
     body: { email, password, tenant_slug: tenantSlug }
   });
@@ -250,21 +249,18 @@ try {
 
   console.log('✅ Edge Function exitosa');
 
-  // 2️⃣ 🔥 FIX: Decodificar JWT PRIMERO
+  // 🔥 Decodificar JWT y guardar
   const jwtPayload = JSON.parse(atob(data.jwt.split('.')[1]));
-  
-  // 3️⃣ Guardar en storage (con fallback)
   window.safeStorage.set('role', jwtPayload.role);
   window.safeStorage.set('tenant', jwtPayload.tenant_id);
   window.safeStorage.set('user_email', jwtPayload.email);
   
   console.log('🔑 Datos guardados:', {
     role: jwtPayload.role,
-    tenant: jwtPayload.tenant_id,
-    email: jwtPayload.email
+    tenant: jwtPayload.tenant_id
   });
 
-  // 4️⃣ 🔥 FIX: Usar signInWithPassword en lugar de setSession
+  // 🔥 FIX: Usar signInWithPassword en lugar de setSession
   const { error: authError } = await supabase.auth.signInWithPassword({
     email: email,
     password: password
@@ -277,17 +273,13 @@ try {
 
   console.log('✅ Sesión establecida correctamente');
 
-  // 5️⃣ Redirigir según rol
   showModal(
     '¡Bienvenido!',
     'Entrando al sistema...',
     'success',
     () => {
       const rolesAdmin = ['master', 'admin', 'supervisor'];
-      const userRole = jwtPayload.role;
-
-      // NO pasar token por URL si ya hay sesión
-      if (rolesAdmin.includes(userRole)) {
+      if (rolesAdmin.includes(jwtPayload.role)) {
         window.location.href = './dashboard.html';
       } else {
         window.location.href = './profile/profile.html';
