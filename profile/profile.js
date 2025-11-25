@@ -31,6 +31,8 @@
     
     // 🔥 FIX: Detectar si es array u objeto
     const profile = Array.isArray(rawData) ? rawData[0] : rawData;
+    console.log("RAW profile row:", rawData);
+
     
     console.log('🔍 Rol detectado (Early Check):', profile?.role);
     
