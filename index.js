@@ -214,77 +214,98 @@ const handleLoginSubmit = async (e) => {
   e.preventDefault();
   const supabase = window.supabase;
   const isEmployeeForm = e.target.id === 'formEmployees';
+  const email = (isEmployeeForm ? $('#empUsername') : $('#conUsername')).value.trim();
+  const password = (isEmployeeForm ? $('#empPassword') : $('#conPassword')).value.trim();
   const btn = isEmployeeForm ? $('#btnLoginEmp') : $('#btnLoginCon');
-  
-  // Selectores
-  const emailInput = isEmployeeForm ? $('#empUsername') : $('#conUsername');
-  const passInput = isEmployeeForm ? $('#empPassword') : $('#conPassword');
-  
-  const email = emailInput.value.trim();
-  const password = passInput.value.trim();
 
   if (!email || !password) {
-    showModal('Error', 'Por favor, completa los campos.', 'error');
+    showModal('Error', 'Por favor, ingresa tu usuario y contraseña.', 'error');
     return;
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Validando...'; // Feedback visual
+  btn.querySelector('span').textContent = 'Validando...';
 
-  try {
-    const { tenantSlug } = window.__appConfig;
+try {
+  const { tenantSlug } = window.__appConfig;
+  
+  const { data, error } = await supabase.functions.invoke('custom-login', {
+    body: { email, password, tenant_slug: tenantSlug }
+  });
 
-    // 1. Login personalizado (Edge Function)
-    const { data, error } = await supabase.functions.invoke('custom-login', {
-      body: { email, password, tenant_slug: tenantSlug }
-    });
+  if (error) throw new Error(error.message || 'Error del servidor');
 
-    if (error) throw new Error(error.message || 'Error de conexión');
-    if (data.error) {
-      if (data.error_code === 'FORCE_RESET') {
-        showResetPasswordModal({ id: data.user_id });
-        btn.disabled = false;
-        btn.innerHTML = '<span>Ingresar</span>';
-        return;
-      }
-      throw new Error(data.error);
+  if (data.error) {
+    if (data.error_code === 'FORCE_RESET') {
+      showResetPasswordModal({ id: data.user_id });
+      btn.disabled = false;
+      return; 
+    }
+    if (data.error_code === 'PENDING_AUTHORIZATION') {
+      throw new Error('Cuenta pendiente de autorización.');
+    }
+    throw new Error(data.error);
+  }
+
+console.log('✅ Edge Function exitosa');
+
+  // 🔥 FIX DE SEGURIDAD: Garantizar que safeStorage existe
+if (!window.safeStorage) {
+      console.warn('⚠️ safeStorage bloqueado, usando fallback local...');
+      window.safeStorage = {
+        set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
+        get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
+        remove: (k) => { try { localStorage.removeItem(k); } catch(e){} }
+      };
     }
 
-    // 2. Guardar datos en SafeStorage
-    const jwtPayload = JSON.parse(atob(data.jwt.split('.')[1]));
-    const userRole = jwtPayload.role || 'user';
-    
-    window.safeStorage.set('role', userRole);
-    window.safeStorage.set('tenant', jwtPayload.tenant_id || window.__appConfig.tenantUUID);
-    window.safeStorage.set('full_name', data.user?.user_metadata?.full_name || 'Usuario');
+  // Decodificar JWT
+  const jwtPayload = JSON.parse(atob(data.jwt.split('.')[1]));
+  
+  // Ahora esta línea ya no fallará
+  window.safeStorage.set('role', jwtPayload.role);
+  window.safeStorage.set('tenant', jwtPayload.tenant_id || window.__appConfig.tenantUUID); // Si es master (null), usa el del tenant actual
+  window.safeStorage.set('user_email', jwtPayload.email);
+  
+  console.log('🔑 Datos guardados:', {
+    role: jwtPayload.role,
+    tenant: jwtPayload.tenant_id
+  });
 
-    // 3. Iniciar sesión en cliente Supabase
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    if (authError) throw new Error('Error al establecer sesión local');
+  // 🔥 FIX: Usar signInWithPassword en lugar de setSession
+  const { error: authError } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
 
-    console.log(`✅ Login exitoso. Rol: ${userRole}`);
-
-    // 4. REDIRECCIÓN INTELIGENTE
-    const adminRoles = ['master', 'admin', 'supervisor'];
-    
-    // Pequeño delay para asegurar que el storage se escriba
-    setTimeout(() => {
-        if (adminRoles.includes(userRole)) {
-            // ADMINS -> Dashboard en la raíz
-            window.location.href = './dashboard.html'; 
-        } else {
-            // EMPLEADOS -> Perfil en carpeta profile
-            window.location.href = './profile/profile.html';
-        }
-    }, 100);
-
-  } catch (error) {
-    console.error('Login Error:', error);
-    showModal('Error de Acceso', error.message, 'error');
-    await supabase.auth.signOut();
-    btn.disabled = false;
-    btn.innerHTML = '<span>Ingresar</span>';
+  if (authError) {
+    console.error('❌ Error en signInWithPassword:', authError);
+    throw new Error('No se pudo crear la sesión');
   }
+
+  console.log('✅ Sesión establecida correctamente');
+
+  showModal(
+    '¡Bienvenido!',
+    'Entrando al sistema...',
+    'success',
+    () => {
+      const rolesAdmin = ['master', 'admin', 'supervisor'];
+      if (rolesAdmin.includes(jwtPayload.role)) {
+        window.location.href = './dashboard.html';
+      } else {
+        window.location.href = './profile/profile.html';
+      }
+    }
+  );
+
+} catch (error) {
+  console.error('❌ Error en login:', error.message);
+  await supabase.auth.signOut();
+  btn.disabled = false;
+  btn.querySelector('span').textContent = 'Ingresar';
+  showModal('Error de Acceso', error.message, 'error');
+}
 };
 
     $('#formEmployees').addEventListener('submit', handleLoginSubmit);
