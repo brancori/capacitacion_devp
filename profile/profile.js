@@ -202,7 +202,7 @@ async function loadUserProfile() {
   try {
     let role = window.safeStorage.get('role');
     let fullName = window.safeStorage.get('full_name');
-    let tenantId = window.safeStorage.get('tenant_id');
+    let tenantId = window.safeStorage.get('tenant');
 
     if (!role || !fullName) {
       console.warn('⚠️ Datos faltantes, consultando profile...');
@@ -222,7 +222,7 @@ async function loadUserProfile() {
       
       window.safeStorage.set('role', role);
       window.safeStorage.set('full_name', fullName);
-      window.safeStorage.set('tenant_id', tenantId);
+      window.safeStorage.set('tenant', tenantId);
 
       console.log('🔥 PERFIL guardado en cache:', { role, fullName, tenantId });
     } else {
@@ -265,7 +265,7 @@ async function loadUserProfile() {
   // 🔥 FIX 2: Cerrar correctamente loadRealDashboardData
   async function loadRealDashboardData(userId) {
     const cachedRole = window.safeStorage.get('role');
-    const cachedTenant = window.safeStorage.get('tenant_id');
+    const cachedTenant = window.safeStorage.get('tenant');
     const cachedName = window.safeStorage.get('full_name');
 
     console.log('📦 Usando datos cacheados para dashboard:', {
@@ -530,7 +530,7 @@ async function loadUserProfile() {
         }
 
         window.safeStorage.set('role', profile.role);
-        window.safeStorage.set('tenant_id', profile.tenant_id);
+        window.safeStorage.set('tenant', profile.tenant_id);
         window.safeStorage.set('full_name', profile.full_name);
       }
 

@@ -226,32 +226,31 @@ const handleLoginSubmit = async (e) => {
   btn.disabled = true;
   btn.querySelector('span').textContent = 'Validando...';
 
-try {
-  const { tenantSlug } = window.__appConfig;
-  
-  const { data, error } = await supabase.functions.invoke('custom-login', {
-    body: { email, password, tenant_slug: tenantSlug }
-  });
+  try {
+    const { tenantSlug } = window.__appConfig;
+    
+    // 1. Validación Personalizada (Edge Function)
+    const { data, error } = await supabase.functions.invoke('custom-login', {
+      body: { email, password, tenant_slug: tenantSlug }
+    });
 
-  if (error) throw new Error(error.message || 'Error del servidor');
+    if (error) throw new Error(error.message || 'Error del servidor');
 
-  if (data.error) {
-    if (data.error_code === 'FORCE_RESET') {
-      showResetPasswordModal({ id: data.user_id });
-      btn.disabled = false;
-      return; 
+    if (data.error) {
+      if (data.error_code === 'FORCE_RESET') {
+        showResetPasswordModal({ id: data.user_id });
+        btn.disabled = false;
+        return; 
+      }
+      if (data.error_code === 'PENDING_AUTHORIZATION') {
+        throw new Error('Cuenta pendiente de autorización.');
+      }
+      throw new Error(data.error);
     }
-    if (data.error_code === 'PENDING_AUTHORIZATION') {
-      throw new Error('Cuenta pendiente de autorización.');
-    }
-    throw new Error(data.error);
-  }
 
-console.log(' Edge Function exitosa');
+    console.log('✅ Edge Function exitosa');
 
-  //  FIX DE SEGURIDAD: Garantizar que safeStorage existe
-if (!window.safeStorage) {
-      console.warn(' safeStorage bloqueado, usando fallback local...');
+    if (!window.safeStorage) {
       window.safeStorage = {
         set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
         get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
@@ -259,44 +258,51 @@ if (!window.safeStorage) {
       };
     }
 
-  // Decodificar JWT
-  const jwtPayload = JSON.parse(atob(data.jwt.split('.')[1]));
-  
-  window.safeStorage.set('role', jwtPayload.role);
-  window.safeStorage.set('tenant', jwtPayload.tenant_id || window.__appConfig.tenantUUID); // Si es master (null), usa el del tenant actual
-  window.safeStorage.set('user_email', jwtPayload.email);
-  
-  console.log(' Datos guardados:', {
-    role: jwtPayload.role,
-    tenant: jwtPayload.tenant_id
-  });
+    // 2. Iniciar Sesión Real en Supabase (Esto habilita RLS)
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
 
-  // Usar signInWithPassword en lugar de setSession
-  const { error: authError } = await supabase.auth.signInWithPassword({
-    email: email,
-    password: password
-  });
-
-  if (authError) {
-    console.error(' Error en signInWithPassword:', authError);
-    throw new Error('No se pudo crear la sesión');
-  }
-
-  console.log(' Sesión establecida correctamente');
-
-  showModal(
-    '¡Bienvenido!',
-    'Entrando al sistema...',
-    'success',
-    () => {
-      const rolesAdmin = ['master', 'admin', 'supervisor'];
-      if (rolesAdmin.includes(jwtPayload.role)) {
-        window.location.href = './dashboard.html';
-      } else {
-        window.location.href = './profile/profile.html';
-      }
+    if (authError) {
+      console.error('Error en signInWithPassword:', authError);
+      throw new Error('No se pudo crear la sesión');
     }
-  );
+
+    // 3. OBTENCIÓN DE DATOS REALES (Fix para rol y tenant)
+    // Consultamos la tabla profiles para asegurar que tenemos el rol del negocio, no el de auth
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, tenant_id')
+        .eq('id', authData.user.id)
+        .single();
+
+    if (profileError) throw new Error('Error recuperando perfil de usuario.');
+
+    // 4. Guardar datos correctos en safeStorage
+    window.safeStorage.set('role', profile.role);
+    // Si es master (tenant_id null), usamos null, si no, el ID de la base de datos
+    window.safeStorage.set('tenant', profile.tenant_id); 
+    window.safeStorage.set('user_email', email);
+    
+    console.log('✅ Datos Finales Guardados:', {
+      role: profile.role,
+      tenant: profile.tenant_id
+    });
+
+    showModal(
+      '¡Bienvenido!',
+      'Entrando al sistema...',
+      'success',
+      () => {
+        const rolesAdmin = ['master', 'admin', 'supervisor'];
+        if (rolesAdmin.includes(profile.role)) {
+          window.location.href = './dashboard.html';
+        } else {
+          window.location.href = './profile/profile.html';
+        }
+      }
+    );
 
   } catch (error) {
     console.error('❌ Error en login:', error.message);
@@ -305,7 +311,7 @@ if (!window.safeStorage) {
     btn.querySelector('span').textContent = 'Ingresar';
     showModal('Error de Acceso', error.message, 'error');
   }
-  };
+};
 
     $('#formEmployees').addEventListener('submit', handleLoginSubmit);
     $('#formContractors').addEventListener('submit', handleLoginSubmit);
