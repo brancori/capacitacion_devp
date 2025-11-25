@@ -1,14 +1,19 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// ✅ CORRECCIÓN: Headers CORS completos según documentación oficial
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name, x-requested-with',
 };
 
 Deno.serve(async (req) => {
+  // ✅ CRÍTICO: El OPTIONS debe estar PRIMERO, antes de cualquier otra lógica
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { 
+      headers: corsHeaders,
+      status: 204 
+    });
   }
 
   try {
@@ -55,10 +60,10 @@ Deno.serve(async (req) => {
       throw new Error("Usuario o contraseña incorrectos.");
     }
 
-    // 4. Verificar Perfil (AQUÍ AGREGAMOS force_reset)
+    // 4. Verificar Perfil
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("status, tenant_id, role, force_reset") // <--- CAMBIO 1
+      .select("status, tenant_id, role, force_reset")
       .eq("id", authData.user.id)
       .single();
 
@@ -66,7 +71,7 @@ Deno.serve(async (req) => {
       throw new Error("Perfil de usuario no encontrado.");
     }
 
-    // 🛑 CAMBIO 2: Bloqueo por cambio de contraseña forzoso
+    // 🛑 Bloqueo por cambio de contraseña forzoso
     if (profile.force_reset === true) {
       return new Response(
         JSON.stringify({ 
@@ -74,7 +79,10 @@ Deno.serve(async (req) => {
           error_code: 'FORCE_RESET', 
           user_id: authData.user.id 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200 
+        }
       );
     }
 
@@ -91,7 +99,10 @@ Deno.serve(async (req) => {
           error: "Cuenta pendiente de autorización. Contacta a tu administrador.",
           error_code: "PENDING_AUTHORIZATION",
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+          status: 401 
+        }
       );
     }
 
@@ -101,7 +112,10 @@ Deno.serve(async (req) => {
           error: "Tu cuenta ha sido suspendida o está inactiva.",
           error_code: "ACCOUNT_SUSPENDED",
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+          status: 403 
+        }
       );
     }
 

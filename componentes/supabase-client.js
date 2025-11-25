@@ -1,9 +1,9 @@
 // componentes/supabase-client.js
-// VERSIÓN 3.0.7: Fix Tracking Prevention + CDN Fallback
+// VERSIÓN 4.0.1: EDGE FUNCTIONS + PROXY HÍBRIDO
 
+// ✅ URL real de Supabase para Edge Functions
 const SUPABASE_URL = 'https://hvwygpnuunuuylzondxt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
-
 
 // ============================================
 // SAFE STORAGE (Fix Tracking Prevention)
@@ -62,7 +62,6 @@ function clearAllAuthData() {
 // INICIALIZACIÓN CON ESPERA
 // ============================================
 async function initSupabaseClient() {
-  // Esperar a que Supabase esté disponible
   let attempts = 0;
   const maxAttempts = 30; // 3 segundos
 
@@ -92,14 +91,12 @@ function setupClient() {
     },
     realtime: {
       params: { eventsPerSecond: 0 }
-    },
-    global: {
-      headers: { 'x-application-name': 'siresi-proxy-client' }
     }
+    // ✅ SIN headers personalizados que causen CORS
   };
 
   window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
-  console.log('✅ Cliente Supabase inicializado (Proxy Compatible)');
+  console.log('✅ Cliente Supabase inicializado');
 
   // Recuperación de sesión desde URL
   recoverSessionFromUrl();
@@ -158,6 +155,7 @@ function setupLogoutButton() {
     });
   }
 }
+
 // ============================================
 // INICIALIZACIÓN
 // ============================================

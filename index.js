@@ -103,10 +103,10 @@
         config.tenantUUID = tenantDb.id;
       }
       
-      console.log(`✅ Tenant Configurado: ${config.companyName} (slug: ${config.tenantSlug})`);
+      console.log(` Tenant Configurado: ${config.companyName} (slug: ${config.tenantSlug})`);
       return config;
     } catch (error) {
-      console.warn('⚠️ Error al cargar tenant config:', error);
+      console.warn(' Error al cargar tenant config:', error);
       return { ...DEFAULTS, tenantSlug: 'default' };
     }
   }
