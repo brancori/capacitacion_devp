@@ -469,7 +469,7 @@ async function rebuildAppConfig() {
 
   // FUNCIÓN PRINCIPAL DE ARRANQUE
   // ═══════════════════════════════════════════════════════════
-  async function mainInit() {
+async function mainInit() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -481,45 +481,35 @@ async function rebuildAppConfig() {
 
       console.log('✅ Sesión válida detectada');
 
+      // 1. Cargar Configuración
       const config = await loadTenantConfig();
       applyConfiguration(config);
 
+      // 2. Obtener Usuario
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData?.user) {
         console.error("❌ Error obteniendo usuario:", authError);
         window.location.href = '../index.html';
         return;
       }
-      
       const userId = authData.user.id;
-      console.log('👤 Usuario autenticado:', userId);
 
-      let cachedRole = window.safeStorage.get('role');
-      let cachedTenant = window.safeStorage.get('tenant');
+      // 3. Cargar Perfil (Esto devuelve el objeto con los datos frescos)
+      // 🔥 Guardamos el resultado en una variable para usarla después
+      const userProfile = await loadUserProfile(); 
 
-      if (!cachedRole || !cachedTenant) {
-        console.warn('⚠️ Consultando DB...');
-        
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("tenant_id, role, full_name")
-          .eq("id", userId)
-          .single();
-
-        if (profileError) {
-          console.error("❌ Error:", profileError);
-          window.location.href = '../index.html';
-          return;
-        }
-
-        window.safeStorage.set('role', profile.role);
-        window.safeStorage.set('tenant', profile.tenant_id);
-        window.safeStorage.set('full_name', profile.full_name);
+      // 4. Verificar Redirección Admin (Opcional)
+      // Si es admin/master, quizás quieras mandarlo al dashboard principal
+      if (['master', 'admin', 'supervisor'].includes(userProfile.role)) {
+          console.log(`👮 Usuario es ${userProfile.role}, mostrando opciones de gestión.`);
+          const manageBtn = document.getElementById('manageUsersBtn');
+          if(manageBtn) manageBtn.style.display = 'flex';
       }
 
-      await loadUserProfile();
+      // 5. Cargar Datos del Dashboard
       await loadRealDashboardData(userId);
 
+      // 6. Cargar Cursos Asignados
       const { data: assignments } = await supabase
         .from("user_course_assignments")
         .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
@@ -538,13 +528,15 @@ async function rebuildAppConfig() {
       renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día!');
       renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado cursos.');
 
+      // 7. Inicializar UI Final
       initUI();
       document.body.classList.add('loaded');
       
-      console.log('🎉 Inicialización completa');
+      console.log('🎉 Inicialización completa. Rol:', userProfile.role);
 
     } catch (error) {
-      console.error('❌ Error fatal:', error);
+      console.error('❌ Error fatal en mainInit:', error);
+      // En caso de error, mostramos la página igual para no dejarla en blanco
       document.body.classList.add('loaded');
     }
   }
