@@ -28,6 +28,10 @@ window.safeStorage = window.safeStorage || {
 };
 
 (async function earlyRoleCheck() {
+        if (typeof window.supabaseClient === 'undefined') {
+        setTimeout(earlyRoleCheck, 50);
+        return;
+    }
   // Esperar a que window.supabase esté listo (pequeño retry)
   if (!window.supabase) {
     console.warn('⏳ Supabase no listo, esperando...');
