@@ -1,4 +1,4 @@
-Console.log('🔄 Inicializando supabase-client.js...');
+console.log('🔄 Inicializando supabase-client.js...');
 
 const SUPABASE_PROXY_URL = window.location.origin + '/api';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
@@ -26,14 +26,7 @@ window.safeStorage = {
 // INICIALIZAR SUPABASE
 // ═══════════════════════════════════════════════════════════
 function initSupabaseClient() {
-  // 1. EVITAR RE-INICIALIZACIÓN (Si ya existe .functions, ya es un cliente)
-  if (window.supabase && typeof window.supabase.functions?.invoke === 'function') {
-      console.log('⚡ Cliente Supabase ya estaba activo.');
-      return; 
-  }
-
   const tryInit = () => {
-    // 2. BUSCAR LA LIBRERÍA (Asegurarse que cargó el script CDN)
     if (typeof window.supabase?.createClient === 'function') {
       
       const clientOptions = {
@@ -48,33 +41,24 @@ function initSupabaseClient() {
           }
         },
         global: {
-          headers: { 
-            "apikey": SUPABASE_ANON_KEY,
-            "x-application-name": "siresi-proxy-client" // Ayuda a identificar tráfico
-          }
+          headers: { "apikey": SUPABASE_ANON_KEY }
         },
         // 🔥 FORZAR RUTA DEL PROXY PARA EDGE FUNCTIONS
-        // Esto convierte: supabase.functions.invoke('login') 
-        // En: https://siresi.aulacorporativa.com/api/functions/v1/login
         functions: {
             url: SUPABASE_PROXY_URL + '/functions/v1' 
         }
       };
 
-      console.log('🌐 Apuntando Supabase a:', SUPABASE_PROXY_URL);
-
       // Crear cliente apuntando al proxy PHP
-      // IMPORTANTE: Sobrescribimos window.supabase CON CUIDADO
       window.supabase = window.supabase.createClient(
         SUPABASE_PROXY_URL,
         SUPABASE_ANON_KEY,
         clientOptions
       );
 
-      console.log('✅ Cliente Supabase (Proxy) inicializado correctamente');
+      console.log('✅ Cliente Supabase (Proxy) inicializado');
       setupLogoutButton();
     } else {
-      console.log('⏳ Esperando librería Supabase...');
       setTimeout(tryInit, 100);
     }
   };
@@ -84,11 +68,7 @@ function initSupabaseClient() {
 function setupLogoutButton() {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
-    // Eliminamos listeners anteriores para evitar duplicados (buena práctica)
-    const newBtn = logoutBtn.cloneNode(true);
-    logoutBtn.parentNode.replaceChild(newBtn, logoutBtn);
-    
-    newBtn.addEventListener('click', async (e) => {
+    logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       try { await window.supabase.auth.signOut(); } catch (err) {}
       ['role', 'tenant', 'full_name', 'current_tenant', 'tenantTheme'].forEach(k => window.safeStorage.remove(k));
