@@ -329,16 +329,30 @@ async function loadUserProfile() {
 async function loadRealDashboardData(userId) {
     const supabase = window.supabase;
 
-    // 1. CARGA DE DATOS (Perfil, Asignaciones, Mis Insignias, Catálogo Completo, Logs)
-    const [profileRes, assignmentsRes, myBadgesRes, allBadgesRes, logsRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', userId).single(),
+    // 1. CARGA DE DATOS - Obtener perfil primero para tener el role
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+    if (profileError) {
+        console.error('❌ Error cargando perfil:', profileError);
+        return;
+    }
+
+    // ✅ CORREGIDO: Ahora profile.role viene de la tabla profiles
+    const userRole = profile?.role || 'employee';
+    console.log('🔍 Role del usuario:', userRole);
+
+    // Continuar con las otras consultas
+    const [assignmentsRes, myBadgesRes, allBadgesRes, logsRes] = await Promise.all([
         supabase.from('user_course_assignments').select('*, articles:course_id(title, duration_text)').eq('user_id', userId),
         supabase.from('user_badges').select('badge_id'), 
         supabase.from('badges').select('*'),             
         supabase.from('activity_logs').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(5)
     ]);
 
-    const profile = profileRes.data;
     const assignments = assignmentsRes.data || [];
     const myBadgesIds = new Set((myBadgesRes.data || []).map(b => b.badge_id)); 
     const allBadges = allBadgesRes.data || [];
@@ -353,72 +367,56 @@ async function loadRealDashboardData(userId) {
         
         const shortId = profile.id.split('-')[0].toUpperCase(); 
         const roleEl = document.querySelector('.profile-card .role');
-        if(roleEl) roleEl.textContent = `${profile.role === 'master' ? 'Administrador' : 'Colaborador'} | ID: ${shortId}`;
+        if(roleEl) {
+            const roleDisplay = userRole === 'master' ? 'Administrador' : 
+                               userRole === 'admin' ? 'Administrador' :
+                               userRole === 'supervisor' ? 'Supervisor' : 'Colaborador';
+            roleEl.textContent = `${roleDisplay} | ID: ${shortId}`;
+        }
     }
 
     // --- B. Estadísticas y Donut Chart ---
     const totalCursos = assignments.length;
-    // Consideramos completado si status es 'completed' O si el progreso es 100
     const completados = assignments.filter(a => a.status === 'completed' || Number(a.progress) === 100).length;
     const pendientes = assignments.filter(a => a.status !== 'completed' && Number(a.progress) < 100).length;
     
-    // Calcular porcentaje
     const percentage = totalCursos > 0 ? Math.round((completados / totalCursos) * 100) : 0;
 
-    // --- FIX DEL DONUT ---
-const donutFg = document.querySelector('.progress-donut-fg');
+    const donutFg = document.querySelector('.progress-donut-fg');
     const donutText = document.querySelector('.progress-text');
     const progressMsg = document.querySelector('.profile-card p[style*="primary"]');
 
     if (donutFg) {
-        // 1. Definir radio y circunferencia exacta (r=69 según tu HTML)
         const radius = 69;
-        const circumference = 2 * Math.PI * radius; // Aprox 433.54
-
-        // 2. Calcular el offset
-        // Si porcentaje es 0, el offset es igual a la circunferencia (círculo vacío)
-        // Si porcentaje es 100, el offset es 0 (círculo lleno)
+        const circumference = 2 * Math.PI * radius;
         const offset = circumference - (percentage / 100) * circumference;
 
-        // 3. APLICAR ESTILOS FORZOSOS
-        // Es CRÍTICO establecer el dasharray aquí para asegurar que coincida con la matemática
         donutFg.style.strokeDasharray = `${circumference} ${circumference}`;
-        
-        // Desactivamos cualquier animación o transición CSS que esté estorbando
         donutFg.style.transition = 'none'; 
         donutFg.style.animation = 'none'; 
-
-        // Aplicamos el valor calculado
         donutFg.style.strokeDashoffset = offset;
 
-        // Debug para ver en consola si está calculando bien
-        console.log(` Donut Debug: ${percentage}% | Offset: ${offset}`);
+        console.log(`📊 Donut Debug: ${percentage}% | Offset: ${offset}`);
     }
 
     if (donutText) donutText.textContent = `${percentage}%`;
     if (progressMsg) progressMsg.textContent = `${completados} de ${totalCursos} cursos completados`;
 
-    // Actualizar Tarjetas de Estadísticas (Grid)
     const statCards = document.querySelectorAll('.stat-card h3');
     if(statCards.length >= 3) {
         if(statCards[0]) statCards[0].textContent = totalCursos;
         if(statCards[1]) statCards[1].textContent = completados;
         if(statCards[2]) statCards[2].textContent = pendientes;
-        // La tarjeta de "Urgente" la calculamos abajo
     }
 
-    // --- C. RENDERIZADO DE INSIGNIAS (Lógica de Álbum) ---
+    // --- C. RENDERIZADO DE INSIGNIAS ---
     const badgesContainer = document.querySelector('.badges-grid');
     if (badgesContainer) {
         if (allBadges.length === 0) {
             badgesContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; font-size: 0.8rem;">No hay insignias disponibles.</p>';
         } else {
-            // Recorremos el CATÁLOGO COMPLETO (allBadges) para mostrarlas todas
             badgesContainer.innerHTML = allBadges.map(badge => {
-                // Checamos si el usuario tiene esta estampita
                 const isEarned = myBadgesIds.has(badge.id);
-                
-                // Si la tiene = color ('earned'). Si no = gris ('badge' normal del CSS)
                 const cssClass = isEarned ? 'badge earned' : 'badge';
                 const tooltip = isEarned ? '¡Insignia Obtenida!' : 'Bloqueado: Completa los requisitos';
 
@@ -437,7 +435,6 @@ const donutFg = document.querySelector('.progress-donut-fg');
     const urgentThreshold = new Date();
     urgentThreshold.setDate(now.getDate() + 7);
 
-    // Filtramos urgentes para el contador de la tarjeta roja
     const urgentesCount = assignments.filter(a => {
         if (!a.due_date || a.status === 'completed') return false;
         const due = new Date(a.due_date);
@@ -446,7 +443,6 @@ const donutFg = document.querySelector('.progress-donut-fg');
     
     if(statCards[3]) statCards[3].textContent = urgentesCount;
 
-    // Renderizar lista del calendario
     const calendarContainer = document.querySelector('.calendar-card');
     const upcomingAssignments = assignments
         .filter(a => a.due_date && a.status !== 'completed')
