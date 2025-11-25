@@ -124,7 +124,9 @@ async function loadTenantConfig() {
   console.log(`🔍 Detectando tenant: ${tenantId}`);
   try {
     const response = await fetch('../tenants/tenants.json', {
-      headers: { 'Accept': 'application/json' }
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      
     });
     if (!response.ok) throw new Error('No se pudo cargar tenants.json');
     const data = await response.json();
