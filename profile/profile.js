@@ -19,6 +19,13 @@ async function rebuildAppConfig() {
   console.log('🔧 AppConfig reconstruido:', window.__appConfig);
 }
 
+
+
+window.safeStorage = window.safeStorage || {
+  set: (k, v) => localStorage.setItem(k, v),
+  get: (k) => localStorage.getItem(k),
+  remove: (k) => localStorage.removeItem(k)
+};
 (async function earlyRoleCheck() {
   try {
     const { data: { session } } = await window.supabase.auth.getSession();
@@ -31,7 +38,7 @@ async function rebuildAppConfig() {
 
     console.log('✅ Sesión detectada');
 
-    const cachedRole = window.safeStorage.get('role');
+    const cachedRole = window.safeStorage.get('role') ?? null;
     
     if (!cachedRole) {
       console.warn('⚠️ Role no encontrado en storage, consultando DB...');
@@ -49,7 +56,7 @@ async function rebuildAppConfig() {
       }
     }
 
-    const finalRole = window.safeStorage.get('role');
+    const finalRole = window.safeStorage.get('role') ?? null;
     console.log('🔍 Role detectado (Early Check):', finalRole);
     
     if (['master', 'admin', 'supervisor'].includes(finalRole)) {
