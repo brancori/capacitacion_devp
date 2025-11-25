@@ -70,7 +70,11 @@ window.safeStorage = window.safeStorage || {
 
 
     
-    const finalRole = window.safeStorage.get('role') ?? null;
+    let finalRole = window.safeStorage.get('role');
+    if (!finalRole || finalRole === 'authenticated') {
+    finalRole = user?.app_metadata?.role ?? finalRole;
+    window.safeStorage.set('role', finalRole);
+    }
     console.log('🔍 Role detectado (Early Check):', finalRole);
     
     if (['master', 'admin', 'supervisor'].includes(finalRole)) {
@@ -188,7 +192,7 @@ window.safeStorage = window.safeStorage || {
     }
 
     const manageUsersBtn = document.getElementById('manageUsersBtn');
-    const allowedRoles = ['master', 'admin', 'supervisor', 'authenticated_admin'];
+    const allowedRoles = ['master', 'admin', 'supervisor', 'authenticated_admin', 'authenticated'];
     if (manageUsersBtn) {
       manageUsersBtn.style.display = allowedRoles.includes(profile.role) ? 'flex' : 'none';
     }
@@ -202,36 +206,33 @@ async function loadUserProfile() {
 
     if (!role || !fullName) {
       console.warn('⚠️ Datos faltantes, consultando profile...');
-      
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('role, full_name, tenant_id')
-    .eq('id', user.id)
-    .single();
 
-    let role = profile?.role ?? user?.app_metadata?.role ?? null;
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, full_name, tenant_id')
+        .eq('id', user.id)
+        .single();
 
       if (error) throw error;
 
-      role = profile.role;
-      fullName = profile.full_name;
-      tenantId = profile.tenant_id;
+      role = profile?.role ?? user?.app_metadata?.role ?? null;
+      fullName = profile?.full_name ?? '';
+      tenantId = profile?.tenant_id ?? null;
       
       window.safeStorage.set('role', role);
       window.safeStorage.set('full_name', fullName);
       window.safeStorage.set('tenant', tenantId);
 
-      console.log('✅ Perfil consultado y cacheado');
+      console.log('🔥 PERFIL guardado en cache:', { role, fullName, tenantId });
     } else {
-      console.log('✅ Usando perfil del cache');
+      console.log('✔️ Perfil leído desde cache');
     }
 
     const profileData = { role, full_name: fullName, tenant_id: tenantId };
     updateProfileView(profileData);
 
     return profileData;
-
   } catch (error) {
     window.location.href = '../index.html';
   }
