@@ -28,76 +28,58 @@ window.safeStorage = window.safeStorage || {
 };
 
 (async function earlyRoleCheck() {
-        if (typeof window.supabase === 'undefined') {
+    // FIX: Esperar a que 'window.supabase' Y 'window.supabase.auth' existan
+    if (!window.supabase || !window.supabase.auth) {
         setTimeout(earlyRoleCheck, 50);
         return;
     }
-  // Esperar a que window.supabase esté listo (pequeño retry)
-  if (!window.supabase) {
-    console.warn('⏳ Supabase no listo, esperando...');
-    await new Promise(r => setTimeout(r, 100)); // espera 100ms
-    if (!window.supabase) {
-      console.error('❌ Supabase no pudo cargarse (revisar supabase-client.js)');
-      return;
-    }
-  }
 
-  try {
-    const { data: { session } } = await window.supabase.auth.getSession();
-    
-    if (!session) {
-      console.warn('⚠️ Sin sesión activa, mostrando página');
-      document.body.classList.add('loaded');
-      return;
-    }
-
-    console.log('✅ Sesión detectada');
-
-    let finalRole = window.safeStorage.get('role');
-    
-    // Si no hay rol en caché o es genérico, buscarlo
-    if (!finalRole || finalRole === 'authenticated') {
-      console.warn('⚠️ Role no encontrado o inválido, consultando DB...');
-      
-      const { data: { user } } = await window.supabase.auth.getUser();
-      
-      if (user) {
-        // 1) Intentar leer desde profiles
-        const { data: profile } = await window.supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.role) {
-          finalRole = profile.role;
-        } 
-        // 2) Fallback: Metadata
-        else if (user.app_metadata?.role) {
-          finalRole = user.app_metadata.role;
+    try {
+        const { data: { session } } = await window.supabase.auth.getSession();
+        
+        if (!session) {
+            console.warn('⚠️ Sin sesión activa, mostrando página');
+            document.body.classList.add('loaded');
+            return;
         }
 
-        if (finalRole) {
-          window.safeStorage.set('role', finalRole);
-          console.log('🔥 Role recuperado y guardado:', finalRole);
-        }
-      }
-    }
+        console.log('✅ Sesión detectada');
 
-    console.log('🔍 Role final (Early Check):', finalRole);
-    
-    if (['master', 'admin', 'supervisor'].includes(finalRole)) {
-      console.log(`🔄 Redirigiendo ${finalRole} → dashboard`);
-      window.location.replace('../dashboard.html');
-      return; 
+        let finalRole = window.safeStorage.get('role');
+        
+        if (!finalRole || finalRole === 'authenticated') {
+            const { data: { user } } = await window.supabase.auth.getUser();
+            
+            if (user) {
+                const { data: profile } = await window.supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile?.role) {
+                    finalRole = profile.role;
+                } else if (user.app_metadata?.role) {
+                    finalRole = user.app_metadata.role;
+                }
+
+                if (finalRole) {
+                    window.safeStorage.set('role', finalRole);
+                }
+            }
+        }
+
+        if (['master', 'admin', 'supervisor'].includes(finalRole)) {
+            window.location.replace('../dashboard.html');
+            return; 
+        }
+        
+        document.body.classList.add('loaded');
+        
+    } catch (error) {
+        console.error('❌ Error en validación:', error);
+        document.body.classList.add('loaded'); 
     }
-    
-    document.body.classList.add('loaded');
-    
-  } catch (error) {
-    console.error('❌ Error en validación:', error);
-    document.body.classList.add('loaded'); 
-  }
 })();
 
 
@@ -495,93 +477,100 @@ async function loadUserProfile() {
 
   // FUNCIÓN PRINCIPAL DE ARRANQUE
   // ═══════════════════════════════════════════════════════════
-  async function mainInit() {
-        if (!window.supabase) {
+// profile.js - Función mainInit corregida
+
+async function mainInit() {
+    // 1. Validar window.supabase (que coincide con tu supabase-client.js)
+    if (!window.supabase || !window.supabase.auth) {
         setTimeout(mainInit, 100);
         return;
     }
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+        // 2. Usar window.supabase en todas las llamadas
+        const { data: { session } } = await window.supabase.auth.getSession();
       
-      if (!session) {
-        console.error('❌ Sin sesión activa');
-        window.location.href = '../index.html';
-        return;
-      }
-
-      console.log('✅ Sesión válida detectada');
-
-      const config = await loadTenantConfig();
-      applyConfiguration(config);
-
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError || !authData?.user) {
-        console.error("❌ Error obteniendo usuario:", authError);
-        window.location.href = '../index.html';
-        return;
-      }
-      
-      const userId = authData.user.id;
-      console.log('👤 Usuario autenticado:', userId);
-
-      let cachedRole = window.safeStorage.get('role');
-      let cachedTenant = window.safeStorage.get('tenant');
-
-      if (!cachedRole || !cachedTenant) {
-        console.warn('⚠️ Consultando DB...');
-        
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("tenant_id, role, full_name")
-          .eq("id", userId)
-          .single();
-
-        if (profileError) {
-          console.error("❌ Error:", profileError);
-          window.location.href = '../index.html';
-          return;
+        if (!session) {
+            console.error('❌ Sin sesión activa');
+            window.location.href = '../index.html';
+            return;
         }
 
-        window.safeStorage.set('role', profile.role);
-        window.safeStorage.set('tenant', profile.tenant_id);
-        window.safeStorage.set('full_name', profile.full_name);
-      }
+        console.log('✅ Sesión válida detectada');
 
-      await loadUserProfile();
-      await loadRealDashboardData(userId);
+        // Asegúrate de que loadTenantConfig esté definida o importada
+        const config = await loadTenantConfig();
+        applyConfiguration(config);
 
-      const { data: assignments } = await supabase
-        .from("user_course_assignments")
-        .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
-        .eq('user_id', userId);
-
-      const allCourses = (assignments || []).map(a => {
-        if (!a.articles) return null;
-        const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
-        if (!articleData) return null;
-        return { ...articleData, progress: a.progress || 0, due_date: a.due_date, assignment_status: a.status };
-      }).filter(c => c !== null);
-
-      const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
-      const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
-
-      renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día!');
-      renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado cursos.');
-
-      initUI();
-      document.body.classList.add('loaded');
+        const { data: authData, error: authError } = await window.supabase.auth.getUser();
+        if (authError || !authData?.user) {
+            console.error("❌ Error obteniendo usuario:", authError);
+            window.location.href = '../index.html';
+            return;
+        }
       
-      console.log('🎉 Inicialización completa');
+        const userId = authData.user.id;
+        console.log('👤 Usuario autenticado:', userId);
+
+        let cachedRole = window.safeStorage.get('role');
+        let cachedTenant = window.safeStorage.get('tenant');
+
+        if (!cachedRole || !cachedTenant) {
+            console.warn('⚠️ Consultando DB...');
+        
+            const { data: profile, error: profileError } = await window.supabase
+                .from("profiles")
+                .select("tenant_id, role, full_name")
+                .eq("id", userId)
+                .single();
+
+            if (profileError) {
+                console.error("❌ Error:", profileError);
+                window.location.href = '../index.html';
+                return;
+            }
+
+            window.safeStorage.set('role', profile.role);
+            window.safeStorage.set('tenant', profile.tenant_id);
+            window.safeStorage.set('full_name', profile.full_name);
+        }
+
+        await loadUserProfile();
+        await loadRealDashboardData(userId);
+
+        const { data: assignments } = await window.supabase
+            .from("user_course_assignments")
+            .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
+            .eq('user_id', userId);
+
+        const allCourses = (assignments || []).map(a => {
+            if (!a.articles) return null;
+            const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
+            if (!articleData) return null;
+            return { ...articleData, progress: a.progress || 0, due_date: a.due_date, assignment_status: a.status };
+        }).filter(c => c !== null);
+
+        const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
+        const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
+
+        renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día!');
+        renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado cursos.');
+
+        initUI();
+        document.body.classList.add('loaded');
+      
+        console.log('🎉 Inicialización completa');
 
     } catch (error) {
-      console.error('❌ Error fatal:', error);
-      document.body.classList.add('loaded');
+        console.error('❌ Error fatal:', error);
+        document.body.classList.add('loaded');
     }
-  }
+}
 
-  if (document.readyState === 'loading') {
+// Ejecución
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mainInit);
-  } else {
+} else {
     mainInit();
-  }
+}
 })();
