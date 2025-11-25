@@ -247,12 +247,24 @@ try {
     throw new Error(data.error);
   }
 
-  console.log('✅ Edge Function exitosa');
+console.log('✅ Edge Function exitosa');
 
-  // 🔥 Decodificar JWT y guardar
+  // 🔥 FIX DE SEGURIDAD: Garantizar que safeStorage existe
+  if (!window.safeStorage) {
+    console.warn('⚠️ safeStorage no estaba definido, creando fallback...');
+    window.safeStorage = {
+      set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
+      get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
+      remove: (k) => { try { localStorage.removeItem(k); } catch(e){} }
+    };
+  }
+
+  // Decodificar JWT
   const jwtPayload = JSON.parse(atob(data.jwt.split('.')[1]));
+  
+  // Ahora esta línea ya no fallará
   window.safeStorage.set('role', jwtPayload.role);
-  window.safeStorage.set('tenant', jwtPayload.tenant_id);
+  window.safeStorage.set('tenant', jwtPayload.tenant_id || window.__appConfig.tenantUUID); // Si es master (null), usa el del tenant actual
   window.safeStorage.set('user_email', jwtPayload.email);
   
   console.log('🔑 Datos guardados:', {

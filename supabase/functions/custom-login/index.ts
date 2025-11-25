@@ -47,11 +47,11 @@ serve(async (req) => {
     }
 
     // 3. Verificar profile
-    const { data: profile } = await supabase
+      const { data: profile } = await supabase
       .from('profiles')
-      .select('role, tenant_id, force_reset')
+      .select('role, tenant_id, force_reset') 
       .eq('id', authData.user.id)
-      .single()
+      .single();
 
     if (!profile) {
       return new Response(
@@ -60,11 +60,14 @@ serve(async (req) => {
       )
     }
 
-    if (profile.tenant_id !== tenant.id) {
-      return new Response(
-        JSON.stringify({ error: 'Acceso denegado', error_code: 'WRONG_TENANT' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
-      )
+    if (profile.role !== 'master' && profile.tenant_id !== tenant.id) {
+      return new Response(JSON.stringify({
+        error: 'Acceso denegado: No perteneces a este tenant',
+        error_code: 'WRONG_TENANT'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403
+      });
     }
 
     if (profile.force_reset) {
