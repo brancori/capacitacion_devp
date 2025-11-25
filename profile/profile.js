@@ -2,60 +2,53 @@
   try {
     // 1. Verificar parámetro en URL
     const urlParams = new URLSearchParams(window.location.search);
-    const isAdminAccess = urlParams.get('admin') === 'true';
-    
-    console.log('🔍 Validación de acceso - admin param:', isAdminAccess);
-    
-    // 2. Si tiene permiso explícito, permitir acceso inmediato
-    if (isAdminAccess) {
-      console.log('✅ Acceso administrativo autorizado');
+    if (urlParams.get('admin') === 'true') {
       document.body.classList.add('loaded');
       return;
     }
     
-    // 3. Validar rol del usuario
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get('token');
-
+    // 2. Restaurar sesión si hay token
+    const urlToken = urlParams.get('token');
     if (urlToken) {
-    console.log('🔑 Restaurando sesión desde URL');
-    await window.supabase.auth.setSession({
-        access_token: urlToken,
-        refresh_token: 'dummy'
-    });
-    window.history.replaceState({}, '', window.location.pathname);
+        await window.supabase.auth.setSession({
+            access_token: urlToken,
+            refresh_token: 'dummy'
+        });
     }
+
     const { data: { user } } = await window.supabase.auth.getUser();
     
     if (!user) {
-      console.warn('⚠️ Sin sesión activa');
       document.body.classList.add('loaded');
       return;
     }
     
-    // 4. Consultar perfil
-    const { data: profile } = await window.supabase
+    // 3. Consultar perfil (SIN .single() para evitar errores de proxy)
+    const { data: rawData } = await window.supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
-      .single();
+      .eq('id', user.id);
     
-    console.log('🔍 Rol detectado:', profile?.role);
+    // 🔥 FIX: Detectar si es array u objeto
+    const profile = Array.isArray(rawData) ? rawData[0] : rawData;
     
-    // 5. Redirigir roles administrativos (sin parámetro admin=true)
+    console.log('🔍 Rol detectado (Early Check):', profile?.role);
+    
+    // 4. Redirigir roles administrativos
     if (profile && ['master', 'admin', 'supervisor'].includes(profile.role)) {
       console.log(`🔄 Redirigiendo ${profile.role} → dashboard`);
-      window.location.replace('../dashboard.html');
-      return; // No mostrar nada
+      // Pasamos el token para que no se pierda la sesión
+      const currentSession = await window.supabase.auth.getSession();
+      const token = currentSession.data.session?.access_token;
+      window.location.replace(`../dashboard.html?token=${token}`);
+      return; 
     }
     
-    // 6. Usuario normal: mostrar página
-    console.log('✅ Acceso de usuario normal permitido');
     document.body.classList.add('loaded');
     
   } catch (error) {
     console.error('❌ Error en validación:', error);
-    document.body.classList.add('loaded'); // Mostrar página en caso de error
+    document.body.classList.add('loaded'); 
   }
 })();
 
