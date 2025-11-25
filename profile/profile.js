@@ -553,14 +553,17 @@ const { data: rawProfile, error: profileRowError } = await supabase
   .eq("id", userId)
 
 if (profileRowError) {
-  console.error("❌ Error al leer profileRow:", profileRowError);
+  console.error(" Error al leer profileRow:", profileRowError);
   return;
 }
 
-const profileRow = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
+const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
+
+    const userRole = profile?.role || 'employee';
+    console.log('🔍 Role del usuario (UI):', userRole);
 
 if (!profileRow) {
-        console.error("❌ El usuario no tiene perfil en la base de datos.");
+        console.error("El usuario no tiene perfil en la base de datos.");
         return;
     }
 
@@ -570,6 +573,19 @@ if (!profileRow) {
 
 
 console.log(" Tenant usado en consulta:", myTenant, "Role:", myRole);
+
+if (['master', 'admin', 'supervisor'].includes(myRole)) {
+        console.log(`🚀 Rol ${myRole} detectado. Redirigiendo a Dashboard...`);
+        
+        // Obtenemos el token actual para no perder la sesión
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token || urlToken; // Fallback al token de URL
+        
+        if (token) {
+            window.location.replace(`../dashboard.html?token=${token}`);
+            return; // Detenemos la ejecución aquí
+        }
+    }
 console.log("DEBUG authData:", authData);
 console.log("DEBUG profileRow:", profileRow);
 console.log("DEBUG myTenant, myRole:", myTenant, myRole);
