@@ -385,7 +385,7 @@ async function loadUserProfile() {
       }).join('');
     }
   }
-}
+
   function initUI() {
     const modal = document.getElementById('modal');
     const modalClose = document.getElementById('modalClose');
@@ -478,121 +478,98 @@ async function loadUserProfile() {
   // ═══════════════════════════════════════════════════════════
 // profile.js - Función mainInit corregida
 
-(async function() { // Envolvemos todo en una IIFE para evitar conflictos globales
+async function mainInit() {
+    // 1. Validar window.supabase (que coincide con tu supabase-client.js)
+    if (!window.supabase || !window.supabase.auth) {
+        setTimeout(mainInit, 100);
+        return;
+    }
 
-  async function mainInit() {
-      // 1. Validar window.supabase (que coincide con tu supabase-client.js)
-      if (!window.supabase || !window.supabase.auth) {
-          setTimeout(mainInit, 100);
-          return;
-      }
+    try {
+        // 2. Usar window.supabase en todas las llamadas
+        const { data: { session } } = await window.supabase.auth.getSession();
+      
+        if (!session) {
+            console.error('❌ Sin sesión activa');
+            window.location.href = '../index.html';
+            return;
+        }
 
-      try {
-          // 2. Usar window.supabase en todas las llamadas
-          const { data: { session } } = await window.supabase.auth.getSession();
+        console.log('✅ Sesión válida detectada');
+
+        // Asegúrate de que loadTenantConfig esté definida o importada
+        const config = await loadTenantConfig();
+        applyConfiguration(config);
+
+        const { data: authData, error: authError } = await window.supabase.auth.getUser();
+        if (authError || !authData?.user) {
+            console.error("❌ Error obteniendo usuario:", authError);
+            window.location.href = '../index.html';
+            return;
+        }
+      
+        const userId = authData.user.id;
+        console.log('👤 Usuario autenticado:', userId);
+
+        let cachedRole = window.safeStorage.get('role');
+        let cachedTenant = window.safeStorage.get('tenant');
+
+        if (!cachedRole || !cachedTenant) {
+            console.warn('⚠️ Consultando DB...');
         
-          if (!session) {
-              console.error('❌ Sin sesión activa');
-              window.location.href = '../index.html';
-              return;
-          }
+            const { data: profile, error: profileError } = await window.supabase
+                .from("profiles")
+                .select("tenant_id, role, full_name")
+                .eq("id", userId)
+                .single();
 
-          console.log('✅ Sesión válida detectada');
+            if (profileError) {
+                console.error("❌ Error:", profileError);
+                window.location.href = '../index.html';
+                return;
+            }
 
-          // Cargar configuración del tenant (asegúrate que esta función exista)
-          if (typeof loadTenantConfig === 'function') {
-              const config = await loadTenantConfig();
-              applyConfiguration(config);
-          }
+            window.safeStorage.set('role', profile.role);
+            window.safeStorage.set('tenant', profile.tenant_id);
+            window.safeStorage.set('full_name', profile.full_name);
+        }
 
-          const { data: authData, error: authError } = await window.supabase.auth.getUser();
-          if (authError || !authData?.user) {
-              console.error("❌ Error obteniendo usuario:", authError);
-              window.location.href = '../index.html';
-              return;
-          }
-        
-          const userId = authData.user.id;
-          console.log('👤 Usuario autenticado:', userId);
+        await loadUserProfile();
+        await loadRealDashboardData(userId);
 
-          // --- FIX: VALIDACIÓN ROBUSTA DE CACHÉ ---
-          let cachedRole = window.safeStorage.get('role');
-          let cachedTenant = window.safeStorage.get('tenant');
+        const { data: assignments } = await window.supabase
+            .from("user_course_assignments")
+            .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
+            .eq('user_id', userId);
 
-          // Verificamos si es null, vacío, o si contiene TEXTO "undefined"/"null" (el error de tu imagen)
-          const isRoleInvalid = !cachedRole || cachedRole === 'undefined' || cachedRole === 'null';
-          const isTenantInvalid = !cachedTenant || cachedTenant === 'undefined' || cachedTenant === 'null';
+        const allCourses = (assignments || []).map(a => {
+            if (!a.articles) return null;
+            const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
+            if (!articleData) return null;
+            return { ...articleData, progress: a.progress || 0, due_date: a.due_date, assignment_status: a.status };
+        }).filter(c => c !== null);
 
-          if (isRoleInvalid || isTenantInvalid) {
-              console.warn('⚠️ Cache corrupto o vacío (Role:', cachedRole, '). Consultando DB...');
-          
-              const { data: profile, error: profileError } = await window.supabase
-                  .from("profiles")
-                  .select("tenant_id, role, full_name")
-                  .eq("id", userId)
-                  .single();
+        const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
+        const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
 
-              if (profileError) {
-                  console.error("❌ Error recuperando perfil:", profileError);
-                  // Opcional: window.location.href = '../index.html';
-                  return;
-              }
+        renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día!');
+        renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado cursos.');
 
-              // Guardamos los valores limpios
-              window.safeStorage.set('role', profile.role);
-              window.safeStorage.set('tenant', profile.tenant_id);
-              window.safeStorage.set('full_name', profile.full_name);
-              
-              // Actualizamos variables locales
-              cachedRole = profile.role;
-              cachedTenant = profile.tenant_id;
-          } else {
-              console.log('✅ Datos recuperados de caché:', cachedRole);
-          }
-          // ----------------------------------------
+        initUI();
+        document.body.classList.add('loaded');
+      
+        console.log('🎉 Inicialización completa');
 
-          // Si tienes funciones globales loadUserProfile/loadRealDashboardData, úsalas
-          if (typeof loadUserProfile === 'function') await loadUserProfile();
-          if (typeof loadRealDashboardData === 'function') await loadRealDashboardData(userId);
+    } catch (error) {
+        console.error('❌ Error fatal:', error);
+        document.body.classList.add('loaded');
+    }
+}
 
-          const { data: assignments } = await window.supabase
-              .from("user_course_assignments")
-              .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
-              .eq('user_id', userId);
-
-          const allCourses = (assignments || []).map(a => {
-              if (!a.articles) return null;
-              const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
-              if (!articleData) return null;
-              return { ...articleData, progress: a.progress || 0, due_date: a.due_date, assignment_status: a.status };
-          }).filter(c => c !== null);
-
-          const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
-          const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
-
-          // Verificar que existan las funciones de renderizado antes de llamar
-          if (typeof renderCourses === 'function') {
-              renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día!');
-              renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado cursos.');
-          }
-
-          if (typeof initUI === 'function') initUI();
-          
-          document.body.classList.add('loaded');
-        
-          console.log('🎉 Inicialización completa');
-
-      } catch (error) {
-          console.error('❌ Error fatal:', error);
-          document.body.classList.add('loaded'); // Mostrar la web aunque haya error para no dejar pantalla blanca
-      }
-  }
-
-  // Ejecución
-  if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', mainInit);
-  } else {
-      mainInit();
-  }
-
+// Ejecución
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mainInit);
+} else {
+    mainInit();
+}
 })();
