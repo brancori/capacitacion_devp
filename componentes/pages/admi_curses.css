@@ -248,6 +248,9 @@ display: grid !important;
     .nav-actions{
         display: grid;
     }
+    .navbar-a{
+        display: flex;
+    }
 }
 /* === Indicador Global de Cumplimiento === */
 .compliance-indicator {
