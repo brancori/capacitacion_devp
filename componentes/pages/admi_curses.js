@@ -39,7 +39,6 @@
                 .from('tenants')
                 .select('id, name')
                 .eq('slug', tenantId)
-                .single();
             
             if (tDb) {
                 config.tenantUUID = tDb.id;
@@ -55,26 +54,53 @@
         return config;
     }
 
-    async function checkAuth(config) {
-        const { data: { user } } = await window.supabase.auth.getUser();
-        if (!user) {
-            window.location.href = '../../index.html'; // Subimos 2 niveles
-            return null;
-        }
-
-        const { data: profile } = await window.supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-        
-        if (!profile || !['master', 'admin', 'supervisor'].includes(profile.role)) {
-            alert('Acceso denegado: Rol insuficiente');
-            window.location.href = '../../index.html'; // Subimos 2 niveles
-            return null;
-        }
-        return profile;
+async function checkAuth(config) {
+    // 1. Obtener usuario autenticado
+    const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+    
+    if (authError || !user) {
+        console.error('❌ No autenticado:', authError);
+        window.location.href = '../../index.html';
+        return null;
     }
+
+    console.log('✅ Usuario autenticado:', user.email);
+
+    // 2. Obtener perfil (SIN .single() para evitar errores con RLS)
+    const { data: rawData, error: profileError } = await window.supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id);
+
+    if (profileError) {
+        console.error('❌ Error obteniendo perfil:', profileError);
+        alert('Error de permisos: No se pudo cargar tu perfil');
+        window.location.href = '../../index.html';
+        return null;
+    }
+
+    // 3. FIX: Manejar respuesta como array
+    const profile = Array.isArray(rawData) ? rawData[0] : rawData;
+
+    if (!profile) {
+        alert('Error: Perfil no encontrado en la base de datos');
+        window.location.href = '../../index.html';
+        return null;
+    }
+
+    console.log('📋 Perfil cargado:', profile.role, profile.tenant_id);
+
+    // 4. Verificar rol
+    const allowedRoles = ['master', 'admin', 'supervisor'];
+    if (!allowedRoles.includes(profile.role)) {
+        alert('Acceso denegado: Necesitas ser Admin, Supervisor o Master');
+        window.location.href = '../../profile/profile.html';
+        return null;
+    }
+
+    console.log('✅ Acceso autorizado:', profile.role);
+    return profile;
+}
 
     // =================================================================
     // LOGICA DE DATOS
