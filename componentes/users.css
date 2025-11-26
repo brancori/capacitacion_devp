@@ -230,3 +230,10 @@ input:checked + .slider:before { transform: translateX(22px); }
 .user-table.simple-view {
     grid-template-columns: minmax(200px, 1.5fr) minmax(200px, 1.5fr) minmax(100px, 1fr) 100px 120px;
 }
+
+@media (max-width: 768px) {
+
+    .top-navbar {
+        flex-direction: column;
+    }
+}
