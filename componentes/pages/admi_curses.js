@@ -23,44 +23,32 @@
     // =================================================================
     const setStyle = (prop, value) => value && document.documentElement.style.setProperty(prop, value);
 
-    async function loadTenantConfig() {
-        const host = location.hostname === 'localhost' ? 'demo' : location.hostname.split('.')[0];
-        const tenantId = (host === '127' || host === 'www') ? 'default' : host;
-        let config = {};
-
-        // 1. FIX: Ruta corregida ../../tenants/tenants.json
-        try {
-            const resp = await fetch('../../tenants/tenants.json');
-            if (resp.ok) {
-                const data = await resp.json();
-                config = data[tenantId] || data['default'] || {};
-            } else {
-                console.warn(`⚠️ tenants.json no encontrado en ../../tenants/tenants.json (Status: ${resp.status})`);
-            }
-        } catch (e) { 
-            console.warn('⚠️ Error cargando/parseando tenants.json:', e); 
+async function loadTenantConfig() {
+    const subdomain = location.hostname.split('.')[0];
+    const tenantSlug = (subdomain !== 'localhost' && subdomain !== '127') ? subdomain : 'demo';
+    
+    try {
+        const res = await fetch('../../tenants/tenants.json');
+        const data = await res.json();
+        const config = data[tenantSlug] || data['default'] || {};
+        
+        // 🔥 FIX: Obtener el UUID del tenant desde Supabase
+        const { data: tenantData } = await window.supabase
+            .from('tenants')
+            .select('id')
+            .eq('name', tenantSlug)
+            .single();
+        
+        if (tenantData?.id) {
+            config.tenantUUID = tenantData.id;
         }
-
-        // 2. Fallback a DB
-        try {
-            const { data: tDb } = await window.supabase
-                .from('tenants')
-                .select('id, name')
-                .eq('slug', tenantId)
-            
-            if (tDb) {
-                config.tenantUUID = tDb.id;
-                if (!config.companyName) config.companyName = tDb.name;
-            }
-        } catch (e) {
-            console.error('❌ Error crítico obteniendo Tenant ID de DB:', e);
-        }
-
-        // 3. Fallback visual final
-        if (!config.companyName) config.companyName = tenantId.toUpperCase();
         
         return config;
+    } catch (e) {
+        console.error('Error cargando config:', e);
+        return {};
     }
+}
 
     // =================================================================
 // RECUPERACIÓN DE SESIÓN (IGUAL QUE EN users.html)
