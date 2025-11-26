@@ -523,6 +523,7 @@ function startPollingUpdates(adminRole, adminTenantId, tenantSlug) {
         }
     }, 10000); // 10000 ms = 10 segundos
 }
+
 async function handleApproveRequest(requestId, requestEmail) {
     try {
         const confirmed = await showModalConfirm(
