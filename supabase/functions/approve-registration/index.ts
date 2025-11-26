@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
 
     // 5. OBTENER EL REGISTRO PENDIENTE
     const { data: pending, error: pendingError } = await supabaseAdmin
-      .from("pending_registrations")
+      .from("registration_requests")
       .select("*")
       .eq("id", pending_id)
       .single();
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     }
 
     // 11. LIMPIAR REGISTRO PENDIENTE
-    await supabaseAdmin.from("pending_registrations").delete().eq("id", pending.id);
+    await supabaseAdmin.from("registration_requests").delete().eq("id", pending.id);
     
     // 12. (Opcional) Guardar Log
     await supabaseAdmin.from("auth_logs").insert({
