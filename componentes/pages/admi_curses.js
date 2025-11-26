@@ -1266,13 +1266,6 @@ async function init() {
         if (isMaster && config.tenantUUID) {
             currentAdmin.tenant_id = config.tenantUUID;
         }
-    
-        // 4. Validar tenant_id
-        if (!currentAdmin.tenant_id) {
-            console.error('❌ Admin sin tenant_id después del patch');
-            alert('Error de configuración: Tu usuario no tiene tenant asignado');
-            return;
-        }
 
         // 5. Cargar datos
         console.log('📊 Cargando KPIs...');
