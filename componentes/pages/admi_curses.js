@@ -1,10 +1,18 @@
 (async () => {
+        window.addEventListener('error', (e) => {
+        console.error('🔥 ERROR GLOBAL:', e.error);
+        console.error('🔥 Mensaje:', e.message);
+        console.error('🔥 Stack:', e.error?.stack);
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+        console.error('🔥 PROMISE RECHAZADA:', e.reason);
+    });
     // =================================================================
     // ESTADO GLOBAL
     // =================================================================
     let currentAdmin = null;
     let currentGroup = null;
-    let currentTab = 'users';
     let allGroups = [];
     let groupMembers = [];
     let allCourses = []; 
@@ -1083,31 +1091,59 @@ window.confirmAssignment = async () => {
     // =================================================================
     // INIT
     // =================================================================
-    async function init() {
+async function init() {
+    try {
+        console.log('🚀 Iniciando aplicación...');
+
         // 1. Cargar configuración
         const config = await loadTenantConfig();
+        console.log('✅ Config cargada:', config);
+        
         if (config.primaryColor) setStyle('--primaryColor', config.primaryColor);
         if (config.secondaryColor) setStyle('--secondaryColor', config.secondaryColor);
         
         // 2. Chequear Auth
+        console.log('🔐 Verificando autenticación...');
         currentAdmin = await checkAuth(config);
-        if (!currentAdmin) return;
+        if (!currentAdmin) {
+            console.error('❌ checkAuth devolvió null, deteniendo...');
+            return;
+        }
 
-        // 3. FIX: "Patch" para Master sin tenant_id en perfil
+        // 3. FIX: "Patch" para Master sin tenant_id
         if (!currentAdmin.tenant_id && currentAdmin.role === 'master' && config.tenantUUID) {
             console.log('🔧 Asignando Tenant ID del contexto al usuario Master');
             currentAdmin.tenant_id = config.tenantUUID;
         }
         
-        console.log('✅ Admin autenticado', currentAdmin);
+        console.log('✅ Admin autenticado:', currentAdmin);
         
-        // 4. Cargar datos
+        // 4. Validar que tenant_id existe antes de cargar datos
+        if (!currentAdmin.tenant_id) {
+            console.error('❌ Admin sin tenant_id después del patch');
+            alert('Error de configuración: Tu usuario no tiene tenant asignado');
+            return;
+        }
+
+        // 5. Cargar datos
+        console.log('📊 Cargando KPIs...');
         await updateKPIs();
+        
+        console.log('📈 Cargando compliance...');
         await updateGlobalCompliance();
+        
+        console.log('📁 Cargando grupos...');
         await renderGroups();
 
+        console.log('✅ Aplicación lista');
         document.body.style.opacity = 1;
+
+    } catch (error) {
+        console.error('🔥 ERROR CRÍTICO EN INIT:', error);
+        console.error('Stack:', error.stack);
+        alert('Error crítico al cargar la aplicación. Ver consola (F12).');
     }
+}
 
     document.getElementById('search-groups').addEventListener('input', (e) => renderGroups(e.target.value));
     document.getElementById('search-users-tracking')?.addEventListener('input', (e) => {
