@@ -451,6 +451,7 @@ async function mainInit() {
         if(roleEl) roleEl.textContent = `${realRole.toUpperCase()} | ${user.email}`;
         
         // 7. Cargar Cursos
+        await loadRealDashboardData(user.id);
         await loadCourses(user.id);
         
         initUI();
