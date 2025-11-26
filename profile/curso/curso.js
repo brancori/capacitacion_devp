@@ -576,7 +576,6 @@ async function saveProgress(pageIndex, isQuizCompleted = false) {
             return;
         }
 
-        // Calcular porcentaje
         let progress;
         if (isQuizCompleted) {
             progress = 100;
@@ -588,7 +587,6 @@ async function saveProgress(pageIndex, isQuizCompleted = false) {
 
         console.log(`[PROGRESS] Guardando progreso: ${progress}%`);
 
-        // Verificar si ya completó
         const { data: existing } = await supabase
             .from('user_course_assignments')
             .select('status, score')
@@ -601,22 +599,37 @@ async function saveProgress(pageIndex, isQuizCompleted = false) {
             return;
         }
 
-        // 🔧 FIX: Sintaxis correcta de upsert
-        const { error } = await supabase
+        // 🔧 FIX: Usar UPDATE en lugar de UPSERT
+        const payload = {
+            progress: progress,
+            status: progress < 100 ? 'in_progress' : existing?.status || 'in_progress',
+            assigned_at: new Date().toISOString()
+        };
+
+        const { data: check } = await supabase
             .from('user_course_assignments')
-            .upsert({
-                user_id: user.id,
-                course_id: courseId,
-                progress: progress,
-                status: progress < 100 ? 'in_progress' : existing?.status || 'in_progress',
-                assigned_at: new Date().toISOString()
-            }, {
-                onConflict: 'user_id,course_id',  // ✅ Aquí como opción del método
-                ignoreDuplicates: false            // ✅ Esto reemplaza a merge-duplicates
-            });
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('course_id', courseId)
+            .maybeSingle();
+
+        let error;
+        if (check) {
+            // UPDATE
+            ({ error } = await supabase
+                .from('user_course_assignments')
+                .update(payload)
+                .eq('user_id', user.id)
+                .eq('course_id', courseId));
+        } else {
+            // INSERT
+            ({ error } = await supabase
+                .from('user_course_assignments')
+                .insert({ ...payload, user_id: user.id, course_id: courseId }));
+        }
 
         if (error) {
-            console.error("[PROGRESS] Error en upsert:", error);
+            console.error("[PROGRESS] Error:", error);
             return;
         }
 
