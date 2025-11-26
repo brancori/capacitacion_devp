@@ -132,24 +132,18 @@ async function checkAuth(config) {
     try {
         console.log('🔐 [1/5] Obteniendo usuario autenticado...');
         
-        // 1. Obtener usuario autenticado
-        const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+        // ═══════════════════════════════════════════════════════════
+        // 🔥 NUEVO: Intentar recuperar sesión ANTES de verificar
+        // ═══════════════════════════════════════════════════════════
+        let user = await recoverSession();
         
-        if (authError) {
-            console.error('❌ [1/5] Error de autenticación:', authError);
-            alert('ERROR AUTH: ' + authError.message);
-            // ⚠️ COMENTADO TEMPORALMENTE PARA DEBUG
-            // window.location.href = '../../index.html';
-            return null;
-        }
-
         if (!user) {
-            console.error('❌ [1/5] No hay usuario autenticado');
-            alert('ERROR: No hay sesión activa');
-            // ⚠️ COMENTADO TEMPORALMENTE PARA DEBUG
-            // window.location.href = '../../index.html';
+            console.error('❌ [1/5] No se pudo recuperar sesión');
+            alert('Sesión expirada. Redirigiendo al login...');
+            setTimeout(() => window.location.href = '../../index.html', 2000);
             return null;
         }
+        
 
         console.log('✅ [1/5] Usuario autenticado:', user.email);
         console.log('📋 User ID:', user.id);
