@@ -75,9 +75,7 @@ async function fetchCourseData() {
     }
 
     try {
-        // ============================================================
-        // 🛡️ 1. AUTO-REPARACIÓN DE SESIÓN (Tu código de resurrección)
-        // ============================================================
+        // 1. AUTO-REPARACIÓN DE SESIÓN
         let { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (!session || sessionError) {
@@ -91,11 +89,8 @@ async function fetchCourseData() {
                         access_token: token.access_token,
                         refresh_token: token.refresh_token
                     });
-                    if (rec.session) {
-                        console.log("✅ [RECOVERY] ¡Sesión restaurada!");
-                        session = rec.session;
-                    }
-                } catch (e) { console.error("❌ Recovery falló", e); }
+                    if (rec.session) session = rec.session;
+                } catch (e) { }
             }
         }
 
@@ -105,43 +100,25 @@ async function fetchCourseData() {
             return;
         }
 
-        // ============================================================
-        // 2. EXTRACCIÓN ROBUSTA DE DATOS (AQUÍ ESTÁ EL CAMBIO) 🕵️‍♂️
-        // ============================================================
+        // 2. DATOS DE USUARIO
         const user = session.user;
-        
-        // Buscamos el ROL en orden de prioridad: app_metadata -> user_metadata -> localStorage
-        const myRole = user?.app_metadata?.role || 
-                       user?.user_metadata?.role || 
-                       localStorage.getItem('role') || 
-                       'authenticated'; // Fallback final
+        const myRole = user?.app_metadata?.role || user?.user_metadata?.role || localStorage.getItem('role') || 'authenticated';
+        const myTenantId = user?.app_metadata?.tenant_id || user?.user_metadata?.tenant_id || localStorage.getItem('tenant');
 
-        // Buscamos el TENANT en orden de prioridad
-        const myTenantId = user?.app_metadata?.tenant_id || 
-                           user?.user_metadata?.tenant_id || 
-                           localStorage.getItem('tenant'); 
+        console.log(`👤 [DEBUG] User: ${user.email} | Rol: ${myRole}`);
 
-        console.log(`👤 [DEBUG] User: ${user.email} | Rol Detectado: ${myRole}`);
-        console.log(`🏢 [DEBUG] Tenant Detectado: ${myTenantId}`);
-
-        // ============================================================
         // 3. QUERY
-        // ============================================================
         let query = supabase
             .from("articles")
             .select("title, content_json, quiz_json, tenant_id")
             .eq("id", courseId);
 
-        // Lógica de filtrado
-        if (myRole !== "master" && myRole !== "admin") { // Agregué 'admin' por si acaso
-            if (myTenantId) {
-                query = query.eq("tenant_id", myTenantId);
-            } else {
-                console.warn("⚠️ Usuario sin tenant_id, consultando curso público o confiando en RLS...");
-            }
+        if (myRole !== "master" && myRole !== "admin") {
+            if (myTenantId) query = query.eq("tenant_id", myTenantId);
         }
 
-        const { data: fetchedCourse, error } = await query.single();
+        // ⚠️ NOTA: Quitamos .single() por seguridad para manejar el array manualmente
+        const { data: rawData, error } = await query;
 
         if (error) {
             console.error("❌ [SUPABASE ERROR]:", error);
@@ -150,25 +127,19 @@ async function fetchCourseData() {
         }
 
         // ============================================================
-        // 4. DIAGNÓSTICO FINAL (¿Por qué title era undefined?)
+        // 🛠️ FIX DEL ARRAY (La corrección mágica)
         // ============================================================
+        // Si rawData es un array (lista), tomamos el primero. Si es objeto, lo usamos directo.
+        const fetchedCourse = Array.isArray(rawData) ? rawData[0] : rawData;
+
         if (!fetchedCourse) {
             pageContentEl.innerHTML = "<div class='error-message'>Curso no encontrado (posible bloqueo RLS).</div>";
             return;
         }
 
-        // Imprimimos TODO el objeto para ver qué llegó realmente
-        console.log("📦 [DEBUG] Objeto recibido completo:", fetchedCourse); 
+        console.log("✅ [EXITO] Título:", fetchedCourse.title);
 
-        if (!fetchedCourse.title) {
-            console.error("❌ [EXTRAÑO] El objeto llegó, pero no tiene título. ¿Columnas ocultas?");
-        } else {
-            console.log("✅ [EXITO] Título:", fetchedCourse.title);
-        }
-
-        // ============================================================
-        // 5. PROCESAMIENTO (Igual que antes)
-        // ============================================================
+        // 5. PROCESAMIENTO
         let finalCourseData;
         if (typeof fetchedCourse.content_json === 'string') {
             try {
@@ -181,10 +152,12 @@ async function fetchCourseData() {
             finalCourseData = fetchedCourse.content_json || { pages: [] };
         }
 
+        // Limpieza de quizzes viejos
         if (finalCourseData.pages) {
             finalCourseData.pages = finalCourseData.pages.filter(p => p.type !== 'quiz');
         }
 
+        // Inyección del Quiz
         if (fetchedCourse.quiz_json) {
             try {
                 let quizObj = typeof fetchedCourse.quiz_json === 'string' ? JSON.parse(fetchedCourse.quiz_json) : fetchedCourse.quiz_json;
@@ -202,7 +175,8 @@ async function fetchCourseData() {
                 .select('progress, status')
                 .eq('user_id', user.id)
                 .eq('course_id', courseId)
-                .single();
+                // Aquí también aplicamos el fix por si acaso devuelve array
+                .maybeSingle(); 
 
             if (assignment && assignment.status !== 'completed' && assignment.progress > 0) {
                  const contentPages = finalCourseData.pages.filter(p => p.type !== 'quiz');
