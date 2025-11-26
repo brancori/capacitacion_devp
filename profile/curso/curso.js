@@ -75,24 +75,41 @@ async function fetchCourseData() {
     }
 
     try {
-        // 1. Obtener Usuario y sus credenciales
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user;
+        // ============================================================
+        // 🛡️ 1. BLOQUE DE SEGURIDAD (ANTI-GHOST)
+        // ============================================================
+        // Intentamos recuperar la sesión. Si el navegador bloquea cookies, esto fallará.
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session) {
+            console.error("⛔ [FATAL] Sesión perdida o Storage bloqueado por el navegador.");
+            // Mostramos alerta explicativa
+            alert("No se pudo verificar tu identidad.\n\nEs posible que tu navegador esté bloqueando las cookies o tu sesión haya expirado.\n\nPor favor, inicia sesión nuevamente.");
+            // Redirigimos al Login
+            window.location.href = '../../index.html';
+            return;
+        }
+
+        // ============================================================
+        // 2. OBTENER DATOS DE USUARIO
+        // ============================================================
+        const user = session.user;
         const myTenantId = user?.user_metadata?.tenant_id;
         const myRole = user?.user_metadata?.role; // 'admin', 'master', etc.
 
         console.log(`👤 [DEBUG] Usuario: ${user?.email} | Rol: ${myRole}`);
         console.log(`🏢 [DEBUG] Mi Tenant ID: ${myTenantId}`);
 
-        // 2. Construir Query
+        // ============================================================
+        // 3. CONSTRUIR Y EJECUTAR QUERY
+        // ============================================================
         let query = supabase
             .from("articles")
             .select("title, content_json, quiz_json, tenant_id")
             .eq("id", courseId);
 
-        // LOGICA DE FILTRADO (Aquí suele estar el error)
+        // LÓGICA DE FILTRADO DE TENANT
         if (myRole !== "master") {
-            // Si hay tenant, filtramos. Si no hay tenant y no es master, ojo ahí.
             if (myTenantId) {
                 console.log(`🔒 [DEBUG] Filtrando por tenant_id: ${myTenantId}`);
                 query = query.eq("tenant_id", myTenantId);
@@ -103,7 +120,7 @@ async function fetchCourseData() {
 
         const { data: fetchedCourse, error } = await query.single();
 
-        // 3. Diagnóstico de Errores de BD
+        // 4. DIAGNÓSTICO DE ERRORES DE BD
         if (error) {
             console.error("❌ [SUPABASE ERROR]:", error);
             pageContentEl.innerHTML = `<div class='error-message'>Error de Base de Datos: ${error.message} (Code: ${error.code})</div>`;
@@ -112,54 +129,43 @@ async function fetchCourseData() {
 
         if (!fetchedCourse) {
             console.error("❌ [DEBUG] Supabase retornó DATA NULL. El curso no existe O el tenant no coincide.");
-            pageContentEl.innerHTML = "<div class='error-message'>Curso no encontrado (Revisa permisos de Tenant).</div>";
+            pageContentEl.innerHTML = "<div class='error-message'>Curso no encontrado o Acceso Denegado (Revisa permisos de Tenant).</div>";
             return;
         }
 
         console.log("✅ [DEBUG] Curso descargado:", fetchedCourse.title);
-        console.log(`🏢 [DEBUG] Tenant del Curso: ${fetchedCourse.tenant_id}`);
 
-        // Verificación visual de Tenant
+        // Verificación visual de Tenant (Solo advertencia en consola)
         if (myRole !== 'master' && myTenantId && fetchedCourse.tenant_id !== myTenantId) {
-            console.warn("🚨 [ALERTA] El tenant del curso NO coincide con el tuyo, pero Supabase lo devolvió (revisa tus políticas RLS).");
+            console.warn("🚨 [ALERTA] El tenant del curso NO coincide con el tuyo.");
         }
 
         // ============================================================
-        // 4. INTENTO DE PARSEO (Aquí detectamos JSON roto)
+        // 5. PARSEO Y LIMPIEZA DE DATOS (JSON)
         // ============================================================
         let finalCourseData;
 
-        console.log("🧩 [DEBUG] Tipo de content_json:", typeof fetchedCourse.content_json);
-
+        // A. Parseo seguro de content_json
         if (typeof fetchedCourse.content_json === 'string') {
             try {
                 finalCourseData = JSON.parse(fetchedCourse.content_json);
-                console.log("✨ [DEBUG] JSON parseado con éxito.");
             } catch (e) {
-                console.error("❌ [CRITICO] El JSON del curso está corrupto o mal formado.");
-                console.log("💀 JSON Culpable (Inicio):", fetchedCourse.content_json.substring(0, 100));
-                console.log("💀 JSON Culpable (Final):", fetchedCourse.content_json.slice(-100));
-                pageContentEl.innerHTML = `<div class='error-message'>
-                    <strong>Error de Formato JSON:</strong><br>
-                    El contenido del curso está dañado en la base de datos.<br>
-                    <small>${e.message}</small>
-                </div>`;
+                console.error("❌ [CRITICO] JSON corrupto.");
+                pageContentEl.innerHTML = `<div class='error-message'>Error de Formato JSON: ${e.message}</div>`;
                 return;
             }
         } else {
             finalCourseData = fetchedCourse.content_json || { pages: [] };
         }
 
-        // ... (Resto de la lógica de limpieza y quiz sigue igual) ...
-        
-        // Limpieza de quizzes viejos
+        // B. Limpieza de quizzes viejos incrustados manualmente
         if (finalCourseData.pages) {
             finalCourseData.pages = finalCourseData.pages.filter(p => 
                 p.type !== 'quiz' && p.title !== 'Evaluación Final'
             );
         }
 
-        // Inyección del Quiz
+        // C. Inyección del nuevo Quiz desde la columna dedicada
         if (fetchedCourse.quiz_json) {
             try {
                 let quizObj = typeof fetchedCourse.quiz_json === 'string' 
@@ -178,12 +184,37 @@ async function fetchCourseData() {
             }
         }
 
-        // 5. Cargar UI
-        // Pasamos 0 temporalmente para probar que cargue
-        loadCourseUI(fetchedCourse.title, finalCourseData, 0);
+        // ============================================================
+        // 6. RECUPERAR PROGRESO (Resume)
+        // ============================================================
+        let startIndex = 0;
+        try {
+            const { data: assignment } = await supabase
+                .from('user_course_assignments')
+                .select('progress, status')
+                .eq('user_id', user.id)
+                .eq('course_id', courseId)
+                .single();
+
+            if (assignment && assignment.status !== 'completed' && assignment.progress > 0) {
+                const contentPages = finalCourseData.pages.filter(p => p.type !== 'quiz');
+                const totalContentPages = contentPages.length;
+                if (totalContentPages > 0) {
+                    startIndex = Math.round((assignment.progress / 90) * totalContentPages) - 1;
+                    startIndex = Math.max(0, Math.min(startIndex, finalCourseData.pages.length - 1));
+                    console.log(`🔄 [RESUME] Reanudando en página: ${startIndex}`);
+                }
+            }
+        } catch (err) {
+            console.warn("No se pudo recuperar progreso previo, iniciando desde 0.");
+        }
+
+        // 7. CARGAR UI
+        loadCourseUI(fetchedCourse.title, finalCourseData, startIndex);
 
     } catch (e) {
         console.error("❌ [CRITICO SISTEMA]:", e);
+        pageContentEl.innerHTML = `<p class='error-message'>Error crítico del sistema: ${e.message}</p>`;
     }
 }
 
