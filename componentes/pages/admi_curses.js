@@ -720,15 +720,10 @@ window.exportToExcel = () => {
         }
 
         const groupsHTML = await Promise.all(filtered.map(async (g) => {
-        const { data: memberData, error: memberError } = await window.supabase
+            const { count } = await window.supabase
                 .from('group_members')
-                .select('id')
+                .select('*', { count: 'exact', head: true })
                 .eq('group_id', g.id);
-
-            if (memberError) console.error('Error contando miembros:', memberError);
-            
-            // Si hay datos, usamos el largo del array. Si no, 0.
-            const memberCount = memberData ? memberData.length : 0;
             
             const stats = await getGroupStats(g.id);
             
@@ -738,7 +733,7 @@ window.exportToExcel = () => {
                     <div class="group-info">
                         <h3><i class="fas fa-folder"></i> ${g.name}</h3>
                         <div class="group-meta">
-                            <span><i class="fas fa-users"></i> ${count || 0} miembros</span>
+                            <span><i class="fas fa-users"></i> ${memberCount} miembros</span>
                             <span><i class="fas fa-chart-pie"></i> ${stats.completionRate}% completado</span>
                         </div>
                         <div class="group-stats">
