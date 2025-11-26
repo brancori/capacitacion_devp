@@ -241,6 +241,12 @@ display: grid !important;
     .course-list {
         max-height: 250px;
     }
+    .kpi-container {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 2fr));
+    }
+    .nav-actions{
+        display: grid;
+    }
 }
 /* === Indicador Global de Cumplimiento === */
 .compliance-indicator {
