@@ -1,8 +1,9 @@
 /* ========================================================================
    ESTILOS ESPECÍFICOS PARA admin_cards.html
    ======================================================================== */
-    :root{
-        font-family: var(--font-main);
+ 
+   :root{
+    --font-main: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 /* Corregimos el font-size de global.css si es necesario */
 html {
