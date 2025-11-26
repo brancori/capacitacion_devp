@@ -526,26 +526,38 @@ window.submitQuiz = async function() {
 
     endQuizMode();
 
-    // 3. Guardar en Supabase con sintaxis correcta
+    // 3. Guardar con UPDATE/INSERT (igual que saveProgress)
     try {
         const { data: { user } } = await supabase.auth.getUser();
         const courseId = new URLSearchParams(location.search).get("id");
         
         if (user && courseId) {
-            // 🔧 FIX: Sintaxis correcta de upsert
-            const { error } = await supabase
+            const payload = {
+                score: finalScore,
+                progress: progressToSave, 
+                status: statusToSave,
+                assigned_at: new Date().toISOString()
+            };
+
+            const { data: check } = await supabase
                 .from('user_course_assignments')
-                .upsert({
-                    user_id: user.id,
-                    course_id: courseId,
-                    score: finalScore,
-                    progress: progressToSave, 
-                    status: statusToSave,
-                    assigned_at: new Date().toISOString()
-                }, {
-                    onConflict: 'user_id,course_id', 
-                    ignoreDuplicates: false
-                });
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('course_id', courseId)
+                .maybeSingle();
+
+            let error;
+            if (check) {
+                ({ error } = await supabase
+                    .from('user_course_assignments')
+                    .update(payload)
+                    .eq('user_id', user.id)
+                    .eq('course_id', courseId));
+            } else {
+                ({ error } = await supabase
+                    .from('user_course_assignments')
+                    .insert({ ...payload, user_id: user.id, course_id: courseId }));
+            }
             
             if (error) {
                 console.error("[QUIZ] Error guardando resultado:", error);
@@ -557,7 +569,6 @@ window.submitQuiz = async function() {
         console.error("[ERROR] Guardando resultado:", e);
     }
 
-    // 4. Mostrar resultados
     showResultModal(passed, finalScore);
 
     if (!passed) {
