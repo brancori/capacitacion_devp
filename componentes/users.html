@@ -552,46 +552,96 @@ async function handleApproveRequest(requestId, requestEmail) {
     // GESTIÓN DE USUARIOS AUTORIZADOS
     // ═══════════════════════════════════════════════════════════
     
-    async function loadUserList(adminRole, adminTenantId) {
+async function loadUsers(profile) {
+        const tableBody = document.getElementById('usersTableBody');
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando usuarios...</td></tr>';
+
         try {
+            console.log(`🔍 [QUERY] Buscando usuarios para Tenant ID: ${profile.tenant_id}`);
+
+            // 1. Construir Query Base
             let query = window.supabase
                 .from('profiles')
-                .select(`
-                    id, full_name, email, role, status,
-                    tenant_id,
-                    tenants ( name )
-                `)
+                .select('*')
+                .order('created_at', { ascending: false });
 
-            if (adminRole === 'admin' || adminRole === 'supervisor') {
-                query = query.eq('tenant_id', adminTenantId);
-                tenantHeaderCol.style.display = 'none';
-            } else if (adminRole === 'master') {
-                tenantHeaderCol.style.display = 'block';
+            // 2. Aplicar Filtros según Rol
+            if (profile.role === 'master') {
+                // Master ve todo, no filtramos nada
+                console.log("👑 [QUERY] Modo Master: Viendo todos los tenants");
+            } else {
+                // Admin/Supervisor solo ven SU tenant
+                if (profile.tenant_id) {
+                    query = query.eq('tenant_id', profile.tenant_id);
+                } else {
+                    console.warn("⚠️ [QUERY] Admin sin tenant_id definido. Esto puede traer 0 resultados.");
+                }
             }
 
-            if (searchTerm) {
-                query = query.or(
-                    `full_name.ilike.%${searchTerm}%,` +
-                    `email.ilike.%${searchTerm}%`
-                );
-            }
+            const { data: users, error } = await query;
 
-            query = query.limit(100);
-
-            const { data: profiles, error } = await query;
             if (error) throw error;
 
-            console.log(`📊 Cargados ${profiles.length} usuarios (Rol: ${adminRole})`);
-            renderUserList(profiles, adminRole);
+            console.log(`📊 [QUERY] Resultados encontrados: ${users.length} usuarios.`);
+
+            // 3. Renderizar Tabla
+            if (users.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No se encontraron usuarios en este Tenant.</td></tr>';
+                return;
+            }
+
+            renderUsersTable(users);
+            updateStats(users);
 
         } catch (error) {
-            console.error('Error:', error.message);
-            loadingRow.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: ' + error.message;
-            userListBody.innerHTML = '';
-            userListBody.appendChild(loadingRow);
+            console.error('Error cargando usuarios:', error);
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center error-text">Error: ${error.message}</td></tr>`;
         }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // CARGAR SOLICITUDES (CON FILTRO DE TENANT)
+    // ═══════════════════════════════════════════════════════════
+    async function loadPendingRequests(profile) {
+        const container = document.getElementById('pendingRequestsContainer');
+        const badge = document.getElementById('pendingCountBadge');
+        
+        try {
+            // 1. Query Base
+            let query = window.supabase
+                .from('registration_requests')
+                .select('*')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false });
+
+            // 2. Filtro Tenant
+            if (profile.role !== 'master') {
+                if(profile.tenant_id) {
+                    query = query.eq('tenant_id', profile.tenant_id);
+                }
+            }
+
+            const { data: requests, error } = await query;
+            if (error) throw error;
+
+            // 3. Renderizar
+            if (requests.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="padding:1rem;">No hay solicitudes pendientes.</p>';
+                badge.style.display = 'none';
+            } else {
+                badge.style.display = 'inline-block';
+                badge.textContent = requests.length;
+                renderRequestsList(requests);
+            }
+            console.log(`📩 [QUERY] Solicitudes pendientes: ${requests.length}`);
+
+        } catch (error) {
+            console.error('Error cargando solicitudes:', error);
+            container.innerHTML = '<p class="error-text">Error cargando solicitudes.</p>';
+        }
+    }
+
+    
     function renderUserList(profiles, adminRole) {
         userListBody.innerHTML = '';
         if (profiles.length === 0) {
