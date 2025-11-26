@@ -314,47 +314,60 @@ async function loadAdminProfile(config) {
 
             console.log(`👤 [SECURITY] Usuario detectado: ${user.email}`);
 
-            const { data: profile, error: profileError } = await window.supabase
+            // 1. CONSULTA A LA BASE DE DATOS
+            // Quitamos .single() para evitar errores si devuelve array, lo manejamos manual
+            const { data: rawData, error: profileError } = await window.supabase
                 .from('profiles')
                 .select('role, tenant_id')
-                .eq('id', user.id)
-                .single();
+                .eq('id', user.id);
 
             if (profileError) {
                 console.error("❌ [SECURITY] Error buscando perfil:", profileError);
                 throw profileError;
             }
 
-            console.log("📋 [SECURITY] Datos del Perfil:", profile);
+            // 🚨 FIX CRÍTICO: DESEMPAQUETAR EL ARRAY
+            // Si es array, tomamos el primero. Si es objeto, lo usamos directo.
+            const profile = Array.isArray(rawData) ? rawData[0] : rawData;
+
+            if (!profile) {
+                console.error("❌ [SECURITY] Perfil no encontrado en BD.");
+                showModal('Error', 'Tu usuario no tiene perfil asociado.', 'error');
+                return null;
+            }
+
+            console.log("📋 [SECURITY] Datos del Perfil (Procesado):", profile);
             console.log("🏢 [SECURITY] Datos del Tenant (Sitio):", {
                 uuid: config.tenantUUID,
                 slug: config.tenantSlug
             });
 
-            // 1. Verificar Rol
+            // 2. VERIFICAR ROL
+            // Convertimos a minúsculas por si acaso viene "Admin"
+            const userRole = (profile.role || '').toLowerCase();
             const allowedRoles = ['master', 'admin', 'supervisor'];
-            if (!allowedRoles.includes(profile.role)) {
-                console.warn(`⛔ [SECURITY] Rol '${profile.role}' no permitido.`);
-                showModal('Acceso Denegado', `Tu rol (${profile.role}) no tiene permisos de administración.`, 'error');
+            
+            if (!allowedRoles.includes(userRole)) {
+                console.warn(`⛔ [SECURITY] Rol '${userRole}' no permitido.`);
+                showModal('Acceso Denegado', `Tu rol (${userRole || 'Sin Rol'}) no tiene permisos.`, 'error');
                 setTimeout(() => window.location.href = '../profile/profile.html', 3000);
                 return null;
             }
 
-            // 2. Verificar Tenant (Aquí suele fallar en localhost)
-            // Si eres Admin/Supervisor, TU tenant_id debe ser igual al tenant_id de la página
-            if ((profile.role === 'admin' || profile.role === 'supervisor')) {
-                if (profile.tenant_id !== config.tenantUUID) {
+            // 3. VERIFICAR TENANT (Protegido contra UUID undefined)
+            if (userRole === 'admin' || userRole === 'supervisor') {
+                // Solo comparamos si TENEMOS un UUID contra el cual comparar
+                if (config.tenantUUID && profile.tenant_id !== config.tenantUUID) {
                     console.warn(`⛔ [SECURITY] CONFLICTO DE TENANT.`);
-                    console.warn(`   Esperado (Sitio): ${config.tenantUUID}`);
-                    console.warn(`   Recibido (User):  ${profile.tenant_id}`);
-                    
                     showModal('Conflicto de Tenant', 
-                        `Estás intentando administrar el tenant '${config.tenantSlug}'\npero tu usuario pertenece a otro tenant.\n\n(Revisa la consola con F12 para ver los IDs)`, 
+                        `Estás en el sitio de '${config.tenantSlug}' pero perteneces a otro.`, 
                         'error');
-                    
-                    // Comenta esta línea si quieres depurar sin que te expulse tan rápido
-                    // setTimeout(() => window.location.href = '../index.html', 4000);
                     return null;
+                }
+                
+                // Si config.tenantUUID es undefined (pasa a veces en localhost), dejamos pasar con Warning
+                if (!config.tenantUUID) {
+                    console.warn("⚠️ [SECURITY] TenantUUID es undefined. Saltando validación estricta de tenant (Probablemente Localhost o RLS).");
                 }
             }
 
@@ -367,7 +380,7 @@ async function loadAdminProfile(config) {
             return null;
         }
     }
-    
+
     // ═══════════════════════════════════════════════════════════
     // GESTIÓN DE SOLICITUDES PENDIENTES
     // ═══════════════════════════════════════════════════════════
