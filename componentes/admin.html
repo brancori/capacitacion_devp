@@ -118,32 +118,26 @@
     };
 
     // Función para cargar la configuración del tenant (JSON y Supabase)
-    async function loadTenantConfig() {
-        const tenantId = detectTenant();
-        try {
-            // 1. Cargar desde JSON
-            const response = await fetch('../tenants/tenants.json', { cache: 'no-store' });
-            if (!response.ok) throw new Error('No se pudo cargar tenants.json');
-            const data = await response.json();
-            const config = data[tenantId] || data['default'] || {};
-            
-            // 2. (Opcional) Cargar UUID desde Supabase si se necesita
-            // Si esta página no necesita el UUID, puedes comentar esta parte
-            // const { data: tenantDB, error } = await supabase
-            //     .from('tenants')
-            //     .select('id')
-            //     .eq('name', tenantId)
-            //     .single();
-            
-            // if (error) throw new Error(`Tenant '${tenantId}' no encontrado en BD.`);
-            // config.tenantUUID = tenantDB.id;
-            
-            return config;
-        } catch (error) {
-            console.warn('⚠️ Error al cargar configuración del tenant:', error.message);
-            return {}; // Devuelve config vacía para no fallar
-        }
+// Reemplaza la función loadTenantConfig() en admin.html línea 122
+
+async function loadTenantConfig() {
+    // Detectar tenant desde subdomain o localStorage
+    const subdomain = window.location.hostname.split('.')[0];
+    const tenantId = (subdomain !== 'localhost' && subdomain !== '127') 
+        ? subdomain 
+        : localStorage.getItem('tenant') || 'default';
+    
+    try {
+        const response = await fetch('../tenants/tenants.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error('No se pudo cargar tenants.json');
+        const data = await response.json();
+        const config = data[tenantId] || data['default'] || {};
+        return config;
+    } catch (error) {
+        console.warn('⚠️ Error al cargar configuración del tenant:', error.message);
+        return {};
     }
+}
 
     // Función para aplicar la configuración visual
     function applyConfiguration(config) {
