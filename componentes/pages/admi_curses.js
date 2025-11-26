@@ -63,51 +63,103 @@
     }
 
 async function checkAuth(config) {
-    // 1. Obtener usuario autenticado
-    const { data: { user }, error: authError } = await window.supabase.auth.getUser();
-    
-    if (authError || !user) {
-        console.error('❌ No autenticado:', authError);
-        window.location.href = '../../index.html';
+    try {
+        console.log('🔐 [1/5] Obteniendo usuario autenticado...');
+        
+        // 1. Obtener usuario autenticado
+        const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+        
+        if (authError) {
+            console.error('❌ [1/5] Error de autenticación:', authError);
+            alert('ERROR AUTH: ' + authError.message);
+            // ⚠️ COMENTADO TEMPORALMENTE PARA DEBUG
+            // window.location.href = '../../index.html';
+            return null;
+        }
+
+        if (!user) {
+            console.error('❌ [1/5] No hay usuario autenticado');
+            alert('ERROR: No hay sesión activa');
+            // ⚠️ COMENTADO TEMPORALMENTE PARA DEBUG
+            // window.location.href = '../../index.html';
+            return null;
+        }
+
+        console.log('✅ [1/5] Usuario autenticado:', user.email);
+        console.log('📋 User ID:', user.id);
+
+        // 2. Obtener perfil
+        console.log('🔐 [2/5] Consultando perfil en BD...');
+        
+        const { data: rawData, error: profileError } = await window.supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id);
+
+        console.log('📦 [2/5] Respuesta cruda:', { rawData, profileError });
+
+        if (profileError) {
+            console.error('❌ [2/5] Error obteniendo perfil:', profileError);
+            console.error('Código de error:', profileError.code);
+            console.error('Mensaje:', profileError.message);
+            console.error('Detalles:', profileError.details);
+            alert('ERROR PERFIL: ' + JSON.stringify(profileError, null, 2));
+            // ⚠️ COMENTADO TEMPORALMENTE PARA DEBUG
+            // window.location.href = '../../index.html';
+            return null;
+        }
+
+        // 3. Procesar respuesta
+        console.log('🔐 [3/5] Procesando respuesta...');
+        console.log('¿Es array?:', Array.isArray(rawData));
+        console.log('Longitud:', rawData?.length);
+        
+        const profile = Array.isArray(rawData) ? rawData[0] : rawData;
+
+        console.log('📋 [3/5] Perfil procesado:', profile);
+
+        if (!profile) {
+            console.error('❌ [3/5] Perfil vacío o null');
+            alert('ERROR: Perfil no encontrado en BD');
+            // ⚠️ COMENTADO TEMPORALMENTE PARA DEBUG
+            // window.location.href = '../../index.html';
+            return null;
+        }
+
+        console.log('✅ [3/5] Perfil encontrado');
+        console.log('   - Role:', profile.role);
+        console.log('   - Tenant ID:', profile.tenant_id);
+        console.log('   - Email:', profile.email);
+
+        // 4. Verificar rol
+        console.log('🔐 [4/5] Verificando permisos...');
+        
+        const allowedRoles = ['master', 'admin', 'supervisor'];
+        const hasPermission = allowedRoles.includes(profile.role);
+        
+        console.log('   - Rol del usuario:', profile.role);
+        console.log('   - Roles permitidos:', allowedRoles);
+        console.log('   - ¿Tiene permiso?:', hasPermission);
+
+        if (!hasPermission) {
+            console.error('❌ [4/5] Rol insuficiente:', profile.role);
+            alert('ACCESO DENEGADO: Tu rol es "' + profile.role + '". Se requiere: admin, supervisor o master');
+            // ⚠️ COMENTADO TEMPORALMENTE PARA DEBUG
+            // window.location.href = '../../profile/profile.html';
+            return null;
+        }
+
+        console.log('✅ [4/5] Permisos verificados correctamente');
+        console.log('✅ [5/5] Acceso autorizado:', profile.role);
+        
+        return profile;
+
+    } catch (error) {
+        console.error('🔥 [ERROR CATCH] Error inesperado:', error);
+        console.error('Stack:', error.stack);
+        alert('ERROR CRÍTICO: ' + error.message);
         return null;
     }
-
-    console.log('✅ Usuario autenticado:', user.email);
-
-    // 2. Obtener perfil (SIN .single() para evitar errores con RLS)
-    const { data: rawData, error: profileError } = await window.supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id);
-
-    if (profileError) {
-        console.error('❌ Error obteniendo perfil:', profileError);
-        alert('Error de permisos: No se pudo cargar tu perfil');
-        window.location.href = '../../index.html';
-        return null;
-    }
-
-    // 3. FIX: Manejar respuesta como array
-    const profile = Array.isArray(rawData) ? rawData[0] : rawData;
-
-    if (!profile) {
-        alert('Error: Perfil no encontrado en la base de datos');
-        window.location.href = '../../index.html';
-        return null;
-    }
-
-    console.log('📋 Perfil cargado:', profile.role, profile.tenant_id);
-
-    // 4. Verificar rol
-    const allowedRoles = ['master', 'admin', 'supervisor'];
-    if (!allowedRoles.includes(profile.role)) {
-        alert('Acceso denegado: Necesitas ser Admin, Supervisor o Master');
-        window.location.href = '../../profile/profile.html';
-        return null;
-    }
-
-    console.log('✅ Acceso autorizado:', profile.role);
-    return profile;
 }
 
     // =================================================================
