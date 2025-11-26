@@ -508,7 +508,6 @@ window.submitQuiz = async function() {
         const userAns = currentAnswers[idx];
         if (userAns === correctAns) correctCount++;
 
-        // Deshabilitar UI y mostrar correcciones visuales
         const btns = div.querySelectorAll('.quiz-btn');
         btns.forEach(b => b.disabled = true);
         if (userAns !== undefined && btns[userAns]) {
@@ -522,29 +521,37 @@ window.submitQuiz = async function() {
 
     console.log(`[QUIZ] Resultado: ${finalScore}% (Aprobado: ${passed})`);
 
-    // 2. Definir estado y progreso según resultado
-    // Si reprueba: Vuelve a 0% y se queda 'in_progress'
     const statusToSave = passed ? 'completed' : 'in_progress';
     const progressToSave = passed ? 100 : 0;
 
     endQuizMode();
 
-    // 3. Guardar en Supabase
+    // 3. Guardar en Supabase con sintaxis correcta
     try {
         const { data: { user } } = await supabase.auth.getUser();
         const courseId = new URLSearchParams(location.search).get("id");
         
         if (user && courseId) {
-            await supabase.from('user_course_assignments').upsert({
-                user_id: user.id,
-                course_id: courseId,
-                score: finalScore,
-                progress: progressToSave, 
-                status: statusToSave,
-                assigned_at: new Date() // Actualizamos fecha para registrar el intento reciente
-            }, { onConflict: 'user_id, course_id' });
+            // 🔧 FIX: Sintaxis correcta de upsert
+            const { error } = await supabase
+                .from('user_course_assignments')
+                .upsert({
+                    user_id: user.id,
+                    course_id: courseId,
+                    score: finalScore,
+                    progress: progressToSave, 
+                    status: statusToSave,
+                    assigned_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id,course_id', 
+                    ignoreDuplicates: false
+                });
             
-            console.log(`[DB] Guardado: Score=${finalScore}, Status=${statusToSave}, Progress=${progressToSave}%`);
+            if (error) {
+                console.error("[QUIZ] Error guardando resultado:", error);
+            } else {
+                console.log(`[DB] Guardado: Score=${finalScore}, Status=${statusToSave}, Progress=${progressToSave}%`);
+            }
         }
     } catch (e) {
         console.error("[ERROR] Guardando resultado:", e);
@@ -553,10 +560,7 @@ window.submitQuiz = async function() {
     // 4. Mostrar resultados
     showResultModal(passed, finalScore);
 
-    // Opcional: Si reprobó, forzar recarga visual o llevar al inicio al cerrar el modal
     if (!passed) {
-        // Esto asegura que la UI entienda que volvimos al inicio
-        // Puedes agregarlo dentro del botón del modal o dejarlo que suceda al recargar
         console.log("Usuario reprobado. Progreso reiniciado.");
     }
 };
@@ -575,39 +579,46 @@ async function saveProgress(pageIndex, isQuizCompleted = false) {
         // Calcular porcentaje
         let progress;
         if (isQuizCompleted) {
-            progress = 100; // Quiz terminado = 100%
+            progress = 100;
         } else {
-            // (página actual + 1) / total páginas * 100
-            // Pero el quiz no cuenta hasta completarlo, así que máximo 90%
             const totalWithoutQuiz = courseData.pages.length;
             progress = Math.round(((pageIndex + 1) / totalWithoutQuiz) * 90);
-            progress = Math.min(progress, 90); // Máximo 90% sin quiz
+            progress = Math.min(progress, 90);
         }
 
         console.log(`[PROGRESS] Guardando progreso: ${progress}%`);
 
-        // Verificar si ya existe un registro
+        // Verificar si ya completó
         const { data: existing } = await supabase
             .from('user_course_assignments')
             .select('status, score')
             .eq('user_id', user.id)
             .eq('course_id', courseId)
-            .single();
+            .maybeSingle();
 
-        // Si ya completó el curso, no sobrescribir
         if (existing?.status === 'completed') {
             console.log("[PROGRESS] Curso ya completado, no se actualiza");
             return;
         }
 
-        // Guardar progreso
-        await supabase.from('user_course_assignments').upsert({
-            user_id: user.id,
-            course_id: courseId,
-            progress: progress,
-            status: progress < 100 ? 'in_progress' : existing?.status || 'in_progress',
-            assigned_at: new Date()
-        }, { onConflict: 'user_id, course_id' });
+        // 🔧 FIX: Sintaxis correcta de upsert
+        const { error } = await supabase
+            .from('user_course_assignments')
+            .upsert({
+                user_id: user.id,
+                course_id: courseId,
+                progress: progress,
+                status: progress < 100 ? 'in_progress' : existing?.status || 'in_progress',
+                assigned_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id,course_id',  // ✅ Aquí como opción del método
+                ignoreDuplicates: false            // ✅ Esto reemplaza a merge-duplicates
+            });
+
+        if (error) {
+            console.error("[PROGRESS] Error en upsert:", error);
+            return;
+        }
 
         console.log(`[PROGRESS] Guardado exitosamente: ${progress}%`);
 
@@ -615,6 +626,7 @@ async function saveProgress(pageIndex, isQuizCompleted = false) {
         console.error("[PROGRESS] Error guardando progreso:", e);
     }
 }
+
 
 function endQuizMode() {
     console.log(" [QUIZ] Modo examen finalizado. Navegación liberada.");
