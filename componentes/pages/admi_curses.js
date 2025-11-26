@@ -697,14 +697,6 @@ window.exportToExcel = () => {
 async function renderGroups(filter = '') {
         const container = document.getElementById('groups-container');
         
-        if (!currentAdmin.tenant_id) {
-            container.innerHTML = `<div class="empty-state">
-                <h3> Configuración Incompleta</h3>
-                <p>Tu usuario no tiene un Tenant ID asignado.</p>
-            </div>`;
-            return;
-        }
-
         allGroups = await fetchGroups();
 
         const filtered = allGroups.filter(g => g.name.toLowerCase().includes(filter.toLowerCase()));
