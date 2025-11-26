@@ -76,134 +76,125 @@ async function fetchCourseData() {
 
     try {
         // ============================================================
-        // 🛡️ 1. BLOQUE DE SEGURIDAD + AUTO-REPARACIÓN
+        // 🛡️ 1. AUTO-REPARACIÓN DE SESIÓN (Tu código de resurrección)
         // ============================================================
-        
-        // A. Intento normal
         let { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        // B. AUTO-REPARACIÓN: Si falla, buscamos el token manualmente en LocalStorage
         if (!session || sessionError) {
-            console.warn("⚠️ [RECOVERY] Sesión estándar no detectada. Buscando token de Tenant...");
-            
-            // Buscamos cualquier llave que empiece con 'sb-' y termine con '-auth-token'
-            // Esto encontrará 'sb-siresi-auth-token'
-            const customKey = Object.keys(window.localStorage).find(key => 
-                key.startsWith('sb-') && key.endsWith('-auth-token')
-            );
+            console.warn("⚠️ [RECOVERY] Buscando token manual...");
+            const customKey = Object.keys(window.localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
 
             if (customKey) {
-                console.log(`🔧 [RECOVERY] Token encontrado en: ${customKey}. Intentando restaurar...`);
                 try {
-                    const storedToken = JSON.parse(window.localStorage.getItem(customKey));
-                    if (storedToken && storedToken.access_token && storedToken.refresh_token) {
-                        // Forzamos la sesión con el token encontrado
-                        const { data: recoveredData, error: recoverError } = await supabase.auth.setSession({
-                            access_token: storedToken.access_token,
-                            refresh_token: storedToken.refresh_token
-                        });
-
-                        if (!recoverError && recoveredData.session) {
-                            console.log("✅ [RECOVERY] ¡Sesión restaurada con éxito!");
-                            session = recoveredData.session; // Actualizamos la variable para que el código siga
-                            sessionError = null; // Limpiamos el error
-                        }
+                    const token = JSON.parse(window.localStorage.getItem(customKey));
+                    const { data: rec } = await supabase.auth.setSession({
+                        access_token: token.access_token,
+                        refresh_token: token.refresh_token
+                    });
+                    if (rec.session) {
+                        console.log("✅ [RECOVERY] ¡Sesión restaurada!");
+                        session = rec.session;
                     }
-                } catch (e) {
-                    console.error("❌ [RECOVERY] Falló la restauración manual:", e);
-                }
+                } catch (e) { console.error("❌ Recovery falló", e); }
             }
         }
 
-        // C. Verificación Final (Si después de intentar reparar sigue sin haber sesión)
         if (!session) {
-            console.error("⛔ [FATAL] No se pudo recuperar ninguna sesión.");
-            alert("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+            alert("Sesión expirada.");
             window.location.href = '../../index.html';
             return;
         }
 
         // ============================================================
-        // 2. OBTENER DATOS DE USUARIO (Ya seguro)
+        // 2. EXTRACCIÓN ROBUSTA DE DATOS (AQUÍ ESTÁ EL CAMBIO) 🕵️‍♂️
         // ============================================================
         const user = session.user;
-        const myTenantId = user?.user_metadata?.tenant_id;
-        const myRole = user?.user_metadata?.role;
+        
+        // Buscamos el ROL en orden de prioridad: app_metadata -> user_metadata -> localStorage
+        const myRole = user?.app_metadata?.role || 
+                       user?.user_metadata?.role || 
+                       localStorage.getItem('role') || 
+                       'authenticated'; // Fallback final
 
-        console.log(`👤 [DEBUG] Usuario: ${user.email} | Rol: ${myRole}`);
+        // Buscamos el TENANT en orden de prioridad
+        const myTenantId = user?.app_metadata?.tenant_id || 
+                           user?.user_metadata?.tenant_id || 
+                           localStorage.getItem('tenant'); 
+
+        console.log(`👤 [DEBUG] User: ${user.email} | Rol Detectado: ${myRole}`);
+        console.log(`🏢 [DEBUG] Tenant Detectado: ${myTenantId}`);
 
         // ============================================================
-        // 3. CONSTRUIR QUERY
+        // 3. QUERY
         // ============================================================
         let query = supabase
             .from("articles")
             .select("title, content_json, quiz_json, tenant_id")
             .eq("id", courseId);
 
-        if (myRole !== "master") {
+        // Lógica de filtrado
+        if (myRole !== "master" && myRole !== "admin") { // Agregué 'admin' por si acaso
             if (myTenantId) {
                 query = query.eq("tenant_id", myTenantId);
             } else {
-                console.warn("⚠️ Usuario sin tenant_id.");
+                console.warn("⚠️ Usuario sin tenant_id, consultando curso público o confiando en RLS...");
             }
         }
 
         const { data: fetchedCourse, error } = await query.single();
 
-        // 4. DIAGNÓSTICO DE ERRORES DE BD
         if (error) {
             console.error("❌ [SUPABASE ERROR]:", error);
-            pageContentEl.innerHTML = `<div class='error-message'>Error de Base de Datos: ${error.message}</div>`;
+            pageContentEl.innerHTML = `<div class='error-message'>Error BD: ${error.message}</div>`;
             return;
         }
-
-        if (!fetchedCourse) {
-            pageContentEl.innerHTML = "<div class='error-message'>Curso no encontrado o Acceso Denegado.</div>";
-            return;
-        }
-
-        console.log("✅ [DEBUG] Curso descargado:", fetchedCourse.title);
 
         // ============================================================
-        // 5. PARSEO Y LIMPIEZA
+        // 4. DIAGNÓSTICO FINAL (¿Por qué title era undefined?)
+        // ============================================================
+        if (!fetchedCourse) {
+            pageContentEl.innerHTML = "<div class='error-message'>Curso no encontrado (posible bloqueo RLS).</div>";
+            return;
+        }
+
+        // Imprimimos TODO el objeto para ver qué llegó realmente
+        console.log("📦 [DEBUG] Objeto recibido completo:", fetchedCourse); 
+
+        if (!fetchedCourse.title) {
+            console.error("❌ [EXTRAÑO] El objeto llegó, pero no tiene título. ¿Columnas ocultas?");
+        } else {
+            console.log("✅ [EXITO] Título:", fetchedCourse.title);
+        }
+
+        // ============================================================
+        // 5. PROCESAMIENTO (Igual que antes)
         // ============================================================
         let finalCourseData;
         if (typeof fetchedCourse.content_json === 'string') {
             try {
                 finalCourseData = JSON.parse(fetchedCourse.content_json);
             } catch (e) {
-                pageContentEl.innerHTML = `<div class='error-message'>Error JSON: ${e.message}</div>`;
+                pageContentEl.innerHTML = `<div class='error-message'>JSON Corrupto: ${e.message}</div>`;
                 return;
             }
         } else {
             finalCourseData = fetchedCourse.content_json || { pages: [] };
         }
 
-        // Limpieza de quizzes viejos
         if (finalCourseData.pages) {
             finalCourseData.pages = finalCourseData.pages.filter(p => p.type !== 'quiz');
         }
 
-        // Inyección del Quiz nuevo
         if (fetchedCourse.quiz_json) {
             try {
-                let quizObj = typeof fetchedCourse.quiz_json === 'string' 
-                    ? JSON.parse(fetchedCourse.quiz_json) 
-                    : fetchedCourse.quiz_json;
-                
+                let quizObj = typeof fetchedCourse.quiz_json === 'string' ? JSON.parse(fetchedCourse.quiz_json) : fetchedCourse.quiz_json;
                 if (quizObj?.questions?.length > 0) {
-                    finalCourseData.pages.push({
-                        type: 'quiz',
-                        title: 'Evaluación Final',
-                        payload: quizObj
-                    });
+                    finalCourseData.pages.push({ type: 'quiz', title: 'Evaluación Final', payload: quizObj });
                 }
-            } catch (e) { console.warn("Error quiz json"); }
+            } catch (e) {}
         }
 
-        // ============================================================
         // 6. RECUPERAR PROGRESO
-        // ============================================================
         let startIndex = 0;
         try {
             const { data: assignment } = await supabase
@@ -214,19 +205,18 @@ async function fetchCourseData() {
                 .single();
 
             if (assignment && assignment.status !== 'completed' && assignment.progress > 0) {
-                const contentPages = finalCourseData.pages.filter(p => p.type !== 'quiz');
-                if (contentPages.length > 0) {
+                 const contentPages = finalCourseData.pages.filter(p => p.type !== 'quiz');
+                 if (contentPages.length > 0) {
                     startIndex = Math.round((assignment.progress / 90) * contentPages.length) - 1;
                     startIndex = Math.max(0, Math.min(startIndex, finalCourseData.pages.length - 1));
-                }
+                 }
             }
         } catch (err) {}
 
-        // 7. CARGAR UI
         loadCourseUI(fetchedCourse.title, finalCourseData, startIndex);
 
     } catch (e) {
-        console.error("❌ [CRITICO SISTEMA]:", e);
+        console.error("❌ [CRITICO]:", e);
     }
 }
 
