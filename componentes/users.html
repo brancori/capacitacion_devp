@@ -576,7 +576,7 @@ async function handleApproveRequest(requestId, requestEmail) {
             if (!confirmed) return;
 
             const { error } = await window.supabase
-                .from('pending_registrations')
+                .from('registration_requests')
                 .delete()
                 .eq('id', requestId);
 

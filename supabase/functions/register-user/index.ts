@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? "", 
     );
 
-    const { error } = await supabase.from("pending_registrations").insert({
+    const { error } = await supabase.from("registration_requests").insert({
       email,
       full_name,
       tenant_slug,
