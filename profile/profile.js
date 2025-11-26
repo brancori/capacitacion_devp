@@ -29,12 +29,13 @@ window.safeStorage = window.safeStorage || {
 
 (async function earlyRoleCheck() {
     // FIX: Esperar a que 'window.supabase' Y 'window.supabase.auth' existan
-    if (!window.supabase || !window.supabase.auth) {
-        setTimeout(earlyRoleCheck, 50);
+if (!window.supabase?.auth) {
+        setTimeout(earlyRoleCheck, 100);
         return;
     }
 
     try {
+        // Ahora es seguro llamar a auth
         const { data: { session } } = await window.supabase.auth.getSession();
         
         if (!session) {
@@ -480,13 +481,14 @@ async function loadUserProfile() {
 
 async function mainInit() {
     // 1. Validar window.supabase (que coincide con tu supabase-client.js)
-    if (!window.supabase || !window.supabase.auth) {
+if (!window.supabase?.auth) {
+        console.log('⏳ Esperando inicialización de cliente Supabase...');
         setTimeout(mainInit, 100);
         return;
     }
 
     try {
-        // 2. Usar window.supabase en todas las llamadas
+        console.log('✅ Cliente listo. Iniciando Profile...');
         const { data: { session } } = await window.supabase.auth.getSession();
       
         if (!session) {
