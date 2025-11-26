@@ -302,12 +302,15 @@ try {
         tenant: userTenant 
     });
 
-    showModal(
+showModal(
       '¡Bienvenido!',
       'Accediendo al sistema...',
       'success',
       () => {
+        // Lógica de Aterrizaje
         const rolesAdmin = ['master', 'admin', 'supervisor'];
+        
+        // Usamos la variable donde guardaste el rol (userRole o profile.role)
         if (rolesAdmin.includes(userRole)) {
           window.location.href = './dashboard.html';
         } else {
