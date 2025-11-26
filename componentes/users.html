@@ -594,53 +594,42 @@ async function handleApproveRequest(requestId, requestEmail) {
     // GESTIÓN DE USUARIOS AUTORIZADOS
     // ═══════════════════════════════════════════════════════════
     
-async function loadUsers(profile) {
-        const tableBody = document.getElementById('usersTableBody');
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando usuarios...</td></tr>';
+async function loadUserList(role, tenantId) {
+    const profile = { role, tenant_id: tenantId };
+    
+    userListBody.innerHTML = '<div class="loading-row"><i class="fas fa-spinner fa-spin"></i> Cargando usuarios...</div>';
 
-        try {
-            console.log(`🔍 [QUERY] Buscando usuarios del Tenant: ${profile.tenant_id}`);
+    try {
+        console.log(`🔎 [QUERY] Buscando usuarios del Tenant: ${profile.tenant_id}`);
 
-            // 1. Construir Query
-            let query = window.supabase
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
+        let query = window.supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-            // 2. FILTRADO ESTRICTO
-            // Si eres Master, ves todo.
-            // Si eres Admin/Supervisor, el SQL (RLS) ya te limita, pero
-            // agregamos el filtro JS como doble seguridad y para optimizar.
-            if (profile.role !== 'master') {
-                if (profile.tenant_id) {
-                    query = query.eq('tenant_id', profile.tenant_id);
-                } else {
-                    console.error("❌ Admin sin tenant_id. No se puede filtrar.");
-                    tableBody.innerHTML = '<tr><td colspan="6" class="error-text">Error de Identificación de Tenant</td></tr>';
-                    return;
-                }
-            }
-
-            const { data: users, error } = await query;
-
-            if (error) throw error;
-
-            console.log(`📊 [RESULTADO] Se encontraron ${users.length} usuarios en tu tenant.`);
-
-            // 3. Renderizar Tabla
-            if (!users || users.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No hay otros usuarios en este Tenant.</td></tr>';
+        if (profile.role !== 'master') {
+            if (profile.tenant_id) {
+                query = query.eq('tenant_id', profile.tenant_id);
+            } else {
+                console.error("❌ Admin sin tenant_id. No se puede filtrar.");
+                userListBody.innerHTML = '<div class="loading-row error-text">Error de Identificación de Tenant</div>';
                 return;
             }
-
-            renderUsersTable(users);
-            updateStats(users);
-
-        } catch (error) {
-            console.error('Error cargando usuarios:', error);
-            tableBody.innerHTML = `<tr><td colspan="6" class="error-text">Error: ${error.message}</td></tr>`;
         }
+
+        const { data: users, error } = await query;
+
+        if (error) throw error;
+
+        console.log(`📊 [RESULTADO] Se encontraron ${users.length} usuarios.`);
+
+        renderUserList(users, profile.role);
+
+    } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        userListBody.innerHTML = `<div class="loading-row error-text">Error: ${error.message}</div>`;
     }
+}
 
     // ═══════════════════════════════════════════════════════════
     // CARGAR SOLICITUDES (CON FILTRO DE TENANT)
