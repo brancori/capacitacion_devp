@@ -2,7 +2,7 @@
 // 0. VARIABLES GLOBALES (PARA QUE TODOS LAS VEAN)
 // ==========================================
 // Estas variables viven fuera de las funciones para que startQuiz y renderPage compartan los datos.
-const supabase = window.supabase;
+let supabase; 
 let courseData = null;
 let currentPageIndex = 0;
 let isQuizInProgress = false; // 🔒 El candado del examen
@@ -17,6 +17,14 @@ let pageContentEl, sidebarListEl, prevPageBtn, nextPageBtn, courseTitleEl, foote
 async function initCourse() {
     console.log('[INIT] Iniciando carga del curso...');
 
+    // Esperar a que el Proxy de Supabase esté listo
+    if (!window.supabase || typeof window.supabase.from !== 'function') {
+        setTimeout(initCourse, 100);
+        return;
+    }
+
+    supabase = window.supabase;
+
     // 1.1 Conectar variables con el HTML
     pageContentEl = document.getElementById("pageContent");
     sidebarListEl = document.getElementById("sidebarList");
@@ -26,7 +34,7 @@ async function initCourse() {
     footerMessageEl = document.getElementById("footerMessage");
 
     if (!pageContentEl || !sidebarListEl) {
-        console.error("❌ [ERROR] No se encontraron elementos del DOM. Revisa tu HTML.");
+        console.error("❌ [ERROR] Elementos del DOM no encontrados.");
         return;
     }
 
