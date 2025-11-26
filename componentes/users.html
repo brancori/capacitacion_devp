@@ -37,7 +37,10 @@
             <header class="list-header">
                 <!-- SOLICITUDES PENDIENTES -->
                 <div class="pending-requests-container">
-                    <h2><i class="fas fa-user-plus"></i> Solicitudes Pendientes</h2>
+                    <h2>
+                        <i class="fas fa-user-plus"></i> Solicitudes Pendientes 
+                        <span id="pendingCountBadge" class="badge-counter" style="display:none; background:red; color:white; font-size:0.7em; padding:2px 8px; border-radius:10px; vertical-align: middle;">0</span>
+                    </h2>
                     <div class="request-table-wrapper">
                         <div class="request-table">
                             <div class="request-row header">
@@ -411,26 +414,57 @@ async function loadAdminProfile(config) {
     // GESTIÓN DE SOLICITUDES PENDIENTES
     // ═══════════════════════════════════════════════════════════
     
-    async function loadPendingRequests(adminRole, adminTenantId, tenantSlug) {
-        try {
-            let query = window.supabase
-                .from('pending_registrations')
-                .select('*')
-                .order('created_at', { ascending: true });
+async function loadPendingRequests(profile) {
+        // 1. Usamos el ID correcto que SÍ tienes en tu HTML
+        const container = document.getElementById('request-list-body');
+        const badge = document.getElementById('pendingCountBadge'); // El que agregamos arriba (opcional)
+        
+        // Si por alguna razón el contenedor no existe, detenemos para no romper la página
+        if (!container) {
+            console.warn("⚠️ No se encontró 'request-list-body' en el HTML.");
+            return;
+        }
 
-            // Admin/Supervisor solo ve su tenant
-            if (adminRole === 'admin' || adminRole === 'supervisor') {
-                query = query.eq('tenant_slug', tenantSlug);
+        try {
+            // Render estado de carga
+            container.innerHTML = '<div class="loading-row"><i class="fas fa-spinner fa-spin"></i> Cargando solicitudes...</div>';
+
+            // 2. Query Base a la tabla 'registration_requests'
+            let query = window.supabase
+                .from('registration_requests')
+                .select('*')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false });
+
+            // 3. Filtro Tenant (Solo si no eres Master)
+            if (profile.role !== 'master') {
+                if(profile.tenant_id) {
+                    query = query.eq('tenant_id', profile.tenant_id);
+                }
             }
 
-            const { data, error } = await query;
+            const { data: requests, error } = await query;
             if (error) throw error;
 
-            renderPendingRequests(data);
+            // 4. Actualizar Badge (Solo si el elemento existe en HTML)
+            if (badge) {
+                if (requests.length > 0) {
+                    badge.textContent = requests.length;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            // 5. Renderizar o Delegar
+            // Como ya tienes una función 'renderPendingRequests' en tu código, la usamos:
+            renderPendingRequests(requests);
+            
+            console.log(`📩 [QUERY] Solicitudes pendientes: ${requests.length}`);
+
         } catch (error) {
-            console.error('Error cargando solicitudes:', error.message);
-            document.getElementById('request-list-body').innerHTML =
-                '<div class="loading-row">Error al cargar solicitudes.</div>';
+            console.error('Error cargando solicitudes:', error);
+            container.innerHTML = '<div class="loading-row error-text">Error cargando solicitudes.</div>';
         }
     }
 
