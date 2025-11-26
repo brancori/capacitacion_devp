@@ -581,7 +581,7 @@ body[data-input-theme="light"] .form-input:focus {
   }
   .main-card {
     border-radius: var(--radius-md);
-    display: grid;
+    display: grid !important;
   }
   .form-actions {
     flex-direction: column;
