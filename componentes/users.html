@@ -475,7 +475,7 @@ async function loadPendingRequests(profile) {
         }
     }
 
-    
+
     function renderPendingRequests(requests) {
         const body = document.getElementById('request-list-body');
         body.innerHTML = '';
@@ -645,46 +645,6 @@ async function loadUsers(profile) {
     // ═══════════════════════════════════════════════════════════
     // CARGAR SOLICITUDES (CON FILTRO DE TENANT)
     // ═══════════════════════════════════════════════════════════
-    async function loadPendingRequests(profile) {
-        const container = document.getElementById('pendingRequestsContainer');
-        const badge = document.getElementById('pendingCountBadge');
-        
-        try {
-            // 1. Query Base
-            let query = window.supabase
-                .from('registration_requests')
-                .select('*')
-                .eq('status', 'pending')
-                .order('created_at', { ascending: false });
-
-            // 2. Filtro Tenant
-            if (profile.role !== 'master') {
-                if(profile.tenant_id) {
-                    query = query.eq('tenant_id', profile.tenant_id);
-                }
-            }
-
-            const { data: requests, error } = await query;
-            if (error) throw error;
-
-            // 3. Renderizar
-            if (requests.length === 0) {
-                container.innerHTML = '<p class="text-muted" style="padding:1rem;">No hay solicitudes pendientes.</p>';
-                badge.style.display = 'none';
-            } else {
-                badge.style.display = 'inline-block';
-                badge.textContent = requests.length;
-                renderRequestsList(requests);
-            }
-            console.log(`📩 [QUERY] Solicitudes pendientes: ${requests.length}`);
-
-        } catch (error) {
-            console.error('Error cargando solicitudes:', error);
-            container.innerHTML = '<p class="error-text">Error cargando solicitudes.</p>';
-        }
-    }
-
-
     function renderUserList(profiles, adminRole) {
         userListBody.innerHTML = '';
         if (profiles.length === 0) {
