@@ -519,7 +519,7 @@ function startPollingUpdates(adminRole, adminTenantId, tenantSlug) {
         if (document.visibilityState === 'visible') {
             console.log('🔄 Polling: Verificando nuevos registros...');
             // Llamamos a tu función existente de carga
-            await loadPendingRequests(adminRole, adminTenantId, tenantSlug);
+            await loadPendingRequests(currentAdmin);
         }
     }, 10000); // 10000 ms = 10 segundos
 }
@@ -558,7 +558,7 @@ async function handleApproveRequest(requestId, requestEmail) {
 
         showModal('Solicitud Aprobada', `${requestEmail} ha sido autorizado.`, 'success');
         
-        await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
+        await loadPendingRequests(currentAdmin);
         await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
 
     } catch (error) {
@@ -583,7 +583,7 @@ async function handleApproveRequest(requestId, requestEmail) {
             if (error) throw error;
 
             showModal('Solicitud Rechazada', 'La solicitud ha sido eliminada.', 'info');
-            await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
+            await loadPendingRequests(currentAdmin);
 
         } catch (error) {
             showModal('Error', error.message, 'error');
@@ -940,7 +940,8 @@ userListBody.addEventListener('click', async (e) => {
         }
 
         // 4. Cargar solicitudes pendientes
-        await loadPendingRequests(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
+        await loadPendingRequests(currentAdmin);
+
         console.log('✅ Solicitudes pendientes cargadas');
 
         // 4.5 Activar Realtime para solicitudes pendientes
