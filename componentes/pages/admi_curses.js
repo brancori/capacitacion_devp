@@ -62,6 +62,72 @@
         return config;
     }
 
+    // =================================================================
+// RECUPERACIÓN DE SESIÓN (IGUAL QUE EN users.html)
+// =================================================================
+async function recoverSession() {
+    console.log('🔄 [SESSION] Intentando recuperar sesión...');
+    
+    // 1. Verificar si ya hay sesión activa
+    let { data: { user }, error } = await window.supabase.auth.getUser();
+    
+    if (user && !error) {
+        console.log('✅ [SESSION] Sesión activa encontrada:', user.email);
+        return user;
+    }
+    
+    console.warn('⚠️ [SESSION] Sesión perdida. Buscando token de respaldo...');
+    
+    // 2. Buscar token en localStorage
+    const tokenKey = Object.keys(window.localStorage || {}).find(k => 
+        k.startsWith('sb-') && k.endsWith('-auth-token')
+    );
+    
+    if (!tokenKey) {
+        console.error('❌ [SESSION] No se encontró token de respaldo');
+        return null;
+    }
+    
+    console.log('🔑 [SESSION] Token encontrado:', tokenKey);
+    
+    try {
+        const tokenStr = window.localStorage.getItem(tokenKey);
+        if (!tokenStr) {
+            console.error('❌ [SESSION] Token vacío');
+            return null;
+        }
+        
+        const token = JSON.parse(tokenStr);
+        console.log('📦 [SESSION] Token parseado:', {
+            hasAccessToken: !!token.access_token,
+            hasRefreshToken: !!token.refresh_token
+        });
+        
+        // 3. Restaurar sesión
+        const { data: recovered, error: recoverError } = await window.supabase.auth.setSession({
+            access_token: token.access_token,
+            refresh_token: token.refresh_token
+        });
+        
+        if (recoverError) {
+            console.error('❌ [SESSION] Error restaurando:', recoverError);
+            return null;
+        }
+        
+        if (recovered.user) {
+            console.log('✅ [SESSION] ¡Sesión rescatada!:', recovered.user.email);
+            return recovered.user;
+        }
+        
+        console.error('❌ [SESSION] Sesión restaurada pero sin usuario');
+        return null;
+        
+    } catch (e) {
+        console.error('❌ [SESSION] Error en recuperación:', e);
+        return null;
+    }
+}
+
 async function checkAuth(config) {
     try {
         console.log('🔐 [1/5] Obteniendo usuario autenticado...');
