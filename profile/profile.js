@@ -384,6 +384,7 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mainInit);
 } else {
     mainInit();
+    loadRealDashboardData()
 }
 
   // ═══════════════════════════════════════════════════════════
