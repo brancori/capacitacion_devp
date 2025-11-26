@@ -301,86 +301,112 @@
     // ═══════════════════════════════════════════════════════════
     
 async function loadAdminProfile(config) {
-        console.log("👮‍♂️ [SECURITY] Verificando credenciales...");
+        console.log("👮‍♂️ [SECURITY] Iniciando verificación de seguridad...");
         
-        try {
-            const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+        // ---------------------------------------------------------
+        // 1. AUTO-REPARACIÓN DE SESIÓN (Igual que en el curso)
+        // ---------------------------------------------------------
+        let { data: { user }, error: authError } = await window.supabase.auth.getUser();
+
+        // Si no hay usuario, intentamos buscar el token manualmente en localStorage
+        if (!user || authError) {
+            console.warn("⚠️ [RECOVERY] Sesión perdida. Buscando token de respaldo...");
             
-            if (authError || !user) {
-                console.error("❌ [SECURITY] No hay usuario logueado.");
-                window.location.href = '../index.html';
-                return null;
+            // Buscamos cualquier llave que parezca un token de Supabase (sb-*-auth-token)
+            const customKey = Object.keys(window.localStorage).find(k => 
+                k.startsWith('sb-') && k.endsWith('-auth-token')
+            );
+
+            if (customKey) {
+                try {
+                    const tokenStr = window.localStorage.getItem(customKey);
+                    if (tokenStr) {
+                        const token = JSON.parse(tokenStr);
+                        // Forzamos la sesión
+                        const { data: rec } = await window.supabase.auth.setSession({
+                            access_token: token.access_token,
+                            refresh_token: token.refresh_token
+                        });
+                        
+                        if (rec.user) {
+                            console.log("✅ [RECOVERY] ¡Sesión rescatada exitosamente!");
+                            user = rec.user; // Actualizamos el usuario
+                        }
+                    }
+                } catch (e) {
+                    console.error("❌ [RECOVERY] Falló el rescate manual:", e);
+                }
             }
+        }
 
-            console.log(`👤 [SECURITY] Usuario detectado: ${user.email}`);
+        // ---------------------------------------------------------
+        // 2. VALIDACIÓN FINAL DE SESIÓN
+        // ---------------------------------------------------------
+        if (!user) {
+            console.error("❌ [SECURITY] Falló todo intento de login. Redirigiendo...");
+            // Usamos un pequeño delay para que veas el error en consola si es necesario
+            setTimeout(() => window.location.href = '../index.html', 500); 
+            return null;
+        }
 
-            // 1. CONSULTA A LA BASE DE DATOS
-            // Quitamos .single() para evitar errores si devuelve array, lo manejamos manual
+        console.log(`👤 [SECURITY] Usuario autenticado: ${user.email}`);
+
+        try {
+            // ---------------------------------------------------------
+            // 3. OBTENER PERFIL DE BASE DE DATOS
+            // ---------------------------------------------------------
             const { data: rawData, error: profileError } = await window.supabase
                 .from('profiles')
                 .select('role, tenant_id')
                 .eq('id', user.id);
 
-            if (profileError) {
-                console.error("❌ [SECURITY] Error buscando perfil:", profileError);
-                throw profileError;
-            }
+            if (profileError) throw profileError;
 
-            // 🚨 FIX CRÍTICO: DESEMPAQUETAR EL ARRAY
-            // Si es array, tomamos el primero. Si es objeto, lo usamos directo.
+            // 🚨 FIX DEL ARRAY: Si viene en lista, sacamos el primero
             const profile = Array.isArray(rawData) ? rawData[0] : rawData;
 
             if (!profile) {
-                console.error("❌ [SECURITY] Perfil no encontrado en BD.");
-                showModal('Error', 'Tu usuario no tiene perfil asociado.', 'error');
+                showModal('Error Crítico', 'Usuario sin perfil en base de datos.', 'error');
                 return null;
             }
 
-            console.log("📋 [SECURITY] Datos del Perfil (Procesado):", profile);
-            console.log("🏢 [SECURITY] Datos del Tenant (Sitio):", {
-                uuid: config.tenantUUID,
-                slug: config.tenantSlug
-            });
+            console.log("📋 [SECURITY] Rol detectado:", profile.role);
 
-            // 2. VERIFICAR ROL
-            // Convertimos a minúsculas por si acaso viene "Admin"
+            // ---------------------------------------------------------
+            // 4. VERIFICAR PERMISOS
+            // ---------------------------------------------------------
             const userRole = (profile.role || '').toLowerCase();
             const allowedRoles = ['master', 'admin', 'supervisor'];
             
             if (!allowedRoles.includes(userRole)) {
-                console.warn(`⛔ [SECURITY] Rol '${userRole}' no permitido.`);
-                showModal('Acceso Denegado', `Tu rol (${userRole || 'Sin Rol'}) no tiene permisos.`, 'error');
-                setTimeout(() => window.location.href = '../profile/profile.html', 3000);
+                console.warn(`⛔ [SECURITY] El rol '${userRole}' no tiene permiso de entrada.`);
+                showModal('Acceso Denegado', 'No tienes permisos de administrador.', 'error');
+                setTimeout(() => window.location.href = '../profile/profile.html', 2000);
                 return null;
             }
 
-            // 3. VERIFICAR TENANT (Protegido contra UUID undefined)
+            // ---------------------------------------------------------
+            // 5. VERIFICAR TENANT (Con protección para localhost)
+            // ---------------------------------------------------------
             if (userRole === 'admin' || userRole === 'supervisor') {
-                // Solo comparamos si TENEMOS un UUID contra el cual comparar
+                // Solo validamos si config.tenantUUID existe (evita errores en localhost)
                 if (config.tenantUUID && profile.tenant_id !== config.tenantUUID) {
-                    console.warn(`⛔ [SECURITY] CONFLICTO DE TENANT.`);
-                    showModal('Conflicto de Tenant', 
-                        `Estás en el sitio de '${config.tenantSlug}' pero perteneces a otro.`, 
-                        'error');
+                    console.warn(`⛔ [SECURITY] Conflicto de Tenant: Usuario(${profile.tenant_id}) vs Sitio(${config.tenantUUID})`);
+                    showModal('Acceso Restringido', 'Tu cuenta no pertenece a este entorno corporativo.', 'error');
+                    // setTimeout(() => window.location.href = '../index.html', 3000); // Comenta esto si quieres depurar
                     return null;
-                }
-                
-                // Si config.tenantUUID es undefined (pasa a veces en localhost), dejamos pasar con Warning
-                if (!config.tenantUUID) {
-                    console.warn("⚠️ [SECURITY] TenantUUID es undefined. Saltando validación estricta de tenant (Probablemente Localhost o RLS).");
                 }
             }
 
-            console.log("✅ [SECURITY] Acceso Autorizado.");
+            console.log("✅ [SECURITY] Acceso Total Autorizado.");
             return profile;
 
         } catch (error) {
-            console.error('Error al cargar perfil de admin:', error.message);
-            showModal('Error de Seguridad', 'No se pudo verificar tu perfil.', 'error');
+            console.error('❌ [SECURITY] Error de sistema:', error.message);
+            showModal('Error de Sistema', 'No se pudo verificar tu identidad.', 'error');
             return null;
         }
     }
-
     // ═══════════════════════════════════════════════════════════
     // GESTIÓN DE SOLICITUDES PENDIENTES
     // ═══════════════════════════════════════════════════════════
