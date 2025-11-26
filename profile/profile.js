@@ -236,7 +236,7 @@ async function loadUserProfile() {
         .eq('user_id', userId), 
       supabase.from('badges').select('*'),             
       supabase.from('activity_logs')
-        .select('description')
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5)
