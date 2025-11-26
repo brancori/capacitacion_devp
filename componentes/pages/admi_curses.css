@@ -3,7 +3,8 @@
    ======================================================================== */
 
 body {
-    background-color: var(--light-gray) !important; 
+    background-color: var(--light-gray) !important;
+    font-size: .95rem;
 }
 
 .groups-layout {
