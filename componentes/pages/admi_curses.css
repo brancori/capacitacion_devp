@@ -251,6 +251,9 @@ display: grid !important;
     .navbar-a{
         display: flex;
     }
+    ..logo-section {
+        justify-content: center;
+    }
 }
 /* === Indicador Global de Cumplimiento === */
 .compliance-indicator {

@@ -1253,14 +1253,20 @@ async function init() {
             return;
         }
 
-        // 3. FIX: "Patch" para Master sin tenant_id
-        if (!currentAdmin.tenant_id && currentAdmin.role === 'master' && config.tenantUUID) {
-            console.log('🔧 Asignando Tenant ID del contexto al usuario Master');
+        // 3. FIX: Master puede operar en cualquier tenant
+        const isMaster = currentAdmin.role === 'master';
+
+        if (!isMaster && !currentAdmin.tenant_id) {
+            console.error('❌ Admin sin tenant_id');
+            alert('Error: Tu cuenta no tiene tenant asignado');
+            return;
+        }
+
+        // Master usa el tenant del subdomain actual
+        if (isMaster && config.tenantUUID) {
             currentAdmin.tenant_id = config.tenantUUID;
         }
-        
-        console.log('✅ Admin autenticado:', currentAdmin);
-        
+    
         // 4. Validar tenant_id
         if (!currentAdmin.tenant_id) {
             console.error('❌ Admin sin tenant_id después del patch');
