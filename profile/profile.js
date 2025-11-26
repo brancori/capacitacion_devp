@@ -216,7 +216,7 @@ async function loadUserProfile() {
   }
 
   // 🔥 FIX 2: Cerrar correctamente loadRealDashboardData
-  async function loadRealDashboardData(userId) {
+async function loadRealDashboardData(userId, supabase) {  // ← Agregar parámetro
     const cachedRole = window.safeStorage.get('role');
     const cachedTenant = window.safeStorage.get('tenant');
     const cachedName = window.safeStorage.get('full_name');
@@ -393,7 +393,6 @@ if (document.readyState === 'loading') {
 // profile.js - Función mainInit corregida
 
 async function mainInit() {
-    // 1. Esperar a Supabase
     if (!window.supabase?.auth) {
         setTimeout(mainInit, 100);
         return;
@@ -402,7 +401,6 @@ async function mainInit() {
     try {
         console.log('🚀 Iniciando Perfil...');
 
-        // 2. Recuperar sesión
         const { data: { session } } = await window.supabase.auth.getSession();
 
         if (!session) {
@@ -410,48 +408,38 @@ async function mainInit() {
             return; 
         }
 
-        // 3. Fix de Sesión (Tracking Prevention)
         await window.supabase.auth.setSession(session);
         
         const user = session.user;
         const meta = user.app_metadata || {};
         
-        // Datos reales del token
         const realRole = meta.role || 'authenticated';
         const realTenant = meta.tenant_id;
         const realName = user.user_metadata?.full_name || 'Usuario';
         
-        // 4. AUTORREPARACIÓN DE STORAGE
-        // Si el localStorage está sucio ('undefined'), lo arreglamos con los datos del token
         const storedTenant = window.safeStorage.get('tenant');
         if (!storedTenant || storedTenant === 'undefined') {
-            console.log("🛠️ Corrigiendo datos locales...");
+            console.log(" Corrigiendo datos locales...");
             window.safeStorage.set('role', realRole);
             if (realTenant) window.safeStorage.set('tenant', realTenant);
             window.safeStorage.set('full_name', realName);
         }
 
-        // 5. >>> AQUÍ QUITAMOS LA REDIRECCIÓN <<<
-        // Ya no verificamos si eres admin. Si entraste aquí, es porque quieres ver tus cursos.
-        // Solo mostraremos el botón de "Ir a Dashboard" si eres admin (Lógica visual, no de bloqueo).
         const manageBtn = document.getElementById('manageUsersBtn');
         if (manageBtn) {
             const isAdmin = ['master', 'admin', 'supervisor'].includes(realRole);
-            manageBtn.style.display = isAdmin ? 'flex' : 'none'; // Solo admins ven el botón
-            
+            manageBtn.style.display = isAdmin ? 'flex' : 'none';
         }
 
-        // 6. Cargar Interfaz
         const config = await loadTenantConfig();
         applyConfiguration(config);
 
-        // Renderizar Usuario
         document.getElementById('profileName').textContent = realName;
         const roleEl = document.querySelector('.profile-card .role');
         if(roleEl) roleEl.textContent = `${realRole.toUpperCase()} | ${user.email}`;
         
-        // 7. Cargar Cursos
-        await loadRealDashboardData(user.id);
+        //  PASAR window.supabase como parámetro:
+        await loadRealDashboardData(user.id, window.supabase);  // ← Agregar segundo parámetro
         await loadCourses(user.id);
         
         initUI();
@@ -459,7 +447,6 @@ async function mainInit() {
 
     } catch (error) {
         console.error('❌ Error fatal:', error);
-        // Aunque falle, mostramos la interfaz para no dejar pantalla blanca
         document.body.classList.add('loaded');
     }
 }

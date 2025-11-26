@@ -104,4 +104,7 @@ body{
         gap: .5rem;
         align-content: center;
     }
+    .nav-actions{
+        justify-content: center;
+    }
 }
