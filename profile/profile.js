@@ -6,25 +6,25 @@ async function rebuildAppConfig() {
   else if (hostname.split('.').length > 2) slug = hostname.split('.')[0];
   else slug = 'default';
 
-  // cargar tenants.json
-  const res = await fetch('../tenants/tenants.json');
-  const data = await res.json();
-
-  window.__appConfig = {
-    ...data[slug],
-    tenantSlug: slug,
-    tenantUUID: data[slug]?.uuid || null
-  };
-
-  console.log('🔧 AppConfig reconstruido:', window.__appConfig);
+  try {
+    const res = await fetch('../tenants/tenants.json');
+    const data = await res.json();
+    window.__appConfig = {
+      ...data[slug],
+      tenantSlug: slug,
+      tenantUUID: data[slug]?.uuid || null
+    };
+    console.log('🔧 AppConfig reconstruido:', window.__appConfig);
+  } catch (e) {
+    console.warn('No se pudo cargar config de tenants');
+  }
 }
 
 
-
 window.safeStorage = window.safeStorage || {
-  set: (k, v) => localStorage.setItem(k, v),
-  get: (k) => localStorage.getItem(k),
-  remove: (k) => localStorage.removeItem(k)
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
+  get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
+  remove: (k) => { try { localStorage.removeItem(k); } catch(e){} }
 };
 
 (async function earlyRoleCheck() {
@@ -132,46 +132,32 @@ if (!window.supabase?.auth) {
   // ───────────────────────────────────────────────────────────
   // TENANT CONFIG
   // ───────────────────────────────────────────────────────────
-  async function loadTenantConfig() {
-    const tenantId = detectTenant();
-    console.log(`🔍 Detectando tenant: ${tenantId}`);
-    try {
-      const response = await fetch('../tenants/tenants.json', {
-        headers: { 'Accept': 'application/json' }
-      });
-      if (!response.ok) throw new Error('No se pudo cargar tenants.json');
-      const data = await response.json();
-      return data[tenantId] || data['default'] || {};
-    } catch (error) {
-      console.warn('⚠️ Error al cargar configuración del tenant:', error);
-      return {};
+async function loadTenantConfig() {
+    const host = location.hostname || 'localhost';
+    let tenantId = 'default';
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+        const parts = host.split('.');
+        if (parts.length > 2) tenantId = parts[0];
     }
-  }
-
-  function applyConfiguration(config) {
-    if (!config) return;
     
-    setStyle('--primaryColor', config.primaryColor);
-    setStyle('--secondaryColor', config.secondaryColor);
+    try {
+        const response = await fetch('../tenants/tenants.json');
+        const data = await response.json();
+        return data[tenantId] || data['default'] || {};
+    } catch (e) { return {}; }
+}
 
+function applyConfiguration(config) {
+    if (!config) return;
+    const root = document.documentElement;
+    if (config.primaryColor) root.style.setProperty('--primaryColor', config.primaryColor);
+    if (config.secondaryColor) root.style.setProperty('--secondaryColor', config.secondaryColor);
+    
     const companyNameEl = document.getElementById('companyName');
     if (companyNameEl && config.companyName) {
-      const icon = companyNameEl.querySelector('i');
-      companyNameEl.innerHTML = '';
-      if (icon) companyNameEl.appendChild(icon);
-      companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
+         companyNameEl.innerHTML = `<i class="fas fa-graduation-cap"></i> ${config.companyName}`;
     }
-    console.log(`🎨 Tenant aplicado: ${config.companyName || 'sin nombre definido'}`);
-
-    try {
-      const tenantSlug = detectTenant();
-      localStorage.setItem('tenantTheme', JSON.stringify(config));
-      localStorage.setItem('tenantSlug', tenantSlug);
-      console.log('💾 Configuración de tenant guardada en caché.');
-    } catch (e) {
-      console.warn('Advertencia: No se pudo guardar el tema en localStorage.', e);
-    }
-  }
+}
 
   // ───────────────────────────────────────────────────────────
   // PROFILE & PERMISSIONS
@@ -387,91 +373,54 @@ async function loadUserProfile() {
     }
   }
 
-  function initUI() {
-    const modal = document.getElementById('modal');
-    const modalClose = document.getElementById('modalClose');
-
-    if (modalClose) {
-      modalClose.addEventListener('click', () => modal?.classList.remove('show'));
-    }
-
+function initUI() {
     const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tabContents.forEach(tc => tc.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab)?.classList.add('active');
-      });
-    });
-
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        document.querySelectorAll('.course-card').forEach(card => {
-          const title = card.querySelector('h3')?.textContent.toLowerCase() || '';
-          card.style.display = title.includes(term) ? 'flex' : 'none';
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.tab)?.classList.add('active');
         });
-      });
-    }
-  }
+    });
+}
 
   // 🔥 FIX 3: Agregar función renderCourses
-  function renderCourses(coursesList, containerId, emptyMsg) {
+function renderCourses(coursesList, containerId, emptyMsg) {
     const container = document.getElementById(containerId);
-    if (!container) {
-      console.warn(`⚠️ Container ${containerId} no encontrado`);
-      return;
+    if (!container) return;
+    
+    if (!coursesList || coursesList.length === 0) {
+        container.innerHTML = `<p style="text-align: center; padding: 2rem; color: #888;">${emptyMsg}</p>`;
+        return;
     }
 
-    if (coursesList.length === 0) {
-      container.innerHTML = `<p style="text-align: center; padding: 2rem; color: var(--text-secondary);">${emptyMsg}</p>`;
-      return;
-    }
-
-    container.innerHTML = coursesList.map(c => {
-      const dueDateInfo = getDueDateStatus(c.due_date);
-      const progress = c.progress || 0;
-      const isUrgent = dueDateInfo.urgent && progress < 100;
-
-      let iconClass = 'pending';
-      let iconFA = 'fa-clock';
-      let btnText = progress > 0 ? 'Continuar' : 'Iniciar';
-      
-      if (isUrgent) {
-        iconClass = 'urgent';
-        iconFA = 'fa-exclamation-triangle';
-      } else if (progress === 100) {
-        iconClass = 'completed';
-        iconFA = 'fa-check-circle';
-        btnText = 'Ver Certificado';
-      }
-
-      return `
-      <div class="course-card" data-status="${iconClass}">
-        <div class="course-icon-lg ${iconClass}">
-          <i class="fas ${iconFA}"></i>
+    container.innerHTML = coursesList.map(c => `
+      <div class="course-card">
+        <div class="course-icon-lg ${c.progress === 100 ? 'completed' : 'pending'}">
+          <i class="fas ${c.progress === 100 ? 'fa-check-circle' : 'fa-clock'}"></i>
         </div>
         <div class="course-info">
           <h3>${c.title}</h3>
-          ${dueDateInfo.text && progress < 100 ? `
-          <div class="meta-item" style="color: ${isUrgent ? 'var(--danger)' : 'var(--text-secondary)'};">
-            <i class="fas fa-calendar-alt"></i>
-            <span>${dueDateInfo.text}</span>
-          </div>` : ''}
           <div class="progress-bar-container">
-            <div class="progress-bar-fill" style="width: ${progress}%;"></div>
+            <div class="progress-bar-fill" style="width: ${c.progress}%;"></div>
           </div>
-          <p>Progreso: ${progress}%</p>
+          <p>Progreso: ${c.progress}%</p>
         </div>
         <div class="course-actions">
-          <a href="./curso/curso.html?id=${c.id}" class="btn btn-primary">${btnText}</a>
+           <a href="../curso/curso.html?id=${c.id}" class="btn btn-primary">
+             ${c.progress > 0 ? 'Continuar' : 'Iniciar'}
+           </a>
         </div>
-      </div>`;
-    }).join('');
-  }
+      </div>
+    `).join('');
+}
+
+// Ejecución
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mainInit);
+} else {
+    mainInit();
+}
 
   // ═══════════════════════════════════════════════════════════
 
@@ -480,83 +429,73 @@ async function loadUserProfile() {
 // profile.js - Función mainInit corregida
 
 async function mainInit() {
-    // 1. Esperar a que la librería cargue
+    // 1. Esperar inicialización de librería
     if (!window.supabase?.auth) {
-        // console.log('⏳ Esperando inicialización de cliente Supabase...');
         setTimeout(mainInit, 100);
         return;
     }
 
     try {
-        console.log('✅ Cliente listo. Iniciando Profile...');
-        
-        // 2. OBTENER SESIÓN DE MEMORIA/STORAGE
+        console.log('✅ Iniciando Profile View...');
+
+        // 2. RECUPERAR SESIÓN
+        // Intentamos leer la sesión actual. 
         const { data: { session } } = await window.supabase.auth.getSession();
-      
+
         if (!session) {
-            console.error('❌ Sin sesión activa en storage.');
+            console.warn('⚠️ Sin sesión, redirigiendo al login...');
             window.location.href = '../index.html';
             return;
         }
 
-        console.log('✅ Sesión válida detectada en memoria');
+        // 3. INYECCIÓN DE SESIÓN (Fix Tracking Prevention)
+        await window.supabase.auth.setSession(session);
+        console.log("💉 Sesión inyectada.");
 
-        // 3. 🔥 FIX CRÍTICO: INYECCIÓN DE SESIÓN 🔥
-        // El navegador puede haber perdido el estado interno.
-        // Forzamos al cliente a usar el token que acabamos de recuperar.
-        const { error: sessionError } = await window.supabase.auth.setSession(session);
-        if (sessionError) console.warn("⚠️ Advertencia al refrescar sesión:", sessionError);
-        else console.log("💉 Sesión re-inyectada correctamente para peticiones DB.");
+        // 4. AUTORREPARACIÓN DE DATOS (Fix tenant: undefined)
+        // Usamos los metadatos del token que son 100% fiables
+        const user = session.user;
+        const meta = user.app_metadata || {};
+        
+        // Obtenemos los valores reales del token
+        const realRole = meta.role || 'authenticated';
+        const realTenant = meta.tenant_id; // UUID del tenant
+        const realName = user.user_metadata?.full_name || 'Usuario';
 
-        // 4. Configuración del Tenant
+        // Verificamos si el storage tiene basura ('undefined') y lo corregimos
+        const storedTenant = window.safeStorage.get('tenant');
+        
+        if (storedTenant === 'undefined' || storedTenant !== realTenant) {
+            console.log("🛠️ Reparando datos en localStorage...");
+            window.safeStorage.set('role', realRole);
+            if (realTenant) window.safeStorage.set('tenant', realTenant);
+            window.safeStorage.set('full_name', realName);
+        }
+
+        console.log('👤 Usuario:', { id: user.id, role: realRole, tenant: realTenant });
+
+        // 5. CARGAR CONFIGURACIÓN VISUAL
         const config = await loadTenantConfig();
         applyConfiguration(config);
 
-        // 5. Usamos el usuario DE LA SESIÓN (Evitamos llamar a getUser() por red para no ser bloqueados)
-        const user = session.user;
-        const userId = user.id;
+        // 6. RENDERIZAR DATOS EN PANTALLA
+        // Actualizar nombre y rol en la UI
+        document.getElementById('profileName').textContent = realName;
+        const roleEl = document.querySelector('.profile-card .role');
+        if (roleEl) roleEl.textContent = `${realRole.toUpperCase()} | ${user.email}`;
 
-        console.log('👤 Usuario autenticado:', userId);
-
-        // 6. Lógica de Cache (Roles y Tenant)
-        let cachedRole = window.safeStorage.get('role');
-        let cachedTenant = window.safeStorage.get('tenant');
-
-        if (!cachedRole || !cachedTenant) {
-            console.warn('⚠️ Cache vacía, consultando DB profiles...');
+        // 7. CARGAR CURSOS (Dashboard Data)
+        await loadRealDashboardData(user.id);
         
-            // Ahora esta llamada funcionará porque hicimos setSession arriba
-            const { data: profile, error: profileError } = await window.supabase
-                .from("profiles")
-                .select("*") // Traemos todo para evitar errores
-                .eq("id", userId)
-                .single();
-
-            if (profileError) {
-                console.error("❌ Error bajando perfil:", profileError);
-                // Si falla aquí, es posible que sea RLS, pero intentamos seguir
-            } else if (profile) {
-                 cachedRole = profile.role;
-                 cachedTenant = profile.tenant_id;
-                 
-                 window.safeStorage.set('role', cachedRole);
-                 window.safeStorage.set('tenant', cachedTenant);
-                 window.safeStorage.set('full_name', profile.full_name);
-            }
-        }
-
-        // 7. Cargar Dashboard
-        await loadUserProfile();
-        await loadRealDashboardData(userId);
-
-        // 8. Cargar Cursos
+        // Cargar asignaciones específicas
         const { data: assignments } = await window.supabase
             .from("user_course_assignments")
             .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
-            .eq('user_id', userId);
+            .eq('user_id', user.id);
 
         const allCourses = (assignments || []).map(a => {
             if (!a.articles) return null;
+            // Manejo de array vs objeto único
             const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
             if (!articleData) return null;
             return { ...articleData, progress: a.progress || 0, due_date: a.due_date, assignment_status: a.status };
@@ -568,15 +507,14 @@ async function mainInit() {
         renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día!');
         renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado cursos.');
 
+        // Inicializar UI (Tabs, Modales)
         initUI();
         document.body.classList.add('loaded');
-      
-        console.log('🎉 Inicialización completa sin errores');
+        console.log('🎉 Perfil cargado correctamente');
 
     } catch (error) {
-        console.error('❌ Error fatal en mainInit:', error);
-        // En caso de error fatal, intentamos mostrar la página de todos modos para no bloquear
-        document.body.classList.add('loaded');
+        console.error('❌ Error fatal en profile:', error);
+        document.body.classList.add('loaded'); // Mostrar pantalla aunque haya error
     }
 }
 
