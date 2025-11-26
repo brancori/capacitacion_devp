@@ -101,5 +101,7 @@ body{
     .top-navbar {
         display: grid;
         text-align: center;
+        gap: .5rem;
+        align-content: center;
     }
 }
