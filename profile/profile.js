@@ -371,7 +371,7 @@ function renderCourses(list, containerId, msg) {
           <p class="meta">Progreso: ${c.progress}%</p>
         </div>
         <div class="course-actions">
-           <a href="../curso/curso.html?id=${c.id}" class="btn btn-primary">
+           <a href="./curso/curso.html?id=${c.id}" class="btn btn-primary">
              ${c.progress > 0 ? 'Continuar' : 'Iniciar'}
            </a>
         </div>
