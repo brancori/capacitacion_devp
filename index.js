@@ -232,77 +232,83 @@ const handleLoginSubmit = async (e) => {
   btn.disabled = true;
   btn.querySelector('span').textContent = 'Validando...';
 
-  try {
+try {
     const { tenantSlug } = window.__appConfig;
     
-    // 1. Validación Personalizada (Edge Function)
-    const { data, error } = await supabase.functions.invoke('custom-login', {
-      body: { email, password, tenant_slug: tenantSlug }
-    });
-
-    if (error) throw new Error(error.message || 'Error del servidor');
-
-    if (data.error) {
-      if (data.error_code === 'FORCE_RESET') {
-        showResetPasswordModal({ id: data.user_id });
-        btn.disabled = false;
-        return; 
-      }
-      if (data.error_code === 'PENDING_AUTHORIZATION') {
-        throw new Error('Cuenta pendiente de autorización.');
-      }
-      throw new Error(data.error);
-    }
-
-    console.log('✅ Edge Function exitosa');
-
-    if (!window.safeStorage) {
-      window.safeStorage = {
-        set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
-        get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
-        remove: (k) => { try { localStorage.removeItem(k); } catch(e){} }
-      };
-    }
-
-    // 2. Iniciar Sesión Real en Supabase (Esto habilita RLS)
+    // ---------------------------------------------------------
+    // 1. LOGIN (Obtenemos los tokens)
+    // ---------------------------------------------------------
+    // Usamos signInWithPassword para obtener los tokens frescos
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: email,
       password: password
     });
 
     if (authError) {
-      console.error('Error en signInWithPassword:', authError);
-      throw new Error('No se pudo crear la sesión');
+      console.error('Error login:', authError);
+      throw new Error('Credenciales incorrectas o error de conexión');
     }
 
-    // 3. OBTENCIÓN DE DATOS REALES (Fix para rol y tenant)
-    // Consultamos la tabla profiles para asegurar que tenemos el rol del negocio, no el de auth
+    console.log("🔑 Login correcto. Token recibido.");
+
+    // ---------------------------------------------------------
+    // 2. FIX DE STORAGE (Inyección Manual de Sesión)
+    // ---------------------------------------------------------
+    // Como el navegador bloquea el storage, la sesión puede perderse.
+    // FORZAMOS al cliente a usar este token para las siguientes consultas.
+    if (authData.session) {
+        await supabase.auth.setSession(authData.session);
+        console.log("💉 Sesión inyectada manualmente en el cliente.");
+    }
+
+    // ---------------------------------------------------------
+    // 3. OBTENER PERFIL (Con Select *)
+    // ---------------------------------------------------------
+    // Usamos select('*') para evitar errores si falta alguna columna específica
     const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, tenant_id')
+        .select('*') 
         .eq('id', authData.user.id)
         .single();
 
-    if (profileError) throw new Error('Error recuperando perfil de usuario.');
+    // Debugging visual
+    console.log("📦 Perfil descargado (RAW):", profile);
 
-    // 4. Guardar datos correctos en safeStorage
-    window.safeStorage.set('role', profile.role);
-    // Si es master (tenant_id null), usamos null, si no, el ID de la base de datos
-    window.safeStorage.set('tenant', profile.tenant_id); 
+    if (profileError) {
+        // Si falla, es probable que RLS siga bloqueando, pero veremos el error real
+        console.error("❌ Error bajando perfil:", profileError);
+        throw new Error("No se pudo cargar tu perfil de usuario.");
+    }
+
+    if (!profile) {
+        throw new Error("El perfil existe pero llegó vacío (Revisar RLS).");
+    }
+
+    // ---------------------------------------------------------
+    // 4. GUARDADO Y REDIRECCIÓN
+    // ---------------------------------------------------------
+    // Mapeo seguro de propiedades (usamos defaults si vienen null)
+    const userRole = profile.role || 'authenticated';
+    const userTenant = profile.tenant_id; // Puede ser null si es Master
+
+    // Guardamos en safeStorage (Memoria) para que profile.js lo lea después
+    window.safeStorage.set('role', userRole);
+    window.safeStorage.set('tenant', userTenant);
     window.safeStorage.set('user_email', email);
+    window.safeStorage.set('full_name', profile.full_name || 'Usuario');
     
-    console.log('✅ Datos Finales Guardados:', {
-      role: profile.role,
-      tenant: profile.tenant_id
+    console.log('✅ Datos Finales listos para redirección:', { 
+        role: userRole, 
+        tenant: userTenant 
     });
 
     showModal(
       '¡Bienvenido!',
-      'Entrando al sistema...',
+      'Accediendo al sistema...',
       'success',
       () => {
         const rolesAdmin = ['master', 'admin', 'supervisor'];
-        if (rolesAdmin.includes(profile.role)) {
+        if (rolesAdmin.includes(userRole)) {
           window.location.href = './dashboard.html';
         } else {
           window.location.href = './profile/profile.html';
@@ -311,8 +317,8 @@ const handleLoginSubmit = async (e) => {
     );
 
   } catch (error) {
-    console.error('❌ Error en login:', error.message);
-    await supabase.auth.signOut();
+    console.error('❌ Error en proceso de login:', error);
+    await supabase.auth.signOut(); // Limpiar si falló algo
     btn.disabled = false;
     btn.querySelector('span').textContent = 'Ingresar';
     showModal('Error de Acceso', error.message, 'error');
