@@ -439,11 +439,6 @@ async function mainInit() {
             const isAdmin = ['master', 'admin', 'supervisor'].includes(realRole);
             manageBtn.style.display = isAdmin ? 'flex' : 'none'; // Solo admins ven el botón
             
-            // Ajustamos el enlace para que vaya al dashboard
-            manageBtn.onclick = (e) => {
-                e.preventDefault();
-                window.location.href = '../dashboard.html';
-            };
         }
 
         // 6. Cargar Interfaz
