@@ -97,3 +97,9 @@ body{
     background: var(--primaryColor);
     color: white;
 }
+@media (max-width: 768px) {
+    .top-navbar {
+        display: grid;
+        text-align: center;
+    }
+}
