@@ -1093,6 +1093,27 @@ window.confirmAssignment = async () => {
     // =================================================================
 async function init() {
     try {
+        // ═══════════════════════════════════════════════════════════
+        // 🔥 CRÍTICO: ESPERAR A QUE SUPABASE ESTÉ LISTO
+        // ═══════════════════════════════════════════════════════════
+        console.log('⏳ Esperando cliente Supabase...');
+        
+        let attempts = 0;
+        while (!window.supabase || typeof window.supabase.from !== 'function') {
+            if (attempts > 50) { // 5 segundos máximo
+                console.error('❌ Supabase no se inicializó después de 5 segundos');
+                alert('Error: No se pudo conectar con el sistema');
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        console.log('✅ Cliente Supabase listo después de', attempts * 100, 'ms');
+
+        // ═══════════════════════════════════════════════════════════
+        // Resto de la inicialización
+        // ═══════════════════════════════════════════════════════════
         console.log('🚀 Iniciando aplicación...');
 
         // 1. Cargar configuración
@@ -1118,7 +1139,7 @@ async function init() {
         
         console.log('✅ Admin autenticado:', currentAdmin);
         
-        // 4. Validar que tenant_id existe antes de cargar datos
+        // 4. Validar tenant_id
         if (!currentAdmin.tenant_id) {
             console.error('❌ Admin sin tenant_id después del patch');
             alert('Error de configuración: Tu usuario no tiene tenant asignado');
