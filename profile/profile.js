@@ -1,23 +1,11 @@
 async function rebuildAppConfig() {
   const hostname = location.hostname;
-  let slug;
-
-  if (hostname === 'localhost') slug = 'demo';
-  else if (hostname.split('.').length > 2) slug = hostname.split('.')[0];
-  else slug = 'default';
-
+  let slug = (hostname === 'localhost') ? 'demo' : (hostname.split('.').length > 2 ? hostname.split('.')[0] : 'default');
   try {
     const res = await fetch('../tenants/tenants.json');
     const data = await res.json();
-    window.__appConfig = {
-      ...data[slug],
-      tenantSlug: slug,
-      tenantUUID: data[slug]?.uuid || null
-    };
-    console.log('🔧 AppConfig reconstruido:', window.__appConfig);
-  } catch (e) {
-    console.warn('No se pudo cargar config de tenants');
-  }
+    window.__appConfig = { ...data[slug], tenantSlug: slug };
+  } catch (e) {}
 }
 
 
@@ -68,11 +56,6 @@ if (!window.supabase?.auth) {
                     window.safeStorage.set('role', finalRole);
                 }
             }
-        }
-
-        if (['master', 'admin', 'supervisor'].includes(finalRole)) {
-            window.location.replace('../dashboard.html');
-            return; 
         }
         
         document.body.classList.add('loaded');
@@ -133,17 +116,11 @@ if (!window.supabase?.auth) {
   // TENANT CONFIG
   // ───────────────────────────────────────────────────────────
 async function loadTenantConfig() {
-    const host = location.hostname || 'localhost';
-    let tenantId = 'default';
-    if (host !== 'localhost' && host !== '127.0.0.1') {
-        const parts = host.split('.');
-        if (parts.length > 2) tenantId = parts[0];
-    }
-    
     try {
         const response = await fetch('../tenants/tenants.json');
         const data = await response.json();
-        return data[tenantId] || data['default'] || {};
+        const host = location.hostname !== 'localhost' ? location.hostname.split('.')[0] : 'demo';
+        return data[host] || data['default'] || {};
     } catch (e) { return {}; }
 }
 
@@ -152,7 +129,6 @@ function applyConfiguration(config) {
     const root = document.documentElement;
     if (config.primaryColor) root.style.setProperty('--primaryColor', config.primaryColor);
     if (config.secondaryColor) root.style.setProperty('--secondaryColor', config.secondaryColor);
-    
     const companyNameEl = document.getElementById('companyName');
     if (companyNameEl && config.companyName) {
          companyNameEl.innerHTML = `<i class="fas fa-graduation-cap"></i> ${config.companyName}`;
@@ -373,28 +349,16 @@ async function loadUserProfile() {
     }
   }
 
-function initUI() {
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById(tab.dataset.tab)?.classList.add('active');
-        });
-    });
-}
 
   // 🔥 FIX 3: Agregar función renderCourses
-function renderCourses(coursesList, containerId, emptyMsg) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    if (!coursesList || coursesList.length === 0) {
-        container.innerHTML = `<p style="text-align: center; padding: 2rem; color: #888;">${emptyMsg}</p>`;
-        return;
+function renderCourses(list, containerId, msg) {
+    const el = document.getElementById(containerId);
+    if(!el) return;
+    if(!list.length) { 
+        el.innerHTML = `<p style="text-align:center; padding:2rem; color:#888;">${msg}</p>`; 
+        return; 
     }
-
-    container.innerHTML = coursesList.map(c => `
+    el.innerHTML = list.map(c => `
       <div class="course-card">
         <div class="course-icon-lg ${c.progress === 100 ? 'completed' : 'pending'}">
           <i class="fas ${c.progress === 100 ? 'fa-check-circle' : 'fa-clock'}"></i>
@@ -404,7 +368,7 @@ function renderCourses(coursesList, containerId, emptyMsg) {
           <div class="progress-bar-container">
             <div class="progress-bar-fill" style="width: ${c.progress}%;"></div>
           </div>
-          <p>Progreso: ${c.progress}%</p>
+          <p class="meta">Progreso: ${c.progress}%</p>
         </div>
         <div class="course-actions">
            <a href="../curso/curso.html?id=${c.id}" class="btn btn-primary">
@@ -429,99 +393,144 @@ if (document.readyState === 'loading') {
 // profile.js - Función mainInit corregida
 
 async function mainInit() {
-    // 1. Esperar inicialización de librería
+    // 1. Esperar a Supabase
     if (!window.supabase?.auth) {
         setTimeout(mainInit, 100);
         return;
     }
 
     try {
-        console.log('✅ Iniciando Profile View...');
+        console.log('🚀 Iniciando Perfil...');
 
-        // 2. RECUPERAR SESIÓN
-        // Intentamos leer la sesión actual. 
+        // 2. Recuperar sesión
         const { data: { session } } = await window.supabase.auth.getSession();
 
         if (!session) {
-            console.warn('⚠️ Sin sesión, redirigiendo al login...');
             window.location.href = '../index.html';
-            return;
+            return; 
         }
 
-        // 3. INYECCIÓN DE SESIÓN (Fix Tracking Prevention)
+        // 3. Fix de Sesión (Tracking Prevention)
         await window.supabase.auth.setSession(session);
-        console.log("💉 Sesión inyectada.");
-
-        // 4. AUTORREPARACIÓN DE DATOS (Fix tenant: undefined)
-        // Usamos los metadatos del token que son 100% fiables
+        
         const user = session.user;
         const meta = user.app_metadata || {};
         
-        // Obtenemos los valores reales del token
+        // Datos reales del token
         const realRole = meta.role || 'authenticated';
-        const realTenant = meta.tenant_id; // UUID del tenant
+        const realTenant = meta.tenant_id;
         const realName = user.user_metadata?.full_name || 'Usuario';
-
-        // Verificamos si el storage tiene basura ('undefined') y lo corregimos
-        const storedTenant = window.safeStorage.get('tenant');
         
-        if (storedTenant === 'undefined' || storedTenant !== realTenant) {
-            console.log("🛠️ Reparando datos en localStorage...");
+        // 4. AUTORREPARACIÓN DE STORAGE
+        // Si el localStorage está sucio ('undefined'), lo arreglamos con los datos del token
+        const storedTenant = window.safeStorage.get('tenant');
+        if (!storedTenant || storedTenant === 'undefined') {
+            console.log("🛠️ Corrigiendo datos locales...");
             window.safeStorage.set('role', realRole);
             if (realTenant) window.safeStorage.set('tenant', realTenant);
             window.safeStorage.set('full_name', realName);
         }
 
-        console.log('👤 Usuario:', { id: user.id, role: realRole, tenant: realTenant });
+        // 5. >>> AQUÍ QUITAMOS LA REDIRECCIÓN <<<
+        // Ya no verificamos si eres admin. Si entraste aquí, es porque quieres ver tus cursos.
+        // Solo mostraremos el botón de "Ir a Dashboard" si eres admin (Lógica visual, no de bloqueo).
+        const manageBtn = document.getElementById('manageUsersBtn');
+        if (manageBtn) {
+            const isAdmin = ['master', 'admin', 'supervisor'].includes(realRole);
+            manageBtn.style.display = isAdmin ? 'flex' : 'none'; // Solo admins ven el botón
+            
+            // Ajustamos el enlace para que vaya al dashboard
+            manageBtn.onclick = (e) => {
+                e.preventDefault();
+                window.location.href = '../dashboard.html';
+            };
+        }
 
-        // 5. CARGAR CONFIGURACIÓN VISUAL
+        // 6. Cargar Interfaz
         const config = await loadTenantConfig();
         applyConfiguration(config);
 
-        // 6. RENDERIZAR DATOS EN PANTALLA
-        // Actualizar nombre y rol en la UI
+        // Renderizar Usuario
         document.getElementById('profileName').textContent = realName;
         const roleEl = document.querySelector('.profile-card .role');
-        if (roleEl) roleEl.textContent = `${realRole.toUpperCase()} | ${user.email}`;
-
-        // 7. CARGAR CURSOS (Dashboard Data)
-        await loadRealDashboardData(user.id);
+        if(roleEl) roleEl.textContent = `${realRole.toUpperCase()} | ${user.email}`;
         
-        // Cargar asignaciones específicas
-        const { data: assignments } = await window.supabase
-            .from("user_course_assignments")
-            .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
-            .eq('user_id', user.id);
-
-        const allCourses = (assignments || []).map(a => {
-            if (!a.articles) return null;
-            // Manejo de array vs objeto único
-            const articleData = Array.isArray(a.articles) ? a.articles[0] : a.articles;
-            if (!articleData) return null;
-            return { ...articleData, progress: a.progress || 0, due_date: a.due_date, assignment_status: a.status };
-        }).filter(c => c !== null);
-
-        const pendingCourses = allCourses.filter(c => c.progress < 100 && c.assignment_status !== 'completed');
-        const completedCourses = allCourses.filter(c => c.progress === 100 || c.assignment_status === 'completed');
-
-        renderCourses(pendingCourses, 'assignedCoursesContainer', '¡Estás al día!');
-        renderCourses(completedCourses, 'completedCoursesContainer', 'Aún no has completado cursos.');
-
-        // Inicializar UI (Tabs, Modales)
+        // 7. Cargar Cursos
+        await loadCourses(user.id);
+        
         initUI();
         document.body.classList.add('loaded');
-        console.log('🎉 Perfil cargado correctamente');
 
     } catch (error) {
-        console.error('❌ Error fatal en profile:', error);
-        document.body.classList.add('loaded'); // Mostrar pantalla aunque haya error
+        console.error('❌ Error fatal:', error);
+        // Aunque falle, mostramos la interfaz para no dejar pantalla blanca
+        document.body.classList.add('loaded');
     }
 }
 
-// Ejecución
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mainInit);
-} else {
-    mainInit();
+async function loadCourses(userId) {
+    try {
+        const { data: assignments, error } = await window.supabase
+            .from("user_course_assignments")
+            .select(`progress, due_date, status, articles (id, title, thumbnail_url, duration_text)`)
+            .eq('user_id', userId);
+
+        if (error) throw error;
+
+        const allData = (assignments || []).map(a => {
+            const art = Array.isArray(a.articles) ? a.articles[0] : a.articles;
+            if (!art) return null;
+            return { 
+                ...art, 
+                progress: a.progress || 0, 
+                status: a.status,
+                due_date: a.due_date 
+            };
+        }).filter(c => c);
+
+        const pending = allData.filter(c => c.progress < 100 && c.status !== 'completed');
+        const completed = allData.filter(c => c.progress === 100 || c.status === 'completed');
+
+        renderCourses(pending, 'assignedCoursesContainer', '¡Estás al día! No tienes cursos pendientes.');
+        renderCourses(completed, 'completedCoursesContainer', 'Aún no has completado ningún curso.');
+        
+        // Actualizar estadísticas simples
+        updateStats(allData.length, completed.length, pending.length);
+
+    } catch(e) { 
+        console.error("Error cargando cursos:", e); 
+    }
 }
+
+function updateStats(total, done, pending) {
+    const stats = document.querySelectorAll('.stat-card h3');
+    if(stats[0]) stats[0].textContent = total;
+    if(stats[1]) stats[1].textContent = done;
+    if(stats[2]) stats[2].textContent = pending;
+    
+    // Donut chart
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+    const donutFg = document.querySelector('.progress-donut-fg');
+    const donutText = document.querySelector('.progress-text');
+    
+    if (donutFg) {
+        const circumference = 2 * Math.PI * 69;
+        const offset = circumference - (percent / 100) * circumference;
+        donutFg.style.strokeDasharray = `${circumference} ${circumference}`;
+        donutFg.style.strokeDashoffset = offset;
+    }
+    if (donutText) donutText.textContent = `${percent}%`;
+}
+// Ejecución
+function initUI() {
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', e => {
+        document.querySelectorAll('.tab, .tab-content').forEach(x => x.classList.remove('active'));
+        const tab = e.target.closest('.tab'); // Asegura click en el div
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab)?.classList.add('active');
+    }));
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mainInit);
+else mainInit();
 })();
