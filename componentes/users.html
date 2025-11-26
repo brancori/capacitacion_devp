@@ -557,24 +557,25 @@ async function loadUsers(profile) {
         tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando usuarios...</td></tr>';
 
         try {
-            console.log(`🔍 [QUERY] Buscando usuarios para Tenant ID: ${profile.tenant_id}`);
+            console.log(`🔍 [QUERY] Buscando usuarios del Tenant: ${profile.tenant_id}`);
 
-            // 1. Construir Query Base
+            // 1. Construir Query
             let query = window.supabase
                 .from('profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            // 2. Aplicar Filtros según Rol
-            if (profile.role === 'master') {
-                // Master ve todo, no filtramos nada
-                console.log("👑 [QUERY] Modo Master: Viendo todos los tenants");
-            } else {
-                // Admin/Supervisor solo ven SU tenant
+            // 2. FILTRADO ESTRICTO
+            // Si eres Master, ves todo.
+            // Si eres Admin/Supervisor, el SQL (RLS) ya te limita, pero
+            // agregamos el filtro JS como doble seguridad y para optimizar.
+            if (profile.role !== 'master') {
                 if (profile.tenant_id) {
                     query = query.eq('tenant_id', profile.tenant_id);
                 } else {
-                    console.warn("⚠️ [QUERY] Admin sin tenant_id definido. Esto puede traer 0 resultados.");
+                    console.error("❌ Admin sin tenant_id. No se puede filtrar.");
+                    tableBody.innerHTML = '<tr><td colspan="6" class="error-text">Error de Identificación de Tenant</td></tr>';
+                    return;
                 }
             }
 
@@ -582,11 +583,11 @@ async function loadUsers(profile) {
 
             if (error) throw error;
 
-            console.log(`📊 [QUERY] Resultados encontrados: ${users.length} usuarios.`);
+            console.log(`📊 [RESULTADO] Se encontraron ${users.length} usuarios en tu tenant.`);
 
             // 3. Renderizar Tabla
-            if (users.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No se encontraron usuarios en este Tenant.</td></tr>';
+            if (!users || users.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No hay otros usuarios en este Tenant.</td></tr>';
                 return;
             }
 
@@ -595,7 +596,7 @@ async function loadUsers(profile) {
 
         } catch (error) {
             console.error('Error cargando usuarios:', error);
-            tableBody.innerHTML = `<tr><td colspan="6" class="text-center error-text">Error: ${error.message}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" class="error-text">Error: ${error.message}</td></tr>`;
         }
     }
 
@@ -641,7 +642,7 @@ async function loadUsers(profile) {
         }
     }
 
-    
+
     function renderUserList(profiles, adminRole) {
         userListBody.innerHTML = '';
         if (profiles.length === 0) {
