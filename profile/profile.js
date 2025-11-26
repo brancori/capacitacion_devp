@@ -501,10 +501,26 @@ async function mainInit() {
         const config = await loadTenantConfig();
         applyConfiguration(config);
 
-        const { data: authData, error: authError } = await window.supabase.auth.getUser();
+const { data: authData, error: authError } = await window.supabase.auth.getUser();
+        
         if (authError || !authData?.user) {
-            console.error("❌ Error obteniendo usuario:", authError);
-            window.location.href = '../index.html';
+            console.error("⛔ ERROR CRÍTICO DE AUTENTICACIÓN (403/401)");
+            console.error("Detalles del error:", authError);
+            
+            // Inspeccionar la sesión actual en memoria
+            console.log("🔍 Sesión en memoria (session):", session);
+            console.log("🔍 Token de acceso (session.access_token):", session?.access_token);
+            
+            if (session?.access_token) {
+                console.log("⚠️ Hay token, pero el servidor lo rechaza (Posible 'missing sub claim').");
+                console.log("Compara este token con el 'Authorization' en la pestaña Network.");
+            } else {
+                console.log("⚠️ No hay token de acceso en la sesión (El cliente no lo cargó).");
+            }
+
+            // DESACTIVAMOS LA REDIRECCIÓN PARA QUE PUEDAS VER LA CONSOLA
+            // window.location.href = '../index.html'; 
+            alert("🛑 Debug: Autenticación fallida. Revisa la consola (F12) antes de continuar.");
             return;
         }
       
