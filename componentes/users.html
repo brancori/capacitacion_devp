@@ -594,39 +594,75 @@ async function handleApproveRequest(requestId, requestEmail) {
     // GESTIÓN DE USUARIOS AUTORIZADOS
     // ═══════════════════════════════════════════════════════════
     
-async function loadUserList(role, tenantId) {
+¡Ah! Ahora veo el problema real. Tu query está filtrando correctamente por tenant, pero probablemente no estás viendo a otros usuarios porque eres el único admin/supervisor en ese tenant.
+Pero hay un bug de lógica importante:
+
+🔴 Problema de Filtrado
+En loadUserList() línea ~635, el filtro dice:
+javascriptif (profile.role !== 'master') {
+    if (profile.tenant_id) {
+        query = query.eq('tenant_id', profile.tenant_id);
+    }
+}
+Esto está correcto, pero necesitas verificar:
+✅ Solución: Agrega logs de depuración
+Reemplaza la función loadUserList con esta versión que tiene logs detallados:
+javascriptasync function loadUserList(role, tenantId) {
     const profile = { role, tenant_id: tenantId };
     
     userListBody.innerHTML = '<div class="loading-row"><i class="fas fa-spinner fa-spin"></i> Cargando usuarios...</div>';
 
     try {
-        console.log(`🔎 [QUERY] Buscando usuarios del Tenant: ${profile.tenant_id}`);
+        // 🔍 LOG 1: Ver qué estamos buscando
+        console.log(`🔎 [QUERY] Rol del Admin: ${profile.role}`);
+        console.log(`🔎 [QUERY] Tenant ID: ${profile.tenant_id}`);
 
         let query = window.supabase
             .from('profiles')
-            .select('*')
+            .select('id, email, full_name, role, tenant_id, status, created_at')
             .order('created_at', { ascending: false });
 
+        // 2. FILTRADO POR TENANT
         if (profile.role !== 'master') {
             if (profile.tenant_id) {
                 query = query.eq('tenant_id', profile.tenant_id);
+                console.log(`🔒 [FILTRO] Aplicando filtro de tenant: ${profile.tenant_id}`);
             } else {
                 console.error("❌ Admin sin tenant_id. No se puede filtrar.");
-                userListBody.innerHTML = '<div class="loading-row error-text">Error de Identificación de Tenant</div>';
+                userListBody.innerHTML = '<div class="loading-row error-text">Error: Admin sin Tenant asignado</div>';
                 return;
             }
+        } else {
+            console.log(`👑 [FILTRO] Modo Master: Sin filtro de tenant`);
         }
 
         const { data: users, error } = await query;
 
         if (error) throw error;
 
-        console.log(`📊 [RESULTADO] Se encontraron ${users.length} usuarios.`);
+        // 🔍 LOG 2: Ver qué encontramos
+        console.log(`📊 [RESULTADO] Total usuarios encontrados: ${users.length}`);
+        console.table(users.map(u => ({
+            Email: u.email,
+            Rol: u.role,
+            Tenant: u.tenant_id,
+            Status: u.status
+        })));
 
-        renderUserList(users, profile.role);
+        // 🔍 LOG 3: Filtrado adicional por búsqueda (si existe)
+        let filteredUsers = users;
+        if (searchTerm) {
+            filteredUsers = users.filter(u => 
+                (u.full_name || '').toLowerCase().includes(searchTerm) ||
+                (u.email || '').toLowerCase().includes(searchTerm)
+            );
+            console.log(`🔍 [BÚSQUEDA] Filtrados por "${searchTerm}": ${filteredUsers.length} resultados`);
+        }
+
+        renderUserList(filteredUsers, profile.role);
 
     } catch (error) {
-        console.error('Error cargando usuarios:', error);
+        console.error('❌ [ERROR] Cargando usuarios:', error);
         userListBody.innerHTML = `<div class="loading-row error-text">Error: ${error.message}</div>`;
     }
 }
