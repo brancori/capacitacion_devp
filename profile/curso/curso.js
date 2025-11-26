@@ -79,6 +79,7 @@ async function fetchCourseData() {
         // 🛡️ 1. BLOQUE DE SEGURIDAD (ANTI-GHOST)
         // ============================================================
         // Intentamos recuperar la sesión. Si el navegador bloquea cookies, esto fallará.
+        console.log("💾 [STORAGE DEBUG]:", window.localStorage);
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session) {
