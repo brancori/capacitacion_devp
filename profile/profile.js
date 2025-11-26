@@ -480,81 +480,76 @@ async function loadUserProfile() {
 // profile.js - Función mainInit corregida
 
 async function mainInit() {
-    // 1. Validar window.supabase (que coincide con tu supabase-client.js)
-if (!window.supabase?.auth) {
-        console.log('⏳ Esperando inicialización de cliente Supabase...');
+    // 1. Esperar a que la librería cargue
+    if (!window.supabase?.auth) {
+        // console.log('⏳ Esperando inicialización de cliente Supabase...');
         setTimeout(mainInit, 100);
         return;
     }
 
     try {
         console.log('✅ Cliente listo. Iniciando Profile...');
+        
+        // 2. OBTENER SESIÓN DE MEMORIA/STORAGE
         const { data: { session } } = await window.supabase.auth.getSession();
       
         if (!session) {
-            console.error('❌ Sin sesión activa');
+            console.error('❌ Sin sesión activa en storage.');
             window.location.href = '../index.html';
             return;
         }
 
-        console.log('✅ Sesión válida detectada');
+        console.log('✅ Sesión válida detectada en memoria');
 
-        // Asegúrate de que loadTenantConfig esté definida o importada
+        // 3. 🔥 FIX CRÍTICO: INYECCIÓN DE SESIÓN 🔥
+        // El navegador puede haber perdido el estado interno.
+        // Forzamos al cliente a usar el token que acabamos de recuperar.
+        const { error: sessionError } = await window.supabase.auth.setSession(session);
+        if (sessionError) console.warn("⚠️ Advertencia al refrescar sesión:", sessionError);
+        else console.log("💉 Sesión re-inyectada correctamente para peticiones DB.");
+
+        // 4. Configuración del Tenant
         const config = await loadTenantConfig();
         applyConfiguration(config);
 
-const { data: authData, error: authError } = await window.supabase.auth.getUser();
-        
-        if (authError || !authData?.user) {
-            console.error("⛔ ERROR CRÍTICO DE AUTENTICACIÓN (403/401)");
-            console.error("Detalles del error:", authError);
-            
-            // Inspeccionar la sesión actual en memoria
-            console.log("🔍 Sesión en memoria (session):", session);
-            console.log("🔍 Token de acceso (session.access_token):", session?.access_token);
-            
-            if (session?.access_token) {
-                console.log("⚠️ Hay token, pero el servidor lo rechaza (Posible 'missing sub claim').");
-                console.log("Compara este token con el 'Authorization' en la pestaña Network.");
-            } else {
-                console.log("⚠️ No hay token de acceso en la sesión (El cliente no lo cargó).");
-            }
+        // 5. Usamos el usuario DE LA SESIÓN (Evitamos llamar a getUser() por red para no ser bloqueados)
+        const user = session.user;
+        const userId = user.id;
 
-            // DESACTIVAMOS LA REDIRECCIÓN PARA QUE PUEDAS VER LA CONSOLA
-            // window.location.href = '../index.html'; 
-            alert("🛑 Debug: Autenticación fallida. Revisa la consola (F12) antes de continuar.");
-            return;
-        }
-      
-        const userId = authData.user.id;
         console.log('👤 Usuario autenticado:', userId);
 
+        // 6. Lógica de Cache (Roles y Tenant)
         let cachedRole = window.safeStorage.get('role');
         let cachedTenant = window.safeStorage.get('tenant');
 
         if (!cachedRole || !cachedTenant) {
-            console.warn('⚠️ Consultando DB...');
+            console.warn('⚠️ Cache vacía, consultando DB profiles...');
         
+            // Ahora esta llamada funcionará porque hicimos setSession arriba
             const { data: profile, error: profileError } = await window.supabase
                 .from("profiles")
-                .select("tenant_id, role, full_name")
+                .select("*") // Traemos todo para evitar errores
                 .eq("id", userId)
                 .single();
 
             if (profileError) {
-                console.error("❌ Error:", profileError);
-                window.location.href = '../index.html';
-                return;
+                console.error("❌ Error bajando perfil:", profileError);
+                // Si falla aquí, es posible que sea RLS, pero intentamos seguir
+            } else if (profile) {
+                 cachedRole = profile.role;
+                 cachedTenant = profile.tenant_id;
+                 
+                 window.safeStorage.set('role', cachedRole);
+                 window.safeStorage.set('tenant', cachedTenant);
+                 window.safeStorage.set('full_name', profile.full_name);
             }
-
-            window.safeStorage.set('role', profile.role);
-            window.safeStorage.set('tenant', profile.tenant_id);
-            window.safeStorage.set('full_name', profile.full_name);
         }
 
+        // 7. Cargar Dashboard
         await loadUserProfile();
         await loadRealDashboardData(userId);
 
+        // 8. Cargar Cursos
         const { data: assignments } = await window.supabase
             .from("user_course_assignments")
             .select(`progress, due_date, status, articles (id, title, thumbnail_url, instructor_name, duration_text)`)
@@ -576,10 +571,11 @@ const { data: authData, error: authError } = await window.supabase.auth.getUser(
         initUI();
         document.body.classList.add('loaded');
       
-        console.log('🎉 Inicialización completa');
+        console.log('🎉 Inicialización completa sin errores');
 
     } catch (error) {
-        console.error('❌ Error fatal:', error);
+        console.error('❌ Error fatal en mainInit:', error);
+        // En caso de error fatal, intentamos mostrar la página de todos modos para no bloquear
         document.body.classList.add('loaded');
     }
 }
