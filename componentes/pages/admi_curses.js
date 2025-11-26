@@ -694,13 +694,13 @@ window.exportToExcel = () => {
     showToast('Éxito', 'Reporte Excel generado correctamente', 'success');
 };
 
-    async function renderGroups(filter = '') {
+async function renderGroups(filter = '') {
         const container = document.getElementById('groups-container');
         
         if (!currentAdmin.tenant_id) {
             container.innerHTML = `<div class="empty-state">
-                <h3>⚠️ Configuración Incompleta</h3>
-                <p>Tu usuario no tiene un Tenant ID asignado en la base de datos.</p>
+                <h3> Configuración Incompleta</h3>
+                <p>Tu usuario no tiene un Tenant ID asignado.</p>
             </div>`;
             return;
         }
@@ -720,10 +720,20 @@ window.exportToExcel = () => {
         }
 
         const groupsHTML = await Promise.all(filtered.map(async (g) => {
-            const { count } = await window.supabase
+            
+            // ═══════════════════════════════════════════════════════════
+            // 1. SOLUCIÓN AL CONTEO "0" Y ERROR "MEMBERCOUNT"
+            // ═══════════════════════════════════════════════════════════
+            // En lugar de pedir 'count', pedimos los IDs y medimos el array.
+            // Esto es más robusto contra políticas RLS estrictas.
+            const { data: memberData } = await window.supabase
                 .from('group_members')
-                .select('*', { count: 'exact', head: true })
+                .select('id')
                 .eq('group_id', g.id);
+
+            // AQUÍ DEFINIMOS LA VARIABLE QUE TE FALTABA:
+            const memberCount = memberData ? memberData.length : 0; 
+            // ═══════════════════════════════════════════════════════════
             
             const stats = await getGroupStats(g.id);
             
