@@ -286,6 +286,10 @@ body {
     .container  {
         padding: 0.5rem;
     }
+    .top-navbar {
+        display: grid;
+        text-align: center;
+    }
 }
 
 .form-control {
