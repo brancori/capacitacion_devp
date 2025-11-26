@@ -265,31 +265,33 @@ try {
     // 3. OBTENER PERFIL (Con Select *)
     // ---------------------------------------------------------
     // Usamos select('*') para evitar errores si falta alguna columna específica
-    const { data: profile, error: profileError } = await supabase
+const { data: rawData, error: profileError } = await supabase
         .from('profiles')
         .select('*') 
-        .eq('id', authData.user.id)
-        .single();
-
-    // Debugging visual
-    console.log("📦 Perfil descargado (RAW):", profile);
+        .eq('id', authData.user.id);
+        // Quitamos .single() aquí para manejarlo manualmente abajo y evitar errores
 
     if (profileError) {
-        // Si falla, es probable que RLS siga bloqueando, pero veremos el error real
         console.error("❌ Error bajando perfil:", profileError);
         throw new Error("No se pudo cargar tu perfil de usuario.");
     }
 
+    // FIX CRÍTICO: Detectar si es Array o Objeto
+    // Tu proxy devuelve Array [{...}], así que tomamos el primero.
+    const profile = Array.isArray(rawData) ? rawData[0] : rawData;
+
+    console.log("📦 Perfil Procesado:", profile); // Aquí ya deberías ver el objeto sin corchetes []
+
     if (!profile) {
-        throw new Error("El perfil existe pero llegó vacío (Revisar RLS).");
+        throw new Error("El perfil existe pero llegó vacío.");
     }
 
     // ---------------------------------------------------------
     // 4. GUARDADO Y REDIRECCIÓN
     // ---------------------------------------------------------
-    // Mapeo seguro de propiedades (usamos defaults si vienen null)
-    const userRole = profile.role || 'authenticated';
-    const userTenant = profile.tenant_id; // Puede ser null si es Master
+    // Ahora profile.role SÍ existirá
+    const userRole = profile.role || 'authenticated'; 
+    const userTenant = profile.tenant_id;
 
     // Guardamos en safeStorage (Memoria) para que profile.js lo lea después
     window.safeStorage.set('role', userRole);
@@ -307,13 +309,24 @@ showModal(
       'Accediendo al sistema...',
       'success',
       () => {
-        // Lógica de Aterrizaje
+        // --- LÓGICA DE ATERRIZAJE BLINDADA ---
         const rolesAdmin = ['master', 'admin', 'supervisor'];
         
-        // Usamos la variable donde guardaste el rol (userRole o profile.role)
-        if (rolesAdmin.includes(userRole)) {
+        // 1. Limpieza: Aseguramos que sea texto y minúsculas para comparar bien
+        const safeRole = String(userRole || '').toLowerCase();
+        
+        // 2. Diagnóstico en Consola (Míralo antes de que cambie de página)
+        console.log("🚦 SEMÁFORO DE REDIRECCIÓN:");
+        console.log("   - Rol crudo:", userRole);
+        console.log("   - Rol limpio:", safeRole);
+        console.log("   - ¿Es Admin?:", rolesAdmin.includes(safeRole));
+
+        // 3. Decisión
+        if (rolesAdmin.includes(safeRole)) {
+          console.log("   -> Redirigiendo a DASHBOARD 🚀");
           window.location.href = './dashboard.html';
         } else {
+          console.log("   -> Redirigiendo a PROFILE 🎓");
           window.location.href = './profile/profile.html';
         }
       }
