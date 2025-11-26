@@ -300,13 +300,19 @@
     // AUTENTICACIÓN Y PERMISOS
     // ═══════════════════════════════════════════════════════════
     
-    async function loadAdminProfile(config) {
+async function loadAdminProfile(config) {
+        console.log("👮‍♂️ [SECURITY] Verificando credenciales...");
+        
         try {
             const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+            
             if (authError || !user) {
+                console.error("❌ [SECURITY] No hay usuario logueado.");
                 window.location.href = '../index.html';
                 return null;
             }
+
+            console.log(`👤 [SECURITY] Usuario detectado: ${user.email}`);
 
             const { data: profile, error: profileError } = await window.supabase
                 .from('profiles')
@@ -314,30 +320,54 @@
                 .eq('id', user.id)
                 .single();
 
-            if (profileError) throw profileError;
+            if (profileError) {
+                console.error("❌ [SECURITY] Error buscando perfil:", profileError);
+                throw profileError;
+            }
 
+            console.log("📋 [SECURITY] Datos del Perfil:", profile);
+            console.log("🏢 [SECURITY] Datos del Tenant (Sitio):", {
+                uuid: config.tenantUUID,
+                slug: config.tenantSlug
+            });
+
+            // 1. Verificar Rol
             const allowedRoles = ['master', 'admin', 'supervisor'];
             if (!allowedRoles.includes(profile.role)) {
-                showModal('Acceso Denegado', 'No tienes permisos para ver esta página.', 'error');
-                setTimeout(() => window.location.href = '../profile/profile.html', 2000);
+                console.warn(`⛔ [SECURITY] Rol '${profile.role}' no permitido.`);
+                showModal('Acceso Denegado', `Tu rol (${profile.role}) no tiene permisos de administración.`, 'error');
+                setTimeout(() => window.location.href = '../profile/profile.html', 3000);
                 return null;
             }
 
-            if ((profile.role === 'admin' || profile.role === 'supervisor') && profile.tenant_id !== config.tenantUUID) {
-                showModal('Conflicto de Tenant', 'Tu perfil no coincide con este tenant.', 'error');
-                setTimeout(() => window.location.href = '../index.html', 2000);
-                return null;
+            // 2. Verificar Tenant (Aquí suele fallar en localhost)
+            // Si eres Admin/Supervisor, TU tenant_id debe ser igual al tenant_id de la página
+            if ((profile.role === 'admin' || profile.role === 'supervisor')) {
+                if (profile.tenant_id !== config.tenantUUID) {
+                    console.warn(`⛔ [SECURITY] CONFLICTO DE TENANT.`);
+                    console.warn(`   Esperado (Sitio): ${config.tenantUUID}`);
+                    console.warn(`   Recibido (User):  ${profile.tenant_id}`);
+                    
+                    showModal('Conflicto de Tenant', 
+                        `Estás intentando administrar el tenant '${config.tenantSlug}'\npero tu usuario pertenece a otro tenant.\n\n(Revisa la consola con F12 para ver los IDs)`, 
+                        'error');
+                    
+                    // Comenta esta línea si quieres depurar sin que te expulse tan rápido
+                    // setTimeout(() => window.location.href = '../index.html', 4000);
+                    return null;
+                }
             }
 
+            console.log("✅ [SECURITY] Acceso Autorizado.");
             return profile;
+
         } catch (error) {
             console.error('Error al cargar perfil de admin:', error.message);
             showModal('Error de Seguridad', 'No se pudo verificar tu perfil.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 3000);
             return null;
         }
     }
-
+    
     // ═══════════════════════════════════════════════════════════
     // GESTIÓN DE SOLICITUDES PENDIENTES
     // ═══════════════════════════════════════════════════════════
