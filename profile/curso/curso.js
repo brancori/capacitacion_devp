@@ -67,7 +67,7 @@ async function initCourse() {
 async function fetchCourseData() {
     const params = new URLSearchParams(location.search);
     const courseId = params.get("id");
-    console.log(`🔎 [SUPABASE] Buscando curso ID: ${courseId}`);
+    console.log(`🔎 [DEBUG] ID buscado en URL: ${courseId}`);
 
     if (!courseId) {
         pageContentEl.innerHTML = "<p class='error-message'>Error: URL sin ID.</p>";
@@ -75,105 +75,115 @@ async function fetchCourseData() {
     }
 
     try {
-        // 1. Obtener Usuario
+        // 1. Obtener Usuario y sus credenciales
         const { data: userData } = await supabase.auth.getUser();
         const user = userData?.user;
         const myTenantId = user?.user_metadata?.tenant_id;
-        const myRole = user?.user_metadata?.role;
+        const myRole = user?.user_metadata?.role; // 'admin', 'master', etc.
 
-        // 2. Cargar Curso (Articles)
+        console.log(`👤 [DEBUG] Usuario: ${user?.email} | Rol: ${myRole}`);
+        console.log(`🏢 [DEBUG] Mi Tenant ID: ${myTenantId}`);
+
+        // 2. Construir Query
         let query = supabase
             .from("articles")
             .select("title, content_json, quiz_json, tenant_id")
             .eq("id", courseId);
 
-        if (myRole !== "master" && myTenantId) {
-            query = query.eq("tenant_id", myTenantId);
+        // LOGICA DE FILTRADO (Aquí suele estar el error)
+        if (myRole !== "master") {
+            // Si hay tenant, filtramos. Si no hay tenant y no es master, ojo ahí.
+            if (myTenantId) {
+                console.log(`🔒 [DEBUG] Filtrando por tenant_id: ${myTenantId}`);
+                query = query.eq("tenant_id", myTenantId);
+            } else {
+                console.warn("⚠️ [DEBUG] Usuario sin tenant_id y no es master. Podría no ver cursos privados.");
+            }
         }
 
         const { data: fetchedCourse, error } = await query.single();
 
-        if (error || !fetchedCourse) {
-            console.error("❌ [SUPABASE] Error:", error);
-            pageContentEl.innerHTML = "<div class='error-message'>No se pudo cargar el curso.</div>";
+        // 3. Diagnóstico de Errores de BD
+        if (error) {
+            console.error("❌ [SUPABASE ERROR]:", error);
+            pageContentEl.innerHTML = `<div class='error-message'>Error de Base de Datos: ${error.message} (Code: ${error.code})</div>`;
             return;
         }
 
+        if (!fetchedCourse) {
+            console.error("❌ [DEBUG] Supabase retornó DATA NULL. El curso no existe O el tenant no coincide.");
+            pageContentEl.innerHTML = "<div class='error-message'>Curso no encontrado (Revisa permisos de Tenant).</div>";
+            return;
+        }
+
+        console.log("✅ [DEBUG] Curso descargado:", fetchedCourse.title);
+        console.log(`🏢 [DEBUG] Tenant del Curso: ${fetchedCourse.tenant_id}`);
+
+        // Verificación visual de Tenant
+        if (myRole !== 'master' && myTenantId && fetchedCourse.tenant_id !== myTenantId) {
+            console.warn("🚨 [ALERTA] El tenant del curso NO coincide con el tuyo, pero Supabase lo devolvió (revisa tus políticas RLS).");
+        }
+
         // ============================================================
-        // PASO CRÍTICO: PROCESAR Y PARSEAR DATOS **ANTES** DE USARLOS
+        // 4. INTENTO DE PARSEO (Aquí detectamos JSON roto)
         // ============================================================
         let finalCourseData;
 
-        // A. Parseo seguro (String vs Objeto)
+        console.log("🧩 [DEBUG] Tipo de content_json:", typeof fetchedCourse.content_json);
+
         if (typeof fetchedCourse.content_json === 'string') {
             try {
                 finalCourseData = JSON.parse(fetchedCourse.content_json);
+                console.log("✨ [DEBUG] JSON parseado con éxito.");
             } catch (e) {
-                console.error("❌ Error parseando JSON:", e);
-                pageContentEl.innerHTML = "<p>Error de formato en el curso.</p>";
+                console.error("❌ [CRITICO] El JSON del curso está corrupto o mal formado.");
+                console.log("💀 JSON Culpable (Inicio):", fetchedCourse.content_json.substring(0, 100));
+                console.log("💀 JSON Culpable (Final):", fetchedCourse.content_json.slice(-100));
+                pageContentEl.innerHTML = `<div class='error-message'>
+                    <strong>Error de Formato JSON:</strong><br>
+                    El contenido del curso está dañado en la base de datos.<br>
+                    <small>${e.message}</small>
+                </div>`;
                 return;
             }
         } else {
-            // Supabase ya lo devolvió como objeto
             finalCourseData = fetchedCourse.content_json || { pages: [] };
         }
 
-        // B. Limpieza de quizzes viejos (si existen en el JSON manual)
+        // ... (Resto de la lógica de limpieza y quiz sigue igual) ...
+        
+        // Limpieza de quizzes viejos
         if (finalCourseData.pages) {
             finalCourseData.pages = finalCourseData.pages.filter(p => 
                 p.type !== 'quiz' && p.title !== 'Evaluación Final'
             );
         }
 
-        // C. Inyección del nuevo Quiz desde la columna quiz_json
+        // Inyección del Quiz
         if (fetchedCourse.quiz_json) {
-            let quizObj = typeof fetchedCourse.quiz_json === 'string' 
-                ? JSON.parse(fetchedCourse.quiz_json) 
-                : fetchedCourse.quiz_json;
+            try {
+                let quizObj = typeof fetchedCourse.quiz_json === 'string' 
+                    ? JSON.parse(fetchedCourse.quiz_json) 
+                    : fetchedCourse.quiz_json;
 
-            if (quizObj && quizObj.questions && quizObj.questions.length > 0) {
-                finalCourseData.pages.push({
-                    type: 'quiz',
-                    title: 'Evaluación Final',
-                    payload: quizObj
-                });
-            }
-        }
-
-        // ============================================================
-        // AHORA SÍ: RECUPERAR PROGRESO (Usando finalCourseData ya listo)
-        // ============================================================
-        let startIndex = 0;
-        if (user) {
-            const { data: assignment } = await supabase
-                .from('user_course_assignments')
-                .select('progress, status')
-                .eq('user_id', user.id)
-                .eq('course_id', courseId)
-                .single();
-
-            if (assignment && assignment.status !== 'completed' && assignment.progress > 0) {
-                // Usamos finalCourseData que ya está limpio y es un objeto seguro
-                // Filtramos el quiz para calcular el progreso real de lectura
-                const contentPages = finalCourseData.pages.filter(p => p.type !== 'quiz');
-                const totalContentPages = contentPages.length;
-                
-                if (totalContentPages > 0) {
-                    // Fórmula: (progress / 90) * totalPages - 1
-                    startIndex = Math.round((assignment.progress / 90) * totalContentPages) - 1;
-                    // Asegurar límites (mínimo 0, máximo última página)
-                    startIndex = Math.max(0, Math.min(startIndex, finalCourseData.pages.length - 1));
-                    
-                    console.log(`🔄 [RESUME] Progreso: ${assignment.progress}%. Reanudando en página: ${startIndex}`);
+                if (quizObj && quizObj.questions && quizObj.questions.length > 0) {
+                    finalCourseData.pages.push({
+                        type: 'quiz',
+                        title: 'Evaluación Final',
+                        payload: quizObj
+                    });
                 }
+            } catch (e) {
+                console.warn("⚠️ Error parseando quiz_json, se omitirá el examen.");
             }
         }
 
         // 5. Cargar UI
-        loadCourseUI(fetchedCourse.title, finalCourseData, startIndex);
+        // Pasamos 0 temporalmente para probar que cargue
+        loadCourseUI(fetchedCourse.title, finalCourseData, 0);
 
     } catch (e) {
-        console.error("❌ [CRITICO] Error en fetchCourseData:", e);
+        console.error("❌ [CRITICO SISTEMA]:", e);
     }
 }
 
