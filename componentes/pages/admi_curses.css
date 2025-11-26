@@ -242,7 +242,7 @@ display: grid !important;
         max-height: 250px;
     }
     .kpi-container {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 2fr));
+        grid-template-columns: repeat(auto-fit, minmax(150px, 2fr))!important;
     }
     .nav-actions{
         display: grid;
