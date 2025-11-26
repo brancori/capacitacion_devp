@@ -262,6 +262,7 @@ display: grid !important;
     display: flex;
     gap: 1rem;
     margin-top: 0.75rem;
+    justify-content: center;
 }
 
 .group-stat {
@@ -368,6 +369,7 @@ display: grid !important;
     font-size: 0.85rem;
     color: var(--text-secondary);
     margin-bottom: 0.5rem;
+    justify-content: center;
 }
 
 .group-card .group-actions {
