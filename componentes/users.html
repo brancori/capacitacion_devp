@@ -415,38 +415,45 @@ async function loadAdminProfile(config) {
     // ═══════════════════════════════════════════════════════════
     
 async function loadPendingRequests(profile) {
-        // 1. Usamos el ID correcto que SÍ tienes en tu HTML
+        // CORRECCIÓN 1: Usar el ID real que tienes en el HTML
         const container = document.getElementById('request-list-body');
-        const badge = document.getElementById('pendingCountBadge'); // El que agregamos arriba (opcional)
         
-        // Si por alguna razón el contenedor no existe, detenemos para no romper la página
+        // CORRECCIÓN 2: El badge es opcional, lo buscamos de forma segura
+        const badge = document.getElementById('pendingCountBadge'); 
+
+        // Si el contenedor no existe, no podemos hacer nada
         if (!container) {
-            console.warn("⚠️ No se encontró 'request-list-body' en el HTML.");
+            console.error("❌ Error DOM: No se encontró el elemento 'request-list-body'");
             return;
         }
 
         try {
-            // Render estado de carga
+            // Mostrar carga
             container.innerHTML = '<div class="loading-row"><i class="fas fa-spinner fa-spin"></i> Cargando solicitudes...</div>';
 
-            // 2. Query Base a la tabla 'registration_requests'
+            // 1. Query Base
+            // Ahora que agregamos la columna 'status' en SQL, esto funcionará
             let query = window.supabase
                 .from('registration_requests')
                 .select('*')
                 .eq('status', 'pending')
                 .order('created_at', { ascending: false });
 
-            // 3. Filtro Tenant (Solo si no eres Master)
+            // 2. Filtro Tenant
             if (profile.role !== 'master') {
-                if(profile.tenant_id) {
+                if (profile.tenant_id) {
+                    // Ahora que agregamos 'tenant_id' en SQL, esto funcionará
                     query = query.eq('tenant_id', profile.tenant_id);
+                } else {
+                    console.warn("⚠️ Admin sin tenant_id, no se pueden filtrar solicitudes.");
                 }
             }
 
             const { data: requests, error } = await query;
+
             if (error) throw error;
 
-            // 4. Actualizar Badge (Solo si el elemento existe en HTML)
+            // 3. Actualizar Badge (Si existe)
             if (badge) {
                 if (requests.length > 0) {
                     badge.textContent = requests.length;
@@ -456,18 +463,19 @@ async function loadPendingRequests(profile) {
                 }
             }
 
-            // 5. Renderizar o Delegar
-            // Como ya tienes una función 'renderPendingRequests' en tu código, la usamos:
+            // 4. Renderizar
+            // Usamos tu función renderPendingRequests existente
             renderPendingRequests(requests);
-            
             console.log(`📩 [QUERY] Solicitudes pendientes: ${requests.length}`);
 
         } catch (error) {
             console.error('Error cargando solicitudes:', error);
-            container.innerHTML = '<div class="loading-row error-text">Error cargando solicitudes.</div>';
+            // Usamos innerHTML de forma segura porque validamos 'container' al inicio
+            container.innerHTML = `<div class="loading-row error-text">Error: ${error.message}</div>`;
         }
     }
 
+    
     function renderPendingRequests(requests) {
         const body = document.getElementById('request-list-body');
         body.innerHTML = '';
