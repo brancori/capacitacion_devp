@@ -117,16 +117,6 @@
         if (value) document.documentElement.style.setProperty(prop, value);
     };
 
-    // Función para detectar el tenant desde el hostname
-    const detectTenant = () => {
-        const host = location.hostname || 'localhost';
-        if (host === 'localhost') return 'demo';
-        if (host === '127.0.0.1') return 'default';
-        const parts = host.split('.');
-        if (parts.length > 2 && parts[0] !== 'www') return parts[0];
-        return 'default';
-    };
-
     // Función para cargar la configuración del tenant (JSON y Supabase)
     async function loadTenantConfig() {
         const tenantId = detectTenant();
