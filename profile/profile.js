@@ -411,33 +411,6 @@ async function loadCatalog(userId, supabase) {
     });
 }
 
-async function loadCatalog(userId, supabase) {
-    try {
-        // 1. Obtener IDs de cursos que el usuario YA tiene
-        const { data: myAssignments } = await supabase
-            .from('user_course_assignments')
-            .select('course_id')
-            .eq('user_id', userId);
-            
-        const myCourseIds = new Set((myAssignments || []).map(a => a.course_id));
-
-        // 2. Obtener TODOS los artículos activos
-        const { data: allArticles } = await supabase
-            .from('articles')
-            .select('id, title, thumbnail_url, duration_text')
-            .eq('is_active', true); // Asumiendo que hay un flag is_active
-
-        // 3. Filtrar: Catálogo = Todos - Mis Cursos
-        const catalog = (allArticles || []).filter(art => !myCourseIds.has(art.id));
-
-        // 4. Renderizar como catálogo (isCatalog = true)
-        renderCourses(catalog, 'catalogCoursesContainer', 'No hay nuevos cursos disponibles en el catálogo.', false, true);
-
-    } catch (e) {
-        console.error("Error cargando catálogo:", e);
-    }
-}
-
   function initUI() {
     // Inicializar Tabs
     document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', e => {
