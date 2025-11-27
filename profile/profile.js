@@ -265,7 +265,7 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
   // ═══════════════════════════════════════════════════════════
   // FUNCIÓN PRINCIPAL MAIN INIT
   // ═══════════════════════════════════════════════════════════
-  async function mainInit() {
+async function mainInit() {
     if (!window.supabase?.auth) { setTimeout(mainInit, 100); return; }
 
     try {
@@ -280,6 +280,7 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
         window.safeStorage.set('role', realRole);
         window.safeStorage.set('full_name', realName);
 
+        // 1. Configurar UI primero (para que el botón funcione aunque falle la red)
         const manageBtn = document.getElementById('manageUsersBtn');
         if (manageBtn) {
             const isAdmin = ['master', 'admin', 'supervisor'].includes(realRole);
@@ -288,20 +289,24 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
 
         const config = await loadTenantConfig();
         applyConfiguration(config);
-
-        await loadRealDashboardData(user.id, window.supabase);
-        await loadCourses(user.id);
-        await loadNotifications(user.id, window.supabase);
-        setupNotificationUI(window.supabase);
         
-        // Cargar Catálogo (Nueva llamada)
-        await loadCatalog(user.id, window.supabase);
-        
+        setupNotificationUI(); // <--- MOVIDO AQUÍ: Activar botón inmediatamente
         initUI();
+
+        // 2. Cargar datos en paralelo
+        console.log('🔄 Cargando datos para usuario:', user.id); // DEBUG
+
+        await Promise.all([
+            loadRealDashboardData(user.id, window.supabase),
+            loadCourses(user.id),
+            loadCatalog(user.id, window.supabase),
+            loadNotifications(user.id, window.supabase) // <--- Aquí cargamos las notificaciones
+        ]);
+        
         document.body.classList.add('loaded');
 
     } catch (error) {
-        console.error('❌ Error fatal:', error);
+        console.error('❌ Error fatal en mainInit:', error);
         document.body.classList.add('loaded');
     }
   }
@@ -430,6 +435,7 @@ async function loadCatalog(userId, supabase) {
 
 
   async function loadNotifications(userId, supabase) {
+    console.log('🔔 Buscando notificaciones...');
     const listContainer = document.querySelector('.notification-list');
     const badge = document.querySelector('.notification-badge');
     if (!listContainer) return;
@@ -441,15 +447,29 @@ async function loadCatalog(userId, supabase) {
         .eq('is_read', false)
         .order('created_at', { ascending: false });
 
-    if (error || !notifs) return;
-
-    if (badge) {
-        badge.textContent = notifs.length;
-        badge.style.display = notifs.length > 0 ? 'flex' : 'none';
+if (error) {
+        console.error('❌ Error cargando notificaciones:', error); // DEBUG IMPORTANTE
+        return;
     }
 
-    if (notifs.length === 0) {
-        listContainer.innerHTML = '<p style="padding:1rem; text-align:center;">No tienes notificaciones nuevas.</p>';
+    console.log(`📬 Encontradas ${notifs?.length || 0} notificaciones.`); // DEBUG
+
+    // Actualizar Badge
+    if (badge) {
+        if (notifs && notifs.length > 0) {
+            badge.textContent = notifs.length;
+            badge.style.display = 'flex';
+            badge.classList.add('pulse'); // Efecto visual opcional
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // Si no hay contenedor (panel no abierto aún), no renderizamos lista, pero el badge ya está listo.
+    if (!listContainer) return;
+
+    if (!notifs || notifs.length === 0) {
+        listContainer.innerHTML = '<div style="padding:2rem; text-align:center; color:#888;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:1rem; display:block;"></i>No tienes notificaciones nuevas.</div>';
         return;
     }
 
@@ -497,10 +517,12 @@ async function loadCatalog(userId, supabase) {
     } catch (e) { console.error(e); }
   };
 
-  function setupNotificationUI() {
+function setupNotificationUI() {
     const btn = document.getElementById('notificationBtn');
-    let panel = document.querySelector('.notification-panel');
-    
+    if (!btn) return;
+
+    // Inyectar panel si no existe
+    let panel = document.getElementById('notificationPanel');
     if (!panel) {
         const panelHTML = `
         <div class="notification-panel" id="notificationPanel">
@@ -508,23 +530,33 @@ async function loadCatalog(userId, supabase) {
                 <h3>Notificaciones</h3>
                 <button class="notification-close" id="closeNotifPanel"><i class="fas fa-times"></i></button>
             </div>
-            <div class="notification-list"></div>
+            <div class="notification-list">
+                </div>
         </div>`;
         document.body.insertAdjacentHTML('beforeend', panelHTML);
         panel = document.getElementById('notificationPanel');
         
+        // Listener cerrar
         document.getElementById('closeNotifPanel').addEventListener('click', () => {
             panel.classList.remove('show');
         });
     }
 
-    btn.addEventListener('click', (e) => {
+    // Listener toggle (Ahora con clone para evitar duplicados si se recarga)
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    newBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         panel.classList.toggle('show');
+        // Recargar lista al abrir por si llegaron nuevas mientras estaba en la página
+        const userId = window.safeStorage.get('user_id') || (window.supabase.auth.getSession().then(s => s.data.session?.user.id)); 
+        // Nota: para simplificar, usamos la carga inicial, pero aquí podrías re-invocar loadNotifications
     });
 
+    // Cerrar al hacer click fuera
     document.addEventListener('click', (e) => {
-        if (panel.classList.contains('show') && !panel.contains(e.target) && !btn.contains(e.target)) {
+        if (panel.classList.contains('show') && !panel.contains(e.target) && !newBtn.contains(e.target)) {
             panel.classList.remove('show');
         }
     });
