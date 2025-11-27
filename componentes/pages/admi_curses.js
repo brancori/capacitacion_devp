@@ -1445,7 +1445,7 @@ async function loadCourseAnalytics() {
                 <td class="text-center ${scoreClass}">${avgScore}</td>
                 <td class="text-center">${avgTimeStr}</td>
                 <td class="text-center">
-                    ${completionRate >= 80 && avgScore >= 9 ? '<i class="fas fa-star" style="color:gold"></i> Excelente' : 
+                    ${completionRate >= 80 && avgScore >= 9 ? ' Excelente' : 
                       completionRate < 50 ? '<i class="fas fa-exclamation-circle" style="color:var(--danger)"></i> Revisar' : 'Normal'}
                 </td>
             </tr>`;
