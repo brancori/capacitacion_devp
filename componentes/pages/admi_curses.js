@@ -547,6 +547,7 @@ function renderTrackingTable(filter = 'all', search = '') {
     
     let filtered = trackingData;
 
+    // Filtro de texto
     if (search) {
         const s = search.toLowerCase();
         filtered = filtered.filter(u => 
@@ -555,6 +556,7 @@ function renderTrackingTable(filter = 'all', search = '') {
         );
     }
 
+    // Filtro de estado
     if (filter !== 'all') {
         filtered = filtered.filter(u => {
             if (filter === 'completed') return u.completed > 0;
@@ -565,7 +567,8 @@ function renderTrackingTable(filter = 'all', search = '') {
     }
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No se encontraron usuarios</td></tr>'; // Nota: Cambié colspan a 8
+        // NOTA: colspan="8" porque agregamos la columna de grupos
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No se encontraron usuarios</td></tr>';
         return;
     }
 
@@ -579,7 +582,7 @@ function renderTrackingTable(filter = 'all', search = '') {
     tbody.innerHTML = filtered.map((u, idx) => {
         const barClass = u.compliance <= 50 ? 'red' : u.compliance <= 80 ? 'yellow' : 'green';
         
-        // Generar HTML de grupos
+        // Generamos los badges de los grupos
         const groupsHtml = u.groups && u.groups.length > 0
             ? u.groups.map(g => `<span class="group-badge">${g}</span>`).join('')
             : '<span style="color:#ccc;font-size:0.8rem;">Sin grupo</span>';
@@ -594,6 +597,7 @@ function renderTrackingTable(filter = 'all', search = '') {
                     ${groupsHtml}
                 </div>
             </td>
+            
             <td class="text-center"><span class="stat-pill completed">${u.completed}</span></td>
             <td class="text-center"><span class="stat-pill in-progress">${u.inProgress}</span></td>
             <td class="text-center"><span class="stat-pill expired">${u.expired}</span></td>
@@ -603,6 +607,7 @@ function renderTrackingTable(filter = 'all', search = '') {
             </td>
             <td><button class="expand-btn" id="expand-btn-${idx}"><i class="fas fa-chevron-down"></i></button></td>
         </tr>
+        
         <tr class="user-courses-row" id="courses-row-${idx}">
             <td colspan="8"> <div class="courses-detail">
                     <table>
@@ -1294,6 +1299,7 @@ async function init() {
             console.error('❌ checkAuth devolvió null, deteniendo...');
             return;
         }
+        window.currentAdmin = currentAdmin;
 
         // 3. FIX: Master puede operar en cualquier tenant
         const isMaster = currentAdmin.role === 'master';
@@ -1346,21 +1352,29 @@ async function init() {
 })();
 
 async function loadCourseAnalytics() {
+    // Usamos window.currentAdmin para evitar el error de "not defined"
+    const admin = window.currentAdmin; 
+    
     const tbody = document.getElementById('analytics-tbody');
     tbody.innerHTML = '<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Analizando datos...</td></tr>';
+
+    if (!admin || !admin.tenant_id) {
+        console.error("No hay usuario administrador activo");
+        return;
+    }
 
     try {
         // 1. Obtener todos los cursos del tenant
         const { data: courses } = await window.supabase
             .from('articles')
             .select('id, title, instructor_name')
-            .eq('tenant_id', currentAdmin.tenant_id);
+            .eq('tenant_id', admin.tenant_id); // Usamos admin.tenant_id
 
-        // 2. Obtener todas las asignaciones para hacer cálculos
+        // 2. Obtener todas las asignaciones
         const { data: assignments } = await window.supabase
             .from('user_course_assignments')
             .select('course_id, status, score, assigned_at, completed_at, progress')
-            .eq('tenant_id', currentAdmin.tenant_id);
+            .eq('tenant_id', admin.tenant_id); // Usamos admin.tenant_id
 
         if (!courses || !assignments) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay datos disponibles</td></tr>';
@@ -1370,7 +1384,6 @@ async function loadCourseAnalytics() {
         // 3. Procesar Métricas
         const stats = {};
         
-        // Inicializar
         courses.forEach(c => {
             stats[c.id] = {
                 title: c.title,
@@ -1384,26 +1397,19 @@ async function loadCourseAnalytics() {
             };
         });
 
-        // Calcular
         assignments.forEach(a => {
             if (stats[a.course_id]) {
                 stats[a.course_id].assigned++;
                 
                 if (a.status === 'completed' || (a.score && a.score >= 8)) {
                     stats[a.course_id].completed++;
-                    
-                    // Promedio Score
                     if (a.score) {
                         stats[a.course_id].totalScore += Number(a.score);
                         stats[a.course_id].scoreCount++;
                     }
-
-                    // Tiempo Promedio (CompletedAt - AssignedAt)
                     if (a.completed_at && a.assigned_at) {
-                        const start = new Date(a.assigned_at);
-                        const end = new Date(a.completed_at);
-                        const diff = end - start;
-                        if (diff > 0) { // Validar consistencia
+                        const diff = new Date(a.completed_at) - new Date(a.assigned_at);
+                        if (diff > 0) {
                             stats[a.course_id].totalTimeMs += diff;
                             stats[a.course_id].timeCount++;
                         }
@@ -1414,24 +1420,18 @@ async function loadCourseAnalytics() {
 
         // 4. Renderizar
         const rows = Object.values(stats).map(s => {
-            // Cálculos finales
             const completionRate = s.assigned > 0 ? Math.round((s.completed / s.assigned) * 100) : 0;
             const avgScore = s.scoreCount > 0 ? (s.totalScore / s.scoreCount).toFixed(1) : '-';
             
-            // Formato de tiempo (días o horas)
             let avgTimeStr = '-';
             if (s.timeCount > 0) {
                 const ms = s.totalTimeMs / s.timeCount;
                 const hours = Math.round(ms / (1000 * 60 * 60));
-                if (hours > 24) avgTimeStr = `${Math.round(hours/24)} días`;
-                else avgTimeStr = `${hours} hrs`;
+                avgTimeStr = hours > 24 ? `${Math.round(hours/24)} días` : `${hours} hrs`;
             }
 
-            // Clases de color para score
             let scoreClass = '';
-            if (avgScore !== '-') {
-                scoreClass = avgScore >= 9 ? 'score-good' : avgScore >= 8 ? 'score-avg' : 'score-bad';
-            }
+            if (avgScore !== '-') scoreClass = avgScore >= 9 ? 'score-good' : avgScore >= 8 ? 'score-avg' : 'score-bad';
 
             return `
             <tr>
@@ -1453,13 +1453,16 @@ async function loadCourseAnalytics() {
 
         tbody.innerHTML = rows.join('');
         
-        // Listener para búsqueda en esta tabla
-        document.getElementById('search-analytics').addEventListener('keyup', (e) => {
+        // Reinicializar listener de búsqueda para evitar duplicados
+        const searchInput = document.getElementById('search-analytics');
+        const newSearchInput = searchInput.cloneNode(true);
+        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+        
+        newSearchInput.addEventListener('keyup', (e) => {
             const term = e.target.value.toLowerCase();
             const trs = tbody.querySelectorAll('tr');
             trs.forEach(tr => {
-                const text = tr.innerText.toLowerCase();
-                tr.style.display = text.includes(term) ? '' : 'none';
+                tr.style.display = tr.innerText.toLowerCase().includes(term) ? '' : 'none';
             });
         });
 
