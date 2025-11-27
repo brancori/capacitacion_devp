@@ -885,3 +885,78 @@ display: grid !important;
     filter: brightness(110%); /* Efecto de luz simple */
     transform: translateY(-1px); /* Feedback táctil visual */
 }
+
+.group-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.group-badge {
+    background-color: #eff6ff;
+    color: var(--primaryColor);
+    border: 1px solid #dbeafe;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* === CONFIGURACIÓN DE VENCIMIENTO (MODAL) === */
+.due-date-config-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+.config-title {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 700;
+}
+.date-options-toggle {
+    display: flex;
+    background: #e2e8f0;
+    padding: 4px;
+    border-radius: 8px;
+    width: fit-content;
+    margin-bottom: 1rem;
+}
+.toggle-option {
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+.toggle-option.active {
+    background: white;
+    color: var(--primaryColor);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.date-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    animation: fadeIn 0.3s;
+}
+.small-input {
+    width: 80px !important;
+    text-align: center;
+}
+@keyframes fadeIn {
+    from { opacity:0; transform:translateY(-5px);}
+    to { opacity:1; transform:translateY(0);}
+}
+
+/* === ANALÍTICA === */
+.score-good { color: var(--success); font-weight: bold; }
+.score-avg { color: var(--warning); font-weight: bold; }
+.score-bad { color: var(--danger); font-weight: bold; }

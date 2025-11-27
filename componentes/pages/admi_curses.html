@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../../componentes/global.css?v=6">
     
     <!-- 2. Estilos Específicos (Mismo nivel) -->
-    <link rel="stylesheet" href="./admi_curses.css?v=6.7">
+    <link rel="stylesheet" href="./admi_curses.css?v=6.8">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,6 +87,9 @@
         <button class="main-tab" onclick="switchMainTab('tracking')" data-maintab="tracking">
             <i class="fas fa-clipboard-list"></i> Seguimiento de Usuarios
         </button>
+        <button class="main-tab" onclick="switchMainTab('analytics')" data-maintab="analytics">
+            <i class="fas fa-chart-line"></i> Analítica de Cursos
+        </button>
     </div>
     <!-- Main View -->
     <div id="main-view">
@@ -137,6 +140,7 @@
                     <tr>
                         <th>Usuario</th>
                         <th>Email</th>
+                        <th>Grupos</th> 
                         <th class="text-center">Completados</th>
                         <th class="text-center">En Progreso</th>
                         <th class="text-center">Vencidos</th>
@@ -145,6 +149,34 @@
                     </tr>
                 </thead>
                 <tbody id="tracking-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="analytics-view" style="display:none;">
+        <div class="tracking-header">
+            <h3 style="color:var(--primaryColor); margin:0;">Rendimiento General de Cursos</h3>
+            <div class="search-box">
+                <span class="search-icon"><i class="fas fa-search"></i></span>
+                <input type="text" class="search-input" id="search-analytics" placeholder="Buscar curso...">
+            </div>
+        </div>
+        <div class="tracking-table-container">
+            <table class="tracking-table">
+                <thead>
+                    <tr>
+                        <th>Curso</th>
+                        <th>Instructor</th>
+                        <th class="text-center">Inscritos</th>
+                        <th class="text-center">Tasa Finalización</th>
+                        <th class="text-center">Score Prom.</th>
+                        <th class="text-center">Tiempo Promedio</th>
+                        <th class="text-center">Estatus</th>
+                    </tr>
+                </thead>
+                <tbody id="analytics-tbody">
+                    <tr><td colspan="7" class="text-center">Cargando métricas...</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -204,6 +236,32 @@
             <button class="modal-close" onclick="closeAssignModal()">✕</button>
         </div>
         <div class="modal-body">
+                        <div class="due-date-config-section">
+                <h4 class="config-title"><i class="far fa-clock"></i> Configuración de Vencimiento</h4>
+                
+                <div class="date-options-toggle">
+                    <label class="toggle-option active" id="opt-days" onclick="toggleDateInput('days')">
+                        <input type="radio" name="dueDateType" value="days" checked hidden>
+                        Relativo (Días)
+                    </label>
+                    <label class="toggle-option" id="opt-date" onclick="toggleDateInput('date')">
+                        <input type="radio" name="dueDateType" value="date" hidden>
+                        Fecha Fija
+                    </label>
+                </div>
+                
+                <div id="input-days-container" class="date-input-wrapper">
+                    <span>El curso vencerá en </span>
+                    <input type="number" id="due-days" class="form-control small-input" value="15" min="1">
+                    <span> días a partir de la asignación.</span>
+                </div>
+
+                <div id="input-date-container" class="date-input-wrapper" style="display:none;">
+                    <span>Selecciona la fecha límite: </span>
+                    <input type="date" id="due-date-picker" class="form-control">
+                </div>
+            </div>
+            <div class="search-box" style="margin-bottom: 1rem;">
             <div class="search-box" style="margin-bottom: 1rem;">
                 <span class="search-icon"><i class="fas fa-search"></i></span>
                 <input type="text" class="search-input" id="search-catalog" placeholder="Buscar en catálogo...">
@@ -247,6 +305,6 @@
     </div>
 </div>
 
-<script src="./admi_curses.js?v=5.1"></script>
+<script src="./admi_curses.js?v=5.2"></script>
 </body>
 </html>

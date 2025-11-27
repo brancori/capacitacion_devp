@@ -446,6 +446,7 @@ window.switchMainTab = (tabName) => {
 
     document.getElementById('main-view').style.display = 'none';
     document.getElementById('tracking-view').style.display = 'none';
+    document.getElementById('analytics-view').style.display = 'none'; // NUEVO
     document.getElementById('detail-view').classList.remove('active');
 
     if (tabName === 'groups') {
@@ -453,6 +454,9 @@ window.switchMainTab = (tabName) => {
     } else if (tabName === 'tracking') {
         document.getElementById('tracking-view').style.display = 'block';
         loadTrackingData();
+    } else if (tabName === 'analytics') { // NUEVO BLOQUE
+        document.getElementById('analytics-view').style.display = 'block';
+        loadCourseAnalytics();
     }
 };
 
@@ -470,6 +474,19 @@ async function loadTrackingData() {
         .select('id, full_name, email')
         .eq('tenant_id', currentAdmin.tenant_id)
         .order('full_name');
+
+        const { data: memberships } = await window.supabase
+        .from('group_members')
+        .select('user_id, course_groups(name)') // Join con course_groups
+        .not('course_groups', 'is', null);
+
+        const userGroupsMap = {};
+    if(memberships) {
+        memberships.forEach(m => {
+            if(!userGroupsMap[m.user_id]) userGroupsMap[m.user_id] = [];
+            if(m.course_groups) userGroupsMap[m.user_id].push(m.course_groups.name);
+        });
+    }
 
     if (!users || users.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">No hay usuarios</td></tr>';
@@ -513,6 +530,7 @@ async function loadTrackingData() {
             id: user.id,
             name: user.full_name || 'Sin nombre',
             email: user.email,
+            groups: userGroupsMap[user.id] || [],
             completed,
             inProgress,
             expired,
@@ -547,7 +565,7 @@ function renderTrackingTable(filter = 'all', search = '') {
     }
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">No se encontraron usuarios</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No se encontraron usuarios</td></tr>'; // Nota: Cambié colspan a 8
         return;
     }
 
@@ -561,10 +579,21 @@ function renderTrackingTable(filter = 'all', search = '') {
     tbody.innerHTML = filtered.map((u, idx) => {
         const barClass = u.compliance <= 50 ? 'red' : u.compliance <= 80 ? 'yellow' : 'green';
         
+        // Generar HTML de grupos
+        const groupsHtml = u.groups && u.groups.length > 0
+            ? u.groups.map(g => `<span class="group-badge">${g}</span>`).join('')
+            : '<span style="color:#ccc;font-size:0.8rem;">Sin grupo</span>';
+
         return `
         <tr class="user-row-main" onclick="toggleUserCourses(${idx})">
             <td><strong>${u.name}</strong></td>
             <td>${u.email}</td>
+            
+            <td>
+                <div class="group-tags">
+                    ${groupsHtml}
+                </div>
+            </td>
             <td class="text-center"><span class="stat-pill completed">${u.completed}</span></td>
             <td class="text-center"><span class="stat-pill in-progress">${u.inProgress}</span></td>
             <td class="text-center"><span class="stat-pill expired">${u.expired}</span></td>
@@ -575,8 +604,7 @@ function renderTrackingTable(filter = 'all', search = '') {
             <td><button class="expand-btn" id="expand-btn-${idx}"><i class="fas fa-chevron-down"></i></button></td>
         </tr>
         <tr class="user-courses-row" id="courses-row-${idx}">
-            <td colspan="7">
-                <div class="courses-detail">
+            <td colspan="8"> <div class="courses-detail">
                     <table>
                         <thead>
                             <tr>
@@ -1051,79 +1079,62 @@ window.addMemberByEmail = async () => {
         `).join('');
     }
 
+window.toggleDateInput = (type) => {
+    document.getElementById('opt-days').classList.toggle('active', type === 'days');
+    document.getElementById('opt-date').classList.toggle('active', type === 'date');
+    
+    document.getElementById('input-days-container').style.display = type === 'days' ? 'flex' : 'none';
+    document.getElementById('input-date-container').style.display = type === 'date' ? 'flex' : 'none';
+};
+
 window.confirmAssignment = async () => {
-        // 1. Validaciones básicas
-        if (selectedCoursesToAssign.length === 0) return showToast('Alerta', 'Selecciona cursos', 'warning');
-        
-        if (!groupMembers || groupMembers.length === 0) {
-             await loadGroupMembers();
-             if (groupMembers.length === 0) return showToast('Alerta', 'El grupo no tiene miembros', 'warning');
-        }
+    if (selectedCoursesToAssign.length === 0) {
+        return showToast('Alerta', 'Selecciona al menos un curso', 'warning');
+    }
 
-        // 2. Preparar los IDs para verificar duplicados
-        const userIds = groupMembers.map(m => m.profiles.id);
-        const courseIds = selectedCoursesToAssign.map(c => c.id);
+    // 1. Calcular Fecha de Vencimiento
+    const dateMode = document.querySelector('input[name="dueDateType"]:checked').value;
+    let finalDueDate = null;
 
-        try {
-            // 3. Consultar qué asignaciones ya existen en la BD
-            const { data: existing, error: queryError } = await window.supabase
-                .from('user_course_assignments')
-                .select('user_id, course_id')
-                .in('user_id', userIds)
-                .in('course_id', courseIds);
+    if (dateMode === 'days') {
+        const days = parseInt(document.getElementById('due-days').value) || 15;
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        finalDueDate = d.toISOString();
+    } else {
+        const pickedDate = document.getElementById('due-date-picker').value;
+        if (!pickedDate) return showToast('Alerta', 'Selecciona una fecha válida', 'warning');
+        finalDueDate = new Date(pickedDate).toISOString();
+    }
 
-            if (queryError) throw queryError;
+    try {
+        // 2. Insertar en group_courses INCLUYENDO due_date
+        const inserts = selectedCoursesToAssign.map(course => ({
+            group_id: currentGroup.id,
+            course_id: course.id,
+            due_date: finalDueDate // <--- Aquí va la fecha calculada
+        }));
 
-            // Crear un Set para búsqueda rápida (formato "userId-courseId")
-            const existingSet = new Set(existing.map(e => `${e.user_id}-${e.course_id}`));
+        const { error } = await window.supabase
+            .from('group_courses')
+            .insert(inserts);
 
-            // 4. Filtrar: Solo crear asignaciones que NO estén en el Set
-            const assignmentsToInsert = [];
-            const now = new Date();
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 30);
+        if (error) throw error;
 
-            groupMembers.forEach(member => {
-                selectedCoursesToAssign.forEach(course => {
-                    const key = `${member.profiles.id}-${course.id}`;
-                    
-                    // Solo agregamos si NO existe
-                    if (!existingSet.has(key)) {
-                        assignmentsToInsert.push({
-                            user_id: member.profiles.id,
-                            course_id: course.id,
-                            tenant_id: currentAdmin.tenant_id,
-                            status: 'not_started',
-                            progress: 0,
-                            assigned_at: now.toISOString(),
-                            due_date: dueDate.toISOString()
-                        });
-                    }
-                });
-            });
-
-            // 5. Verificar si hay algo que insertar
-            if (assignmentsToInsert.length === 0) {
-                showToast('Info', 'Todos los usuarios seleccionados ya tienen estos cursos asignados.', 'warning');
-                closeAssignModal();
-                return;
-            }
-
-            // 6. Insertar solo los nuevos (usando insert normal, ya no upsert)
-            const { error: insertError } = await window.supabase
-                .from('user_course_assignments')
-                .insert(assignmentsToInsert);
-
-            if (insertError) throw insertError;
-
-            showToast('Éxito', `Se asignaron ${assignmentsToInsert.length} cursos nuevos.`, 'success');
+        showToast('Éxito', `${selectedCoursesToAssign.length} curso(s) asignado(s) con vencimiento actualizado`, 'success');
+        closeAssignModal();
+        await loadGroupCourses();
+    } catch (err) {
+        console.error('Error:', err);
+        // Manejo específico de llave duplicada
+        if (err.code === '23505') {
+            showToast('Info', 'Algunos cursos ya estaban asignados a este grupo (se ignora duplicado)', 'warning');
             closeAssignModal();
-
-        } catch (error) {
-            console.error(error);
-            showToast('Error', 'Hubo un problema al asignar los cursos', 'error');
+        } else {
+            showToast('Error', 'No se pudieron asignar los cursos', 'error');
         }
-    };
+    }
+};
 
     window.removeGroupCourse = async (groupCourseId) => {
     if (!confirm('¿Eliminar este curso del grupo? Se quitará la asignación a todos los miembros.')) return;
@@ -1333,3 +1344,127 @@ async function init() {
     else init();
 
 })();
+
+async function loadCourseAnalytics() {
+    const tbody = document.getElementById('analytics-tbody');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Analizando datos...</td></tr>';
+
+    try {
+        // 1. Obtener todos los cursos del tenant
+        const { data: courses } = await window.supabase
+            .from('articles')
+            .select('id, title, instructor_name')
+            .eq('tenant_id', currentAdmin.tenant_id);
+
+        // 2. Obtener todas las asignaciones para hacer cálculos
+        const { data: assignments } = await window.supabase
+            .from('user_course_assignments')
+            .select('course_id, status, score, assigned_at, completed_at, progress')
+            .eq('tenant_id', currentAdmin.tenant_id);
+
+        if (!courses || !assignments) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay datos disponibles</td></tr>';
+            return;
+        }
+
+        // 3. Procesar Métricas
+        const stats = {};
+        
+        // Inicializar
+        courses.forEach(c => {
+            stats[c.id] = {
+                title: c.title,
+                instructor: c.instructor_name || '-',
+                assigned: 0,
+                completed: 0,
+                totalScore: 0,
+                scoreCount: 0,
+                totalTimeMs: 0,
+                timeCount: 0
+            };
+        });
+
+        // Calcular
+        assignments.forEach(a => {
+            if (stats[a.course_id]) {
+                stats[a.course_id].assigned++;
+                
+                if (a.status === 'completed' || (a.score && a.score >= 8)) {
+                    stats[a.course_id].completed++;
+                    
+                    // Promedio Score
+                    if (a.score) {
+                        stats[a.course_id].totalScore += Number(a.score);
+                        stats[a.course_id].scoreCount++;
+                    }
+
+                    // Tiempo Promedio (CompletedAt - AssignedAt)
+                    if (a.completed_at && a.assigned_at) {
+                        const start = new Date(a.assigned_at);
+                        const end = new Date(a.completed_at);
+                        const diff = end - start;
+                        if (diff > 0) { // Validar consistencia
+                            stats[a.course_id].totalTimeMs += diff;
+                            stats[a.course_id].timeCount++;
+                        }
+                    }
+                }
+            }
+        });
+
+        // 4. Renderizar
+        const rows = Object.values(stats).map(s => {
+            // Cálculos finales
+            const completionRate = s.assigned > 0 ? Math.round((s.completed / s.assigned) * 100) : 0;
+            const avgScore = s.scoreCount > 0 ? (s.totalScore / s.scoreCount).toFixed(1) : '-';
+            
+            // Formato de tiempo (días o horas)
+            let avgTimeStr = '-';
+            if (s.timeCount > 0) {
+                const ms = s.totalTimeMs / s.timeCount;
+                const hours = Math.round(ms / (1000 * 60 * 60));
+                if (hours > 24) avgTimeStr = `${Math.round(hours/24)} días`;
+                else avgTimeStr = `${hours} hrs`;
+            }
+
+            // Clases de color para score
+            let scoreClass = '';
+            if (avgScore !== '-') {
+                scoreClass = avgScore >= 9 ? 'score-good' : avgScore >= 8 ? 'score-avg' : 'score-bad';
+            }
+
+            return `
+            <tr>
+                <td><strong>${s.title}</strong></td>
+                <td><small>${s.instructor}</small></td>
+                <td class="text-center">${s.assigned}</td>
+                <td class="text-center">
+                    <div class="compliance-bar"><div class="compliance-bar-fill ${completionRate >= 80 ? 'green' : 'yellow'}" style="width:${completionRate}%"></div></div>
+                    ${completionRate}%
+                </td>
+                <td class="text-center ${scoreClass}">${avgScore}</td>
+                <td class="text-center">${avgTimeStr}</td>
+                <td class="text-center">
+                    ${completionRate >= 80 && avgScore >= 9 ? '<i class="fas fa-star" style="color:gold"></i> Excelente' : 
+                      completionRate < 50 ? '<i class="fas fa-exclamation-circle" style="color:var(--danger)"></i> Revisar' : 'Normal'}
+                </td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = rows.join('');
+        
+        // Listener para búsqueda en esta tabla
+        document.getElementById('search-analytics').addEventListener('keyup', (e) => {
+            const term = e.target.value.toLowerCase();
+            const trs = tbody.querySelectorAll('tr');
+            trs.forEach(tr => {
+                const text = tr.innerText.toLowerCase();
+                tr.style.display = text.includes(term) ? '' : 'none';
+            });
+        });
+
+    } catch (e) {
+        console.error('Error analítica:', e);
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error cargando datos</td></tr>';
+    }
+}
