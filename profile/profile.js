@@ -208,7 +208,7 @@ window.safeStorage = window.safeStorage || {
   // RENDERIZADO DE CURSOS (PENDIENTES, COMPLETADOS Y CATÁLOGO)
   // ═══════════════════════════════════════════════════════════
   // Se agregó el parámetro isCatalog para manejar la vista del catálogo
-  function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, isCatalog = false) {
+function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, isCatalog = false) {
     const el = document.getElementById(containerId);
     if(!el) return;
     
@@ -218,30 +218,26 @@ window.safeStorage = window.safeStorage || {
     }
 
     el.innerHTML = list.map(c => {
+        // ... lógica existente de aprobación ...
         const approved = !isCatalog && (c.status === 'completed' || (c.score !== null && Number(c.score) >= 8));
         const progressVal = c.progress || 0;
-
         let actionButton = '';
-        
+
         if (isCatalog) {
-            // Botón para inscribirse
+            // BOTÓN PARA CATÁLOGO
             actionButton = `
-            <button class="btn btn-success" onclick="alert('Funcionalidad de inscripción pendiente de backend')">
-                <i class="fas fa-plus-circle"></i> Inscribirme
+            <button class="btn btn-success" onclick="enrollUser('${c.id}')">
+                <i class="fas fa-plus"></i> Inscribirme
             </button>`;
         } else if (isCompletedSection && approved) {
-            actionButton = `
-            <a href="../certificados/view.html?assignment_id=${c.assignment_id}" class="btn btn-outline" style="border-color:var(--success); color:var(--success);">
-                <i class="fas fa-certificate"></i> Ver Certificado
-            </a>`;
+             // ... botón certificado ...
+             actionButton = `<a href="../certificados/view.html?assignment_id=${c.assignment_id}" class="btn btn-outline" style="border-color:var(--success); color:var(--success);"><i class="fas fa-certificate"></i> Ver Certificado</a>`;
         } else {
-            const btnText = progressVal > 0 ? 'Continuar' : 'Iniciar';
-            actionButton = `
-            <a href="../curso/curso.html?id=${c.id}" class="btn btn-primary">
-                ${btnText}
-            </a>`;
+             // ... botón continuar ...
+             actionButton = `<a href="../curso/curso.html?id=${c.id}" class="btn btn-primary">${progressVal > 0 ? 'Continuar' : 'Iniciar'}</a>`;
         }
 
+        // Renderizado de tarjeta (ajustado para catálogo que no tiene progreso)
         return `
           <div class="course-card">
             <div class="course-icon-lg ${isCatalog ? 'catalog' : (approved ? 'completed' : 'pending')}">
@@ -257,7 +253,7 @@ window.safeStorage = window.safeStorage || {
                 ${approved ? '¡Curso Aprobado!' : `Progreso: ${progressVal}%`}
                 ${c.score ? ` | Calificación: ${c.score}` : ''}
               </p>` 
-              : `<p class="meta" style="margin-top:0.5rem;">${c.duration_text || 'Duración: Variable'}</p>`}
+              : `<p class="meta">${c.duration_text || 'Duración variable'}</p>`}
             </div>
             <div class="course-actions">
                ${actionButton}
@@ -265,7 +261,7 @@ window.safeStorage = window.safeStorage || {
           </div>
         `;
     }).join('');
-  }
+}
 
   // ═══════════════════════════════════════════════════════════
   // FUNCIÓN PRINCIPAL MAIN INIT
@@ -397,6 +393,51 @@ window.safeStorage = window.safeStorage || {
         });
     });
   }
+
+  function initSearchFilter() {
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('keyup', (e) => {
+        const term = e.target.value.toLowerCase();
+        // Busca en tarjetas de cursos, items de historial y recomendaciones
+        const selector = '.course-card, .timeline-item, .recommendation-card';
+        const items = document.querySelectorAll(selector);
+        
+        items.forEach(item => {
+            // Si el texto coincide, se muestra (elimina style inline), si no, display: none
+            const text = item.innerText.toLowerCase();
+            item.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+}
+
+async function loadCatalog(userId, supabase) {
+    try {
+        // 1. Obtener IDs de cursos que el usuario YA tiene
+        const { data: myAssignments } = await supabase
+            .from('user_course_assignments')
+            .select('course_id')
+            .eq('user_id', userId);
+            
+        const myCourseIds = new Set((myAssignments || []).map(a => a.course_id));
+
+        // 2. Obtener TODOS los artículos activos
+        const { data: allArticles } = await supabase
+            .from('articles')
+            .select('id, title, thumbnail_url, duration_text')
+            .eq('is_active', true); // Asumiendo que hay un flag is_active
+
+        // 3. Filtrar: Catálogo = Todos - Mis Cursos
+        const catalog = (allArticles || []).filter(art => !myCourseIds.has(art.id));
+
+        // 4. Renderizar como catálogo (isCatalog = true)
+        renderCourses(catalog, 'catalogCoursesContainer', 'No hay nuevos cursos disponibles en el catálogo.', false, true);
+
+    } catch (e) {
+        console.error("Error cargando catálogo:", e);
+    }
+}
 
   function initUI() {
     // Inicializar Tabs
