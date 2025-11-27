@@ -310,9 +310,8 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
   // ═══════════════════════════════════════════════════════════
   
   // Nueva función para cargar el catálogo
-  async function loadCatalog(userId, supabase) {
+async function loadCatalog(userId, supabase) {
     try {
-        // 1. Obtener cursos ya asignados para excluirlos
         const { data: myAssignments } = await supabase
             .from('user_course_assignments')
             .select('course_id')
@@ -320,22 +319,22 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
             
         const myCourseIds = new Set((myAssignments || []).map(a => a.course_id));
 
-        // 2. Obtener todos los artículos (cursos) disponibles
-        // Ajusta los campos según tu tabla 'articles'
-        const { data: allArticles } = await supabase
+        // CORRECCIÓN: Usar 'status' en lugar de 'is_active'
+        const { data: allArticles, error } = await supabase
             .from('articles')
-            .select('id, title, thumbnail_url, duration_text'); 
+            .select('id, title, thumbnail_url, duration_text')
+            .eq('status', 'published'); 
 
-        // 3. Filtrar
+        if (error) throw error;
+
         const catalog = (allArticles || []).filter(art => !myCourseIds.has(art.id));
 
-        // 4. Renderizar en un contenedor nuevo (asegúrate de agregar <div id="catalogCoursesContainer"> al HTML)
-        renderCourses(catalog, 'catalogCoursesContainer', 'No hay cursos nuevos disponibles.', false, true);
+        renderCourses(catalog, 'catalogCoursesContainer', 'No hay nuevos cursos disponibles en el catálogo.', false, true);
 
     } catch (e) {
         console.error("Error cargando catálogo:", e);
     }
-  }
+}
 
   async function loadCourses(userId) {
     try {
