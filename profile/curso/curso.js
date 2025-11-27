@@ -536,8 +536,11 @@ window.submitQuiz = async function() {
                 score: finalScore,
                 progress: progressToSave, 
                 status: statusToSave,
-                assigned_at: new Date().toISOString()
             };
+
+            if (passed) {
+                payload.completed_at = new Date().toISOString();
+            }
 
             const { data: check } = await supabase
                 .from('user_course_assignments')
@@ -635,8 +638,13 @@ async function saveProgress(pageIndex, isQuizCompleted = false) {
         } else {
             // INSERT
             ({ error } = await supabase
-                .from('user_course_assignments')
-                .insert({ ...payload, user_id: user.id, course_id: courseId }));
+                    .from('user_course_assignments')
+                    .insert({ 
+                        ...payload, 
+                        user_id: user.id, 
+                        course_id: courseId,
+                        assigned_at: new Date().toISOString() // Solo al crear
+                    }));
         }
 
         if (error) {
