@@ -291,6 +291,8 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
 
         await loadRealDashboardData(user.id, window.supabase);
         await loadCourses(user.id);
+        await loadNotifications(user.id, window.supabase);
+        setupNotificationUI(window.supabase);
         
         // Cargar Catálogo (Nueva llamada)
         await loadCatalog(user.id, window.supabase);
@@ -426,4 +428,105 @@ async function loadCatalog(userId, supabase) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mainInit);
   else mainInit();
 
+
+  async function loadNotifications(userId, supabase) {
+    const listContainer = document.querySelector('.notification-list');
+    const badge = document.querySelector('.notification-badge');
+    if (!listContainer) return;
+
+    const { data: notifs, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_read', false)
+        .order('created_at', { ascending: false });
+
+    if (error || !notifs) return;
+
+    if (badge) {
+        badge.textContent = notifs.length;
+        badge.style.display = notifs.length > 0 ? 'flex' : 'none';
+    }
+
+    if (notifs.length === 0) {
+        listContainer.innerHTML = '<p style="padding:1rem; text-align:center;">No tienes notificaciones nuevas.</p>';
+        return;
+    }
+
+    listContainer.innerHTML = notifs.map(n => `
+        <div class="notification-item ${n.type}" onclick="markAsRead('${n.id}', '${n.link || '#'}')">
+            <div class="notification-icon-box">
+                <i class="fas ${getIconForType(n.type)}"></i>
+            </div>
+            <div class="notification-content">
+                <h4>${n.title}</h4>
+                <p>${n.message}</p>
+                <div class="notification-time">${new Date(n.created_at).toLocaleDateString()}</div>
+            </div>
+        </div>
+    `).join('');
+  }
+
+  function getIconForType(type) {
+    switch(type) {
+        case 'urgent': return 'fa-exclamation-triangle';
+        case 'success': return 'fa-check-circle';
+        default: return 'fa-info-circle';
+    }
+  }
+
+  window.markAsRead = async (id, link) => {
+    try {
+        await window.supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', id);
+        
+        const item = document.querySelector(`.notification-item[onclick*="${id}"]`);
+        if(item) item.remove();
+        
+        const badge = document.querySelector('.notification-badge');
+        if(badge) {
+            const count = parseInt(badge.textContent) - 1;
+            badge.textContent = count > 0 ? count : '';
+            if(count <= 0) badge.style.display = 'none';
+        }
+
+        if (link && link !== '#') window.location.href = link;
+        
+    } catch (e) { console.error(e); }
+  };
+
+  function setupNotificationUI() {
+    const btn = document.getElementById('notificationBtn');
+    let panel = document.querySelector('.notification-panel');
+    
+    if (!panel) {
+        const panelHTML = `
+        <div class="notification-panel" id="notificationPanel">
+            <div class="notification-header">
+                <h3>Notificaciones</h3>
+                <button class="notification-close" id="closeNotifPanel"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="notification-list"></div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', panelHTML);
+        panel = document.getElementById('notificationPanel');
+        
+        document.getElementById('closeNotifPanel').addEventListener('click', () => {
+            panel.classList.remove('show');
+        });
+    }
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (panel.classList.contains('show') && !panel.contains(e.target) && !btn.contains(e.target)) {
+            panel.classList.remove('show');
+        }
+    });
+  }
 })();
