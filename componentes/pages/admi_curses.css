@@ -383,8 +383,30 @@ display: grid !important;
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between; /* Separa los botones a los extremos */
+    align-items: center;
+    gap: 10px;
 }
-
+.btn-delete-group {
+    background: transparent;
+    border: 1px solid var(--danger); /* Rojo definido en global variables */
+    color: var(--danger);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+.btn-delete-group:hover {
+    background: var(--danger);
+    color: white;
+    box-shadow: 0 2px 5px rgba(220, 38, 38, 0.3);
+}
 /* === Controles (búsqueda + botón) === */
 .controls {
     display: flex;

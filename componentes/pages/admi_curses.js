@@ -712,23 +712,28 @@ async function renderGroups(filter = '') {
         }
 
         const groupsHTML = await Promise.all(filtered.map(async (g) => {
-            
-            // ═══════════════════════════════════════════════════════════
-            // 1. SOLUCIÓN AL CONTEO "0" Y ERROR "MEMBERCOUNT"
-            // ═══════════════════════════════════════════════════════════
-            // En lugar de pedir 'count', pedimos los IDs y medimos el array.
-            // Esto es más robusto contra políticas RLS estrictas.
+                    
+            // ... (tu lógica existente de conteo y stats se mantiene igual) ...
             const { data: memberData } = await window.supabase
                 .from('group_members')
                 .select('id')
                 .eq('group_id', g.id);
-
-            // AQUÍ DEFINIMOS LA VARIABLE QUE TE FALTABA:
             const memberCount = memberData ? memberData.length : 0; 
-            // ═══════════════════════════════════════════════════════════
-            
             const stats = await getGroupStats(g.id);
             
+            // --- NUEVO: Lógica para mostrar botón eliminar ---
+            // Permitir a master, admin y supervisor
+            const canDelete = ['master', 'admin', 'supervisor'].includes(currentAdmin.role);
+            
+            const deleteBtnHTML = canDelete ? `
+                <button class="btn-delete-group" 
+                        onclick="event.stopPropagation(); window.deleteGroup('${g.id}', '${g.name}')" 
+                        title="Eliminar Grupo">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            ` : '';
+            // ------------------------------------------------
+
             return `
             <div class="group-card" onclick="window.viewGroupDetail('${g.id}')">
                 <div class="group-header">
@@ -745,8 +750,10 @@ async function renderGroups(filter = '') {
                         </div>
                     </div>
                 </div>
+                
                 <div class="group-actions">
                     <button class="btn btn-secondary">Ver Detalle</button>
+                    ${deleteBtnHTML}
                 </div>
             </div>
             `;
@@ -1201,6 +1208,38 @@ window.confirmAssignment = async () => {
         container.appendChild(div);
         setTimeout(() => div.remove(), 3000);
     }
+
+// Función para eliminar grupo
+window.deleteGroup = async (groupId, groupName) => {
+    // 1. Confirmación de seguridad
+    if (!confirm(`⚠️ ¿Estás seguro de eliminar el grupo "${groupName}"?\n\nEsta acción eliminará todas las asignaciones y desvinculará a los miembros permanentemente.`)) {
+        return;
+    }
+
+    try {
+        // 2. Eliminar de course_groups (El CASCADE de SQL limpiará members y courses)
+        const { error } = await window.supabase
+            .from('course_groups')
+            .delete()
+            .eq('id', groupId);
+
+        if (error) throw error;
+
+        // 3. Feedback y recarga
+        showToast('Éxito', 'Grupo eliminado correctamente', 'success');
+        
+        // Si estábamos viendo el detalle de ese grupo, volver al inicio
+        if (currentGroup && currentGroup.id === groupId) {
+            backToMain();
+        } else {
+            renderGroups(); // Recargar la lista
+        }
+
+    } catch (err) {
+        console.error('Error eliminando grupo:', err);
+        showToast('Error', 'No se pudo eliminar el grupo', 'error');
+    }
+};
 
     // =================================================================
     // INIT

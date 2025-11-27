@@ -1,4 +1,3 @@
-
 window.safeStorage = window.safeStorage || {
   set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} },
   get: (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } },
