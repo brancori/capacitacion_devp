@@ -4,20 +4,6 @@
   // =================================================================
   // 1. DEFINICIONES DE UTILIDAD
   // =================================================================
-function detectTenant() {
-  // Opción por URL (por si acaso quieres probar otro rápido)
-  const params = new URLSearchParams(window.location.search);
-  if (params.has('tenant')) return params.get('tenant');
-
-  const host = location.hostname || 'localhost';
-  
-  // CAMBIO: Forzar 'siresi' en local
-  if (host === 'localhost' || host === '127.0.0.1') return 'siresi';
-
-  const parts = host.split('.');
-  if (parts.length > 2 && parts[0] !== 'www') return parts[0];
-  return 'default';
-}
 
   function $(selector) { return document.querySelector(selector); }
   function $$(selector) { return Array.from(document.querySelectorAll(selector)); }
@@ -30,38 +16,7 @@ function detectTenant() {
   // 2. CONFIGURACIÓN DE TENANT 
   // =================================================================
 
-  const DEFAULTS = {
-    companyName: "Aula Corporativa",
-    logoText: "AC",
-    logoUrl: null,
-    tagline: "¡Bienvenido!",
-    description: "Accede a tu plataforma de capacitación corporativa.",
-    bgPage: "#141E30",
-    textPage: "#ffffff",
-    primaryColor: "#234B95",
-    secondaryColor: "#1F3F7A",
-    bgBrand: "#ffffff",
-    textBrand: "#33374d",
-    bgForm: "rgba(0, 0, 0, 0.3)",
-    textForm: "#ffffff",
-    inputTheme: "dark",
-    bgSuccess: "linear-gradient(135deg, #06d6a0, #1b9aaa)",
-    bgError: "linear-gradient(135deg, #ef476f, #b30f20)",
-    bgOverlay: "rgba(0, 0, 0, 0.7)",
-    backgroundImage: `linear-gradient(to bottom, #141E30, #243B55)`,
-    animatedBackground: false,
-    labels: {
-      empUser: "Usuario",
-      empPass: "Contraseña",
-      conUser: "ID Contratista",
-      conPass: "Contraseña"
-    },
-    successRedirect: "profile/profile.html",
-    copyrightText: null,
-    customCss: null
-  };
-
-  const tenantId = detectTenant();
+  const tenantId = window.CURRENT_TENANT || 'default';
 
   // =================================================================
   // validateLoginPage - Sin trial_expires_at
@@ -92,84 +47,6 @@ async function validateLoginPage(slug) {
       return false;
     }
 }
-
-
-  async function loadTenantConfig() {
-    try {
-      const response = await fetch('./tenants/tenants.json', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Tenant config not found');
-
-      const data = await response.json();
-      const tenantConfig = data[tenantId] || data['default'] || {};
-
-      const config = {
-        ...DEFAULTS,
-        ...tenantConfig,
-        labels: { ...DEFAULTS.labels, ...(tenantConfig.labels || {}) }
-      };
-
-      config.tenantSlug = tenantId;
-      
-      const tenantDb = await validateLoginPage();
-      if (tenantDb) {
-        config.tenantUUID = tenantDb.id;
-      }
-      
-      console.log(` Tenant Configurado: ${config.companyName} (slug: ${config.tenantSlug})`);
-      return config;
-    } catch (error) {
-      console.warn(' Error al cargar tenant config:', error);
-      return { ...DEFAULTS, tenantSlug: 'default' };
-    }
-  }
-
-  function applyConfiguration(config) {
-    window.__appConfig = config;
-
-    setStyle('--bgPage', config.bgPage);
-    setStyle('--textPage', config.textPage);
-    setStyle('--primaryColor', config.primaryColor);
-    setStyle('--secondaryColor', config.secondaryColor);
-    setStyle('--bgBrand', config.bgBrand);
-    setStyle('--textBrand', config.textBrand);
-    setStyle('--bgForm', config.bgForm);
-    setStyle('--textForm', config.textForm);
-    setStyle('--bgSuccess', config.bgSuccess);
-    setStyle('--bgError', config.bgError);
-    setStyle('--bgOverlay', config.bgOverlay);
-
-    document.body.dataset.inputTheme = config.inputTheme || 'dark';
-
-    const logoIcon = $('#logoIcon');
-    const logoText = $('#logoText');
-
-    if (config.logoUrl) {
-      logoIcon.innerHTML = `<img src="${config.logoUrl}" alt="Logo" style="max-width:100%; height: auto; object-fit:contain;" />`;
-    } else {
-      logoIcon.textContent = config.logoText;
-    }
-
-    logoText.textContent = config.companyName;
-    $('#brandTitle').textContent = config.tagline;
-    $('#brandDescription').textContent = config.description;
-
-    $('#labelEmpUser').textContent = config.labels.empUser;
-    $('#labelEmpPass').textContent = config.labels.empPass;
-    $('#labelConUser').textContent = config.labels.conUser;
-    $('#labelConPass').textContent = config.labels.conPass;
-
-    $('#currentYear').textContent = new Date().getFullYear();
-
-    if (config.backgroundImage) {
-      $('.bg-animated').style.background = config.backgroundImage;
-    }
-    if (!config.animatedBackground) {
-      $('.bg-orbs').style.display = 'none';
-    }
-
-    window.__loginRedirect = config.successRedirect;
-    initializeInteractions();
-  }
 
   // =================================================================
   // 3. SISTEMA DE MODALES
@@ -239,8 +116,8 @@ const handleLoginSubmit = async (e) => {
   btn.querySelector('span').textContent = 'Validando...';
 
 try {
-    const { tenantSlug } = window.__appConfig;
-    
+      const config = window.APP_CONFIG || { tenantSlug: 'default' };
+      const tenantSlug = config.tenantSlug;
     // ---------------------------------------------------------
     // 1. LOGIN (Obtenemos los tokens)
     // ---------------------------------------------------------
@@ -579,71 +456,16 @@ showModal(
   // Init() - Storage compatible con Tracking Prevention
   // =================================================================
 async function init() {
-    // A) ESPERAR A QUE SUPABASE-CLIENT ESTÉ LISTO
-    if (!window.supabase) {
-        // console.log('⏳ Esperando cliente Supabase...');
-        setTimeout(init, 50);
-        return;
-    }
+    // 1. Esperar a Supabase
+    if (!window.supabase) { setTimeout(init, 50); return; }
 
-    const currentTenant = detectTenant(); // Asegúrate de que detectTenant() esté definida antes o sea global
+    // 2. Validar Tenant en DB (Opcional, para verificar existencia)
+    const currentTenant = window.CURRENT_TENANT || 'default';
+    await validateLoginPage(currentTenant);
     
-    // B) VALIDAR TENANT CONTRA DB ANTES DE SEGUIR
-    const validTenantData = await validateLoginPage(currentTenant);
-    
-    if (!validTenantData) {
-        // Opción: Redirigir a 404 o mostrar error visual
-        document.body.innerHTML = "<h1>❌ Error: Organización no encontrada</h1>";
-        return; 
-    }
-
-    // --- LÓGICA DE STORAGE (Tu código original) ---
-    let storedTenant = null;
-    try {
-      if (window.safeStorage && typeof window.safeStorage.get === 'function') {
-        storedTenant = window.safeStorage.get('current_tenant');
-      }
-    } catch (e) {
-      console.warn('⚠️ No se pudo acceder a storage:', e.message);
-    }
-    
-    if (storedTenant && storedTenant !== currentTenant) {
-      console.warn('🔄 Tenant diferente, limpiando sesión…');
-      try {
-        // Borrar cookie específica
-        document.cookie = `sb-hvwygpnuunuuylzondxt-auth-token=;path=/;max-age=0`;
-        // Intentar logout real si hay sesión vieja
-        await window.supabase.auth.signOut().catch(() => {});
-      } catch(e) {}
-      
-      try {
-        if (window.safeStorage) {
-          window.safeStorage.remove('current_tenant');
-          window.safeStorage.remove('tenantTheme');
-          window.safeStorage.remove('tenantSlug');
-        }
-      } catch(e) {
-        console.warn(' Error limpiando storage:', e.message);
-      }
-    }
-
-    // Guardar tenant actual
-    try {
-      if (window.safeStorage && typeof window.safeStorage.set === 'function') {
-        window.safeStorage.set('current_tenant', currentTenant);
-      }
-    } catch(e) {}
-
-    console.log(`🚀 Inicializando App - Tenant: ${currentTenant}`);
-    
-    // C) CARGAR CONFIGURACIÓN (Pasando el tenant validado si tu función lo soporta, o el slug)
-    // Asegúrate de que loadTenantConfig esté disponible
-    if (typeof loadTenantConfig === 'function') {
-        const config = await loadTenantConfig(currentTenant); 
-        applyConfiguration(config);
-    }
-    
-    console.log('🏁 App lista para login');
+    // 3. SOLO ESTO QUEDA (Activamos UI)
+    console.log('🏁 Login listo.');
+    initializeInteractions(); 
 }
 
 // Disparador

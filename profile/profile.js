@@ -43,48 +43,11 @@ window.safeStorage = window.safeStorage || {
     }
 })();
 
-(function() {
-  try {
-    const host = location.hostname || 'localhost';
-    const parts = host.split('.');
-    const currentSlug = parts.length > 2 && parts[0] !== 'www' ? parts[0] : 'default';
-    const cachedTheme = localStorage.getItem('tenantTheme');
-    const cachedSlug = localStorage.getItem('tenantSlug');
-
-    if (cachedTheme && cachedSlug === currentSlug) {
-      const theme = JSON.parse(cachedTheme);
-      const root = document.documentElement;
-      if (theme.primaryColor) root.style.setProperty('--primaryColor', theme.primaryColor);
-      if (theme.secondaryColor) root.style.setProperty('--secondaryColor', theme.secondaryColor);
-    }
-  } catch (e) { console.error(e); }
-})();
-
 // ═══════════════════════════════════════════════════════════
 // BLOQUE ÚNICO DE INICIALIZACIÓN
 // ═══════════════════════════════════════════════════════════
 (async () => {
   const supabase = window.supabase;
-
-  const loadTenantConfig = async () => {
-    try {
-        const response = await fetch('../tenants/tenants.json');
-        const data = await response.json();
-        const host = location.hostname !== 'localhost' ? location.hostname.split('.')[0] : 'demo';
-        return data[host] || data['default'] || {};
-    } catch (e) { return {}; }
-  };
-
-  const applyConfiguration = (config) => {
-    if (!config) return;
-    const root = document.documentElement;
-    if (config.primaryColor) root.style.setProperty('--primaryColor', config.primaryColor);
-    if (config.secondaryColor) root.style.setProperty('--secondaryColor', config.secondaryColor);
-    const companyNameEl = document.getElementById('companyName');
-    if (companyNameEl && config.companyName) {
-         companyNameEl.innerHTML = `<i class="fas fa-graduation-cap"></i> ${config.companyName}`;
-    }
-  };
 
   // ═══════════════════════════════════════════════════════════
   // LÓGICA DE DATOS DASHBOARD
@@ -287,8 +250,12 @@ async function mainInit() {
             manageBtn.style.display = isAdmin ? 'flex' : 'none';
         }
 
-        const config = await loadTenantConfig();
-        applyConfiguration(config);
+        if (window.APP_CONFIG) {
+            const companyNameEl = document.getElementById('companyName');
+            if (companyNameEl) {
+                 companyNameEl.innerHTML = `<i class="fas fa-graduation-cap"></i> ${window.APP_CONFIG.companyName}`;
+            }
+        }
         
         setupNotificationUI(); // <--- MOVIDO AQUÍ: Activar botón inmediatamente
         initUI();
@@ -398,24 +365,6 @@ async function loadCatalog(userId, supabase) {
         });
     });
   }
-
-  function initSearchFilter() {
-    const searchInput = document.getElementById('searchInput');
-    if (!searchInput) return;
-
-    searchInput.addEventListener('keyup', (e) => {
-        const term = e.target.value.toLowerCase();
-        // Busca en tarjetas de cursos, items de historial y recomendaciones
-        const selector = '.course-card, .timeline-item, .recommendation-card';
-        const items = document.querySelectorAll(selector);
-        
-        items.forEach(item => {
-            // Si el texto coincide, se muestra (elimina style inline), si no, display: none
-            const text = item.innerText.toLowerCase();
-            item.style.display = text.includes(term) ? '' : 'none';
-        });
-    });
-}
 
   function initUI() {
     // Inicializar Tabs
