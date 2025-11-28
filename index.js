@@ -21,30 +21,29 @@
   // =================================================================
   // validateLoginPage - Sin trial_expires_at
   // =================================================================
-async function validateLoginPage(slug) {
-    if (!slug) return false;
-
+async function validateLoginPage() {
+    const tenantSlug = window.CURRENT_TENANT || 'default';
+    
     try {
-      // Aseguramos que window.supabase existe
       if (!window.supabase) throw new Error("Supabase no inicializado");
 
       const { data: tenant, error } = await window.supabase
         .from('tenants')
-        .select('id, name, slug')
-        .eq('slug', slug)
-        .single();
+        .select('id, name, slug, status')
+        .eq('slug', tenantSlug)
+        .maybeSingle();
 
       if (error || !tenant) {
-        console.error('❌ Tenant no encontrado en DB:', slug, error);
-        return false;
+        console.warn(`⚠️ Tenant "${tenantSlug}" no encontrado, usando default`);
+        return { valid: false, slug: tenantSlug };
       }
 
       console.log('✅ Tenant validado:', tenant.name);
-      return tenant;
+      return { valid: true, ...tenant };
 
     } catch (err) {
       console.error('❌ Error validando tenant:', err);
-      return false;
+      return { valid: false, slug: tenantSlug };
     }
 }
 
@@ -460,8 +459,7 @@ async function init() {
     if (!window.supabase) { setTimeout(init, 50); return; }
 
     // 2. Validar Tenant en DB (Opcional, para verificar existencia)
-    const currentTenant = window.CURRENT_TENANT || 'default';
-    await validateLoginPage(currentTenant);
+    await validateLoginPage();
     
     // 3. SOLO ESTO QUEDA (Activamos UI)
     console.log('🏁 Login listo.');
