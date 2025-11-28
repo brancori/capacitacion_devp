@@ -29,7 +29,7 @@ async function validateLoginPage() {
 
       const { data: tenant, error } = await window.supabase
         .from('tenants')
-        .select('id, name, slug, status')
+        .select('id,name,slug,status')
         .eq('slug', tenantSlug)
         .maybeSingle();
 
