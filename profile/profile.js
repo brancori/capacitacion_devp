@@ -229,11 +229,52 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
   // FUNCIÓN PRINCIPAL MAIN INIT
   // ═══════════════════════════════════════════════════════════
 async function mainInit() {
+    // 1. Esperar a Supabase
     if (!window.supabase?.auth) { setTimeout(mainInit, 100); return; }
 
     try {
-        const { data: { session } } = await window.supabase.auth.getSession();
-        if (!session) { window.location.href = '../index.html'; return; }
+        const supabase = window.supabase;
+
+        // ═══════════════════════════════════════════════════════════
+        // 🛡️ INICIO BLOQUE DE RECUPERACIÓN (FALTABA ESTO)
+        // ═══════════════════════════════════════════════════════════
+        let { data: { session } } = await supabase.auth.getSession();
+        
+        // Si Supabase dice "No hay sesión", buscamos manualmente antes de rendirnos
+        if (!session) {
+            console.warn('⚠️ Sesión no detectada. Buscando respaldo manual...');
+            
+            // Buscar llave de token en localStorage
+            const tokenKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+            
+            if (tokenKey) {
+                try {
+                    const token = JSON.parse(localStorage.getItem(tokenKey));
+                    // Forzamos la sesión
+                    const { data } = await supabase.auth.setSession({
+                        access_token: token.access_token,
+                        refresh_token: token.refresh_token
+                    });
+                    
+                    if (data.session) {
+                        session = data.session;
+                        console.log('✅ ¡Sesión recuperada manualmente!');
+                    }
+                } catch (e) {
+                    console.error('❌ Falló recuperación manual:', e);
+                }
+            }
+        }
+        // ═══════════════════════════════════════════════════════════
+        // 🛡️ FIN BLOQUE DE RECUPERACIÓN
+        // ═══════════════════════════════════════════════════════════
+
+        // Si después del intento sigue sin haber sesión, entonces sí expulsamos
+        if (!session) { 
+            console.warn('⛔ Sin sesión válida. Redirigiendo...');
+            window.location.href = '../index.html'; 
+            return; 
+        }
         
         const user = session.user;
         const meta = user.app_metadata || {};
@@ -243,13 +284,14 @@ async function mainInit() {
         window.safeStorage.set('role', realRole);
         window.safeStorage.set('full_name', realName);
 
-        // 1. Configurar UI primero (para que el botón funcione aunque falle la red)
+        // UI Admin
         const manageBtn = document.getElementById('manageUsersBtn');
         if (manageBtn) {
             const isAdmin = ['master', 'admin', 'supervisor'].includes(realRole);
             manageBtn.style.display = isAdmin ? 'flex' : 'none';
         }
 
+        // Configuración Global de Tenant (Esto ya lo tenías bien)
         if (window.APP_CONFIG) {
             const companyNameEl = document.getElementById('companyName');
             if (companyNameEl) {
@@ -257,17 +299,16 @@ async function mainInit() {
             }
         }
         
-        setupNotificationUI(); // <--- MOVIDO AQUÍ: Activar botón inmediatamente
+        setupNotificationUI();
         initUI();
 
-        // 2. Cargar datos en paralelo
-        console.log('🔄 Cargando datos para usuario:', user.id); // DEBUG
+        console.log('🔄 Cargando datos...'); 
 
         await Promise.all([
             loadRealDashboardData(user.id, window.supabase),
             loadCourses(user.id),
             loadCatalog(user.id, window.supabase),
-            loadNotifications(user.id, window.supabase) // <--- Aquí cargamos las notificaciones
+            loadNotifications(user.id, window.supabase)
         ]);
         
         document.body.classList.add('loaded');
@@ -276,7 +317,7 @@ async function mainInit() {
         console.error('❌ Error fatal en mainInit:', error);
         document.body.classList.add('loaded');
     }
-  }
+}
 
   // ═══════════════════════════════════════════════════════════
   // LOGICA DE CARGA DE DATOS (Cursos y Catálogo)
