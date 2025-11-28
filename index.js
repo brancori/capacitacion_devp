@@ -4,14 +4,20 @@
   // =================================================================
   // 1. DEFINICIONES DE UTILIDAD
   // =================================================================
-  function detectTenant() {
-    const host = location.hostname || 'localhost';
-    if (host === 'localhost') return 'demo';
-    if (host === '127.0.0.1') return 'default';
-    const parts = host.split('.');
-    if (parts.length > 2 && parts[0] !== 'www') return parts[0];
-    return 'default';
-  }
+function detectTenant() {
+  // Opción por URL (por si acaso quieres probar otro rápido)
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('tenant')) return params.get('tenant');
+
+  const host = location.hostname || 'localhost';
+  
+  // CAMBIO: Forzar 'siresi' en local
+  if (host === 'localhost' || host === '127.0.0.1') return 'siresi';
+
+  const parts = host.split('.');
+  if (parts.length > 2 && parts[0] !== 'www') return parts[0];
+  return 'default';
+}
 
   function $(selector) { return document.querySelector(selector); }
   function $$(selector) { return Array.from(document.querySelectorAll(selector)); }

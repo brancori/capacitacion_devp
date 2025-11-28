@@ -16,9 +16,14 @@
     // Detecta tenant por subdominio o por host
     detectTenant() {
       try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('tenant')) return params.get('tenant');
+
         const host = location.hostname || 'localhost';
-        if (host === 'localhost') return 'demo';
-        if (host === '127.0.0.1') return 'default';
+
+        // CAMBIO: Forzar 'siresi' en local
+        if (host === 'localhost' || host === '127.0.0.1') return 'siresi';
+
         const parts = host.split('.');
         if (parts.length > 2 && parts[0] !== 'www') return parts[0];
         return 'default';
