@@ -31,8 +31,6 @@ async function validateLoginPage() {
         .from('tenants')
         .select('*');
       
-      console.log('📊 Columnas disponibles:', data?.[0] ? Object.keys(data[0]) : 'tabla vacía');
-      
       const tenant = data?.find(t => t.slug === tenantSlug);
 
       if (error || !tenant) {
