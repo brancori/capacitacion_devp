@@ -27,11 +27,12 @@ async function validateLoginPage() {
     try {
       if (!window.supabase) throw new Error("Supabase no inicializado");
 
-      const { data: tenant, error } = await window.supabase
+      const { data, error } = await window.supabase
         .from('tenants')
         .select('id,name,slug,status')
-        .eq('slug', tenantSlug)
         .maybeSingle();
+      
+      const tenant = data?.find(t => t.slug === tenantSlug);
 
       if (error || !tenant) {
         console.warn(`⚠️ Tenant "${tenantSlug}" no encontrado, usando default`);
