@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carga Masiva de Usuarios</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+    .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .header p { opacity: 0.9; }
+    .content { padding: 2rem; }
+    .upload-zone {
+      border: 3px dashed #667eea;
+      border-radius: 12px;
+      padding: 3rem;
+      text-align: center;
+      background: #f8f9ff;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 2rem;
+    }
+    .upload-zone:hover { background: #eef1ff; border-color: #764ba2; }
+    .upload-zone.dragover { background: #e0e7ff; border-color: #4c51bf; }
+    .upload-icon { font-size: 4rem; margin-bottom: 1rem; }
+    .btn {
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 1rem;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .preview {
+      margin-top: 2rem;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+    }
+    tr:hover { background: #f9fafb; }
+    .status {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-success { background: #d1fae5; color: #065f46; }
+    .status-error { background: #fee2e2; color: #991b1b; }
+    .progress {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .stat-card {
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-card.total { background: #dbeafe; }
+    .stat-card.success { background: #d1fae5; }
+    .stat-card.error { background: #fee2e2; }
+    .stat-number { font-size: 2.5rem; font-weight: 700; margin: 0.5rem 0; }
+    .stat-label { color: #6b7280; font-size: 0.875rem; }
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .alert-info { background: #dbeafe; color: #1e40af; }
+    .alert-success { background: #d1fae5; color: #065f46; }
+    .alert-error { background: #fee2e2; color: #991b1b; }
+    .format-example {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Carga Masiva de Usuarios</h1>
+      <p>Sube un archivo CSV con email y nombre completo</p>
+    </div>
+
+    <div class="content">
+      <!-- Instrucciones -->
+      <div class="alert alert-info">
+        <strong>📋 Formato del CSV:</strong>
+        <div class="format-example">
+email,full_name<br>
+usuario1@empresa.com,Juan Pérez<br>
+usuario2@empresa.com,María González
+        </div>
+        <p style="margin-top: 0.5rem;">✅ Los usuarios se crearán con role=user, status=pending, force_reset=true</p>
+      </div>
+
+      <!-- Zona de carga -->
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">📁</div>
+        <h3>Arrastra tu archivo CSV aquí</h3>
+        <p style="margin: 0.5rem 0; color: #6b7280;">o</p>
+        <input type="file" id="fileInput" accept=".csv" class="hidden">
+        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+          Seleccionar Archivo
+        </button>
+      </div>
+
+      <!-- Preview -->
+      <div id="previewSection" class="hidden">
+        <h3 style="margin-bottom: 1rem;">Vista Previa</h3>
+        <div id="previewTable"></div>
+        <button class="btn btn-primary" id="createBtn" style="margin-top: 1rem;">
+          🚀 Crear Usuarios
+        </button>
+      </div>
+
+      <!-- Progreso -->
+      <div id="progressSection" class="hidden">
+        <h3 style="margin-bottom: 1rem;">Creando usuarios...</h3>
+        <div class="progress">
+          <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+        <p style="text-align: center; color: #6b7280;" id="progressText">0 / 0</p>
+      </div>
+
+      <!-- Estadísticas -->
+      <div id="statsSection" class="hidden">
+        <div class="stats">
+          <div class="stat-card total">
+            <div class="stat-label">Total</div>
+            <div class="stat-number" id="statTotal">0</div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-label">Exitosos</div>
+            <div class="stat-number" id="statSuccess">0</div>
+          </div>
+          <div class="stat-card error">
+            <div class="stat-label">Fallidos</div>
+            <div class="stat-number" id="statError">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resultados -->
+      <div id="resultsSection" class="hidden">
+        <h3 style="margin-bottom: 1rem;">Resultados Detallados</h3>
+        <div id="resultsTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (!window.supabase) {
+    const SUPABASE_URL = 'https://hvwygpnuunuuylzondxt.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
+    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // Obtener tenant actual
+    window.CURRENT_TENANT = window.CURRENT_TENANT || 'siresi';
+    let parsedData = [];
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    // Drag & Drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.csv')) {
+        handleFile(file);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    function handleFile(file) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          parsedData = results.data.filter(row => row.email && row.full_name);
+          if (parsedData.length === 0) {
+            alert('❌ No se encontraron datos válidos en el CSV');
+            return;
+          }
+          showPreview();
+        },
+        error: (error) => {
+          alert('❌ Error al leer el archivo: ' + error.message);
+        }
+      });
+    }
+
+    function showPreview() {
+      const previewSection = document.getElementById('previewSection');
+      const previewTable = document.getElementById('previewTable');
+      
+      let html = '<table><thead><tr><th>Email</th><th>Nombre Completo</th><th>Rol</th><th>Estado</th></tr></thead><tbody>';
+      
+      parsedData.forEach(user => {
+        html += `
+          <tr>
+            <td>${user.email}</td>
+            <td>${user.full_name}</td>
+            <td><span class="status status-pending">user</span></td>
+            <td><span class="status status-pending">pending (force_reset)</span></td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table>';
+      previewTable.innerHTML = html;
+      previewSection.classList.remove('hidden');
+    }
+
+    document.getElementById('createBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('createBtn');
+      btn.disabled = true;
+      
+      document.getElementById('progressSection').classList.remove('hidden');
+      document.getElementById('statsSection').classList.remove('hidden');
+      
+      const results = [];
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = 0; i < parsedData.length; i++) {
+        const user = parsedData[i];
+        
+        try {
+          // Generar contraseña temporal aleatoria (no la usarán por force_reset)
+          const tempPassword = 'Temp' + Math.random().toString(36).slice(-8) + '!';
+          
+          const result = await createUser(user.email, user.full_name, tempPassword);
+          
+          if (result.success) {
+            successCount++;
+            results.push({ ...user, status: 'success', message: 'Creado exitosamente' });
+          } else {
+            errorCount++;
+            results.push({ ...user, status: 'error', message: result.error });
+          }
+        } catch (err) {
+          errorCount++;
+          results.push({ ...user, status: 'error', message: err.message });
+        }
+
+        // Actualizar progreso
+        const progress = ((i + 1) / parsedData.length) * 100;
+        document.getElementById('progressBar').style.width = progress + '%';
+        document.getElementById('progressText').textContent = `${i + 1} / ${parsedData.length}`;
+        document.getElementById('statTotal').textContent = parsedData.length;
+        document.getElementById('statSuccess').textContent = successCount;
+        document.getElementById('statError').textContent = errorCount;
+      }
+
+      // Mostrar resultados
+      showResults(results);
+      btn.disabled = false;
+    });
+
+    async function createUser(email, fullName, password) {
+      try {
+        // Usamos el cliente Supabase que ya tienes configurado
+        const { data, error } = await window.supabase.functions.invoke('bulk-create-users', {
+          body: {
+            users: [{
+              email: email,
+              full_name: fullName,
+              password: password
+            }],
+            tenant_id: window.CURRENT_TENANT // Este ya lo detecta automáticamente tu sistema
+          }
+        });
+
+        if (error) {
+          return { success: false, error: error.message };
+        }
+
+        // Verificar si el usuario se creó exitosamente
+        if (data.results && data.results.length > 0 && data.results[0].success) {
+          return { success: true };
+        } else {
+          const errorMsg = data.errors?.[0]?.error || 'Error desconocido';
+          return { success: false, error: errorMsg };
+        }
+
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    }
+
+    function showResults(results) {
+      const resultsSection = document.getElementById('resultsSection');
+      const resultsTable = document.getElementById('resultsTable');
+      
+      let html = '<table><thead><tr><th>Email</th><th>Nombre</th><th>Estado</th><th>Mensaje</th></tr></thead><tbody>';
+      
+      results.forEach(result => {
+        const statusClass = result.status === 'success' ? 'status-success' : 'status-error';
+        html += `
+          <tr>
+            <td>${result.email}</td>
+            <td>${result.full_name}</td>
+            <td><span class="status ${statusClass}">${result.status}</span></td>
+            <td>${result.message}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table>';
+      resultsTable.innerHTML = html;
+      resultsSection.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
