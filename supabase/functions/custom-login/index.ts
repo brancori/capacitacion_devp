@@ -114,16 +114,12 @@ serve(async (req) => {
 
     log('TENANT_MATCH_OK', { requestId });
 
-    if (profile.force_reset) {
-      log('FORCE_RESET_REQUIRED', { requestId, user_id: authData.user.id });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Cambio de contraseña requerido', 
-          error_code: 'FORCE_RESET',
-          user_id: authData.user.id
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
-      )
+    if (profile.force_reset === true) {
+        console.log("⚠️ Usuario requiere cambio de contraseña");
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Ingresar';
+        showResetPasswordModal(authData.user);
+        return; // DETENER aquí, NO redirigir
     }
 
     log('PREPARING_RESPONSE', { 

@@ -164,8 +164,12 @@ const { data: rawData, error: profileError } = await supabase
 
     console.log("📦 Perfil Procesado:", profile); // Aquí ya deberías ver el objeto sin corchetes []
 
-    if (!profile) {
-        throw new Error("El perfil existe pero llegó vacío.");
+    if (profile.force_reset === true) {
+        console.log("⚠️ Usuario requiere cambio de contraseña");
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Ingresar';
+        showResetPasswordModal(authData.user);
+        return; // DETENER aquí, NO redirigir
     }
 
     // ---------------------------------------------------------
