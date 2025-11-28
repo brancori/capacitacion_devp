@@ -9,7 +9,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8e9fee 0%, #c9d2f1 100%);
       min-height: 100vh;
       padding: 2rem;
     }
@@ -228,49 +228,78 @@ window.CURRENT_TENANT = window.CURRENT_TENANT || 'siresi';
 console.log('Variables globales inicializadas');
 console.log('- CURRENT_TENANT:', window.CURRENT_TENANT);
 
-// Cargar el cliente Supabase que YA está configurado
-console.log('=== Cargando cliente Supabase existente ===');
+// ═══════════════════════════════════════════════════════════
+// CARGAR SCRIPTS EN ORDEN: 1) Librería Base -> 2) Cliente
+// ═══════════════════════════════════════════════════════════
+console.log('=== Cargando Supabase en 2 pasos ===');
 
-const supabaseScript = document.createElement('script');
-supabaseScript.src = './componentes/supabase-client.js'; // O './lib/supabase.js' si está ahí
-supabaseScript.onload = () => {
-  console.log('✅ Script supabase-client.js cargado');
-  console.log('window.supabase después de cargar:', window.supabase);
-  console.log('Tipo:', typeof window.supabase);
+// PASO 1: Cargar la librería base de Supabase
+const supabaseLibScript = document.createElement('script');
+supabaseLibScript.src = './lib/supabase-js@2.js';
+
+supabaseLibScript.onload = () => {
+  console.log('✅ PASO 1: Librería supabase-js@2.js cargada');
+  console.log('- window.supabase existe:', !!window.supabase);
+  console.log('- window.supabase.createClient existe:', !!window.supabase?.createClient);
+  console.log('- Tipo de createClient:', typeof window.supabase?.createClient);
   
-  // Esperar un poco más por si acaso
-  setTimeout(() => {
-    console.log('Iniciando aplicación...');
-    initApp();
-  }, 500);
+  // PASO 2: Ahora cargar el cliente configurado
+  console.log('Cargando PASO 2: supabase-client.js...');
+  
+  const supabaseClientScript = document.createElement('script');
+  supabaseClientScript.src = './componentes/supabase-client.js';
+  
+  supabaseClientScript.onload = () => {
+    console.log('✅ PASO 2: supabase-client.js cargado');
+    console.log('- window.supabase después del cliente:', window.supabase);
+    console.log('- window.supabase.functions:', window.supabase?.functions);
+    console.log('- window.supabase.functions.invoke:', window.supabase?.functions?.invoke);
+    
+    // Esperar un poco más para que se complete la inicialización
+    console.log('Esperando 1 segundo para asegurar inicialización completa...');
+    setTimeout(() => {
+      console.log('Verificación final antes de initApp:');
+      console.log('- window.supabase:', window.supabase);
+      console.log('- functions.invoke existe:', !!window.supabase?.functions?.invoke);
+      initApp();
+    }, 1000);
+  };
+  
+  supabaseClientScript.onerror = (error) => {
+    console.error('❌ ERROR en PASO 2 (supabase-client.js):', error);
+    alert('Error cargando supabase-client.js');
+  };
+  
+  document.head.appendChild(supabaseClientScript);
 };
 
-supabaseScript.onerror = (error) => {
-  console.error('❌ ERROR al cargar supabase-client.js:', error);
-  alert('❌ Error crítico: No se pudo cargar el cliente Supabase. Verifica la ruta: ./componentes/supabase-client.js');
+supabaseLibScript.onerror = (error) => {
+  console.error('❌ ERROR en PASO 1 (supabase-js@2.js):', error);
+  alert('Error crítico: No se pudo cargar la librería Supabase base');
 };
 
-console.log('Agregando script al head...');
-document.head.appendChild(supabaseScript);
+console.log('Agregando librería base al head...');
+document.head.appendChild(supabaseLibScript);
 
 // Función para esperar a que Supabase esté listo
 async function waitForSupabase() {
   console.log('=== waitForSupabase() INICIADA ===');
   let attempts = 0;
-  const maxAttempts = 50;
+  const maxAttempts = 100; // Aumentado a 100 intentos (10 segundos)
   
   while (attempts < maxAttempts) {
-    console.log(`Intento ${attempts + 1}/${maxAttempts} de inicializar Supabase`);
+    console.log(`Intento ${attempts + 1}/${maxAttempts} de verificar Supabase`);
     
     // Log detallado de lo que existe
     console.log('- window.supabase existe:', !!window.supabase);
-    console.log('- window.supabase:', window.supabase);
     
     if (window.supabase) {
+      console.log('- Tipo de window.supabase:', typeof window.supabase);
+      console.log('- window.supabase tiene keys:', Object.keys(window.supabase));
       console.log('- window.supabase.functions existe:', !!window.supabase.functions);
-      console.log('- window.supabase.functions:', window.supabase.functions);
       
       if (window.supabase.functions) {
+        console.log('- window.supabase.functions tiene keys:', Object.keys(window.supabase.functions));
         console.log('- window.supabase.functions.invoke existe:', !!window.supabase.functions.invoke);
         console.log('- Tipo de invoke:', typeof window.supabase.functions.invoke);
       }
@@ -289,6 +318,7 @@ async function waitForSupabase() {
   
   console.error('❌ TIMEOUT: No se pudo inicializar Supabase después de', maxAttempts, 'intentos');
   console.error('Estado final de window.supabase:', window.supabase);
+  console.error('¿Qué tiene window.supabase?', window.supabase ? Object.keys(window.supabase) : 'undefined');
   return false;
 }
 
@@ -304,7 +334,7 @@ async function initApp() {
     if (!supabaseReady) {
       console.error('❌ ERROR CRÍTICO: Supabase no se pudo inicializar');
       console.error('Mostrando alert al usuario...');
-      alert('❌ Error: Supabase no se pudo inicializar. Verifica que supabase-client.js esté configurado correctamente.');
+      alert('❌ Error: Supabase no se pudo inicializar. Verifica que supabase-js@2.js y supabase-client.js estén en las rutas correctas.');
       return;
     }
     
@@ -518,7 +548,6 @@ async function handleCreateUsers() {
     console.log('Nombre:', user.full_name);
     
     try {
-      // Generar contraseña temporal aleatoria
       const tempPassword = 'Temp' + Math.random().toString(36).slice(-8) + '!';
       console.log('Contraseña temporal generada:', tempPassword);
       
@@ -545,7 +574,6 @@ async function handleCreateUsers() {
       results.push({ ...user, status: 'error', message: err.message });
     }
 
-    // Actualizar progreso
     const progress = ((i + 1) / parsedData.length) * 100;
     console.log(`Progreso: ${progress.toFixed(2)}%`);
     
@@ -565,7 +593,6 @@ async function handleCreateUsers() {
   console.log('- Fallidos:', errorCount);
   console.log('Resultados detallados:', results);
   
-  // Mostrar resultados
   console.log('Mostrando resultados...');
   showResults(results);
   
@@ -628,7 +655,6 @@ async function createUser(email, fullName, password) {
     console.log('- data.results:', data?.results);
     console.log('- data.errors:', data?.errors);
     
-    // Verificar si el usuario se creó exitosamente
     if (data.results && data.results.length > 0 && data.results[0].success) {
       console.log('✅ Usuario creado exitosamente según data.results');
       console.log('Datos del usuario creado:', data.results[0]);
