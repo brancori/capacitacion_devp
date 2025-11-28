@@ -52,6 +52,8 @@
     </div> <!-- Fin de .container -->
 
 <script>
+    console.log('🚀 Script admin.html cargado');
+    
     // =================================================================
     // 1. DATA DE TARJETAS
     // =================================================================
@@ -71,8 +73,12 @@
     ];
 
     function renderCards() {
+        console.log('📋 Renderizando tarjetas...');
         const container = document.getElementById('card-container');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ No se encontró #card-container');
+            return;
+        }
         let html = '';
         adminCards.forEach(card => {
             html += `
@@ -83,26 +89,34 @@
             </a>`;
         });
         container.innerHTML = html;
+        console.log('✅ Tarjetas renderizadas');
     }
     
     // =================================================================
     // 2. LÓGICA DE INICIO (CON SEGURIDAD)
     // =================================================================
     async function mainInit() {
+        console.log('⏳ Esperando dependencias...');
+        console.log('   - Supabase:', !!window.supabase?.auth);
+        console.log('   - APP_CONFIG:', !!window.APP_CONFIG);
+        
         // A. Esperar dependencias
         if (!window.supabase?.auth || !window.APP_CONFIG) { 
             setTimeout(mainInit, 100); 
             return; 
         }
 
+        console.log('✅ Dependencias listas, iniciando...');
+
         try {
-            // B. BLINDAJE DE SESIÓN (Igual que Profile.js)
-            // ---------------------------------------------------------
             const supabase = window.supabase;
+            
+            // B. BLINDAJE DE SESIÓN
+            console.log('🔐 Verificando sesión...');
             let { data: { session } } = await supabase.auth.getSession();
 
-            // Recuperación manual si falla en prod
             if (!session) {
+                console.log('⚠️ Sin sesión, intentando recuperar...');
                 const tokenKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
                 if (tokenKey) {
                     try {
@@ -112,41 +126,56 @@
                             refresh_token: token.refresh_token
                         });
                         if (data.session) session = data.session;
-                    } catch(e) {}
+                    } catch(e) {
+                        console.error('Error recuperando sesión:', e);
+                    }
                 }
             }
 
             if (!session) {
+                console.error('❌ No hay sesión, redirigiendo a login');
                 window.location.href = '../index.html';
                 return;
             }
-            // ---------------------------------------------------------
 
-            // C. VERIFICACIÓN DE ROL (Solo Admins)
+            console.log('✅ Sesión activa:', session.user.email);
+
+            // C. VERIFICACIÓN DE ROL
+            console.log('👤 Consultando perfil...');
             const user = session.user;
             
-            const { data: profile, error } = await supabase
+            const { data: rawData, error } = await supabase
                 .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
+                .select('*')
+                .eq('id', user.id);
+
+            console.log('📦 Respuesta de profiles:', { rawData, error });
+
+            // FIX: Manejar Array o Objeto
+            const profile = Array.isArray(rawData) ? rawData[0] : rawData;
 
             if (error || !profile) {
-                console.error('Error cargando perfil:', error);
+                console.error('❌ Error cargando perfil:', error);
+                alert('Error al cargar tu perfil. Intenta iniciar sesión nuevamente.');
                 window.location.href = '../index.html';
                 return;
             }
 
             const role = profile.role || 'authenticated';
+            console.log('🎭 Rol detectado:', role);
+
             const allowedRoles = ['master', 'admin', 'supervisor'];
 
             if (!allowedRoles.includes(role)) {
+                console.warn('⛔ Acceso denegado para rol:', role);
                 alert('Acceso denegado: No eres administrador.');
                 window.location.href = '../profile/profile.html';
                 return;
             }
 
-            // D. APLICAR ESTILOS (Lógica de Tenant)
+            console.log('✅ Acceso autorizado');
+
+            // D. APLICAR ESTILOS
             const config = window.APP_CONFIG;
             const companyNameEl = document.getElementById('companyName');
             if (companyNameEl) {
@@ -156,9 +185,11 @@
             // E. RENDERIZAR
             renderCards();
             document.body.style.opacity = 1;
+            console.log('🎉 Init completo');
 
         } catch (e) {
-            console.error('Error init:', e);
+            console.error('💥 Error crítico en init:', e);
+            alert('Error al cargar el panel. Revisa la consola.');
         }
     }
 
