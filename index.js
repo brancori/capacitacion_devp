@@ -29,8 +29,9 @@ async function validateLoginPage() {
 
       const { data, error } = await window.supabase
         .from('tenants')
-        .select('id,name,slug,status')
-        .maybeSingle();
+        .select('*');
+      
+      console.log('📊 Columnas disponibles:', data?.[0] ? Object.keys(data[0]) : 'tabla vacía');
       
       const tenant = data?.find(t => t.slug === tenantSlug);
 
