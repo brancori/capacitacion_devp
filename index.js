@@ -117,54 +117,18 @@ const handleLoginSubmit = async (e) => {
 try {
       const config = window.APP_CONFIG || { tenantSlug: 'default' };
       const tenantSlug = config.tenantSlug;
+    
     // ---------------------------------------------------------
-    // 1. LOGIN (Obtenemos los tokens)
+    // 1. VERIFICAR FORCE_RESET PRIMERO (sin validar password)
     // ---------------------------------------------------------
-    // Usamos signInWithPassword para obtener los tokens frescos
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
-
-    if (authError) {
-      console.error('Error login:', authError);
-      throw new Error('Credenciales incorrectas o error de conexión');
-    }
-
-    console.log("🔑 Login correcto. Token recibido.");
-
-    // ---------------------------------------------------------
-    // 2. FIX DE STORAGE (Inyección Manual de Sesión)
-    // ---------------------------------------------------------
-    // Como el navegador bloquea el storage, la sesión puede perderse.
-    // FORZAMOS al cliente a usar este token para las siguientes consultas.
-    if (authData.session) {
-        await supabase.auth.setSession(authData.session);
-        console.log("💉 Sesión inyectada manualmente en el cliente.");
-    }
-
-    // ---------------------------------------------------------
-    // 3. OBTENER PERFIL (Con Select *)
-    // ---------------------------------------------------------
-    // Usamos select('*') para evitar errores si falta alguna columna específica
-const { data: rawData, error: profileError } = await supabase
+    const { data: checkData, error: checkError } = await supabase
         .from('profiles')
-        .select('*') 
-        .eq('id', authData.user.id);
-        // Quitamos .single() aquí para manejarlo manualmente abajo y evitar errores
+        .select('force_reset, id')
+        .eq('email', email);
 
-    if (profileError) {
-        console.error("❌ Error bajando perfil:", profileError);
-        throw new Error("No se pudo cargar tu perfil de usuario.");
-    }
+    const checkProfile = Array.isArray(checkData) ? checkData[0] : checkData;
 
-    // FIX CRÍTICO: Detectar si es Array o Objeto
-    // Tu proxy devuelve Array [{...}], así que tomamos el primero.
-    const profile = Array.isArray(rawData) ? rawData[0] : rawData;
-
-    console.log("📦 Perfil Procesado:", profile); // Aquí ya deberías ver el objeto sin corchetes []
-
-    if (profile.force_reset === true) {
+    if (checkProfile && checkProfile.force_reset === true) {
         console.log("⚠️ Usuario requiere cambio de contraseña");
         btn.disabled = false;
         btn.querySelector('span').textContent = 'Ingresar';
