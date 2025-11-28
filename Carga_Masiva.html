@@ -218,103 +218,235 @@ usuario2@empresa.com,María González
 
   <scrip>
 <script>
+console.log('=== INICIO DEL SCRIPT ===');
+console.log('Timestamp:', new Date().toISOString());
+
 // Variables globales
 let parsedData = [];
 let supabaseReady = false;
 window.CURRENT_TENANT = window.CURRENT_TENANT || 'siresi';
 
+console.log('Variables globales inicializadas');
+console.log('- parsedData:', parsedData);
+console.log('- supabaseReady:', supabaseReady);
+console.log('- CURRENT_TENANT:', window.CURRENT_TENANT);
+
 // Función para esperar a que Supabase esté listo
 async function waitForSupabase() {
+  console.log('=== waitForSupabase() INICIADA ===');
   let attempts = 0;
   const maxAttempts = 50;
   
   while (attempts < maxAttempts) {
+    console.log(`Intento ${attempts + 1}/${maxAttempts} de inicializar Supabase`);
+    
+    // Log detallado de lo que existe
+    console.log('- window.supabase existe:', !!window.supabase);
+    console.log('- window.supabase:', window.supabase);
+    
+    if (window.supabase) {
+      console.log('- window.supabase.functions existe:', !!window.supabase.functions);
+      console.log('- window.supabase.functions:', window.supabase.functions);
+      
+      if (window.supabase.functions) {
+        console.log('- window.supabase.functions.invoke existe:', !!window.supabase.functions.invoke);
+        console.log('- Tipo de invoke:', typeof window.supabase.functions.invoke);
+      }
+    }
+    
     if (window.supabase?.functions?.invoke) {
-      console.log('✅ Supabase listo');
+      console.log('✅ Supabase LISTO en intento', attempts + 1);
+      console.log('✅ Supabase completamente inicializado');
       return true;
     }
+    
+    console.log('⏳ Esperando 100ms...');
     await new Promise(resolve => setTimeout(resolve, 100));
     attempts++;
   }
+  
+  console.error('❌ TIMEOUT: No se pudo inicializar Supabase después de', maxAttempts, 'intentos');
+  console.error('Estado final de window.supabase:', window.supabase);
   return false;
 }
 
 // Inicializar ANTES de cualquier interacción
 (async function init() {
-  supabaseReady = await waitForSupabase();
+  console.log('=== FUNCIÓN INIT() INICIADA ===');
   
-  if (!supabaseReady) {
-    alert('❌ Error: Supabase no se pudo inicializar. Recarga la página.');
-    return;
+  try {
+    console.log('Llamando a waitForSupabase()...');
+    supabaseReady = await waitForSupabase();
+    console.log('waitForSupabase() completado. Resultado:', supabaseReady);
+    
+    if (!supabaseReady) {
+      console.error('❌ ERROR CRÍTICO: Supabase no se pudo inicializar');
+      console.error('Mostrando alert al usuario...');
+      alert('❌ Error: Supabase no se pudo inicializar. Recarga la página.');
+      return;
+    }
+    
+    console.log('✅ Supabase inicializado correctamente');
+    console.log('🎯 Tenant actual:', window.CURRENT_TENANT);
+    console.log('Llamando a setupEventListeners()...');
+    setupEventListeners();
+    console.log('✅ Event listeners configurados correctamente');
+    
+  } catch (error) {
+    console.error('❌ ERROR EN INIT():', error);
+    console.error('Stack trace:', error.stack);
+    alert('❌ Error fatal durante la inicialización: ' + error.message);
   }
   
-  console.log('🎯 Tenant:', window.CURRENT_TENANT);
-  setupEventListeners();
+  console.log('=== FUNCIÓN INIT() COMPLETADA ===');
 })();
 
 function setupEventListeners() {
+  console.log('=== setupEventListeners() INICIADA ===');
+  
   const uploadZone = document.getElementById('uploadZone');
   const fileInput = document.getElementById('fileInput');
+  const createBtn = document.getElementById('createBtn');
+  
+  console.log('Elementos DOM obtenidos:');
+  console.log('- uploadZone:', uploadZone);
+  console.log('- fileInput:', fileInput);
+  console.log('- createBtn:', createBtn);
+
+  if (!uploadZone || !fileInput || !createBtn) {
+    console.error('❌ ERROR: Algunos elementos DOM no se encontraron');
+    return;
+  }
 
   // Drag & Drop
+  console.log('Configurando eventos Drag & Drop...');
   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
     uploadZone.addEventListener(eventName, preventDefaults, false);
+    console.log(`- Evento ${eventName} agregado`);
   });
 
   function preventDefaults(e) {
+    console.log('preventDefaults() llamado para evento:', e.type);
     e.preventDefault();
     e.stopPropagation();
   }
 
   ['dragenter', 'dragover'].forEach(eventName => {
-    uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
+    uploadZone.addEventListener(eventName, () => {
+      console.log(`Evento ${eventName}: agregando clase dragover`);
+      uploadZone.classList.add('dragover');
+    }, false);
   });
 
   ['dragleave', 'drop'].forEach(eventName => {
-    uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
+    uploadZone.addEventListener(eventName, () => {
+      console.log(`Evento ${eventName}: removiendo clase dragover`);
+      uploadZone.classList.remove('dragover');
+    }, false);
   });
 
   uploadZone.addEventListener('drop', (e) => {
+    console.log('=== EVENTO DROP ===');
     const file = e.dataTransfer.files[0];
+    console.log('Archivo dropeado:', file);
+    console.log('- Nombre:', file?.name);
+    console.log('- Tamaño:', file?.size, 'bytes');
+    console.log('- Tipo:', file?.type);
+    
     if (file && file.name.endsWith('.csv')) {
+      console.log('✅ Archivo CSV válido, llamando a handleFile()');
       handleFile(file);
+    } else {
+      console.warn('⚠️ Archivo no es CSV o no existe');
     }
   });
 
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files[0]) {
-      handleFile(e.target.files[0]);
+    console.log('=== EVENTO FILE INPUT CHANGE ===');
+    const file = e.target.files[0];
+    console.log('Archivo seleccionado:', file);
+    console.log('- Nombre:', file?.name);
+    console.log('- Tamaño:', file?.size, 'bytes');
+    console.log('- Tipo:', file?.type);
+    
+    if (file) {
+      console.log('✅ Archivo válido, llamando a handleFile()');
+      handleFile(file);
     }
   });
 
-  document.getElementById('createBtn').addEventListener('click', handleCreateUsers);
+  createBtn.addEventListener('click', () => {
+    console.log('=== BOTÓN CREAR USUARIOS CLICKEADO ===');
+    handleCreateUsers();
+  });
+  
+  console.log('✅ Todos los event listeners configurados');
+  console.log('=== setupEventListeners() COMPLETADA ===');
 }
 
 function handleFile(file) {
+  console.log('=== handleFile() INICIADA ===');
+  console.log('Archivo recibido:', file.name);
+  console.log('Iniciando Papa.parse...');
+  
   Papa.parse(file, {
     header: true,
     skipEmptyLines: true,
     complete: (results) => {
-      parsedData = results.data.filter(row => row.email && row.full_name);
+      console.log('=== Papa.parse COMPLETADO ===');
+      console.log('Resultados raw:', results);
+      console.log('- Total de filas parseadas:', results.data.length);
+      console.log('- Errores de parseo:', results.errors);
+      console.log('- Meta:', results.meta);
+      
+      console.log('Filtrando datos válidos...');
+      parsedData = results.data.filter(row => {
+        const isValid = row.email && row.full_name;
+        if (!isValid) {
+          console.warn('⚠️ Fila inválida descartada:', row);
+        }
+        return isValid;
+      });
+      
+      console.log('Datos filtrados:', parsedData);
+      console.log('- Total de registros válidos:', parsedData.length);
+      
       if (parsedData.length === 0) {
+        console.error('❌ No se encontraron datos válidos');
         alert('❌ No se encontraron datos válidos en el CSV');
         return;
       }
+      
+      console.log('✅ Datos válidos encontrados, mostrando preview...');
       showPreview();
     },
     error: (error) => {
+      console.error('=== ERROR EN Papa.parse ===');
+      console.error('Error:', error);
+      console.error('Mensaje:', error.message);
       alert('❌ Error al leer el archivo: ' + error.message);
     }
   });
+  
+  console.log('Papa.parse iniciado (asíncrono)');
 }
 
 function showPreview() {
+  console.log('=== showPreview() INICIADA ===');
+  
   const previewSection = document.getElementById('previewSection');
   const previewTable = document.getElementById('previewTable');
   
+  console.log('Elementos DOM:');
+  console.log('- previewSection:', previewSection);
+  console.log('- previewTable:', previewTable);
+  
+  console.log('Generando HTML para', parsedData.length, 'usuarios...');
+  
   let html = '<table><thead><tr><th>Email</th><th>Nombre Completo</th><th>Rol</th><th>Estado</th></tr></thead><tbody>';
   
-  parsedData.forEach(user => {
+  parsedData.forEach((user, index) => {
+    console.log(`Procesando usuario ${index + 1}:`, user);
     html += `
       <tr>
         <td>${user.email}</td>
@@ -326,93 +458,195 @@ function showPreview() {
   });
   
   html += '</tbody></table>';
+  
+  console.log('HTML generado, longitud:', html.length, 'caracteres');
+  console.log('Insertando HTML en previewTable...');
   previewTable.innerHTML = html;
+  
+  console.log('Mostrando previewSection...');
   previewSection.classList.remove('hidden');
+  
+  console.log('✅ Preview mostrado correctamente');
+  console.log('=== showPreview() COMPLETADA ===');
 }
 
 async function handleCreateUsers() {
+  console.log('=== handleCreateUsers() INICIADA ===');
+  console.log('Usuarios a crear:', parsedData.length);
+  console.log('Datos completos:', parsedData);
+  
   const btn = document.getElementById('createBtn');
+  console.log('Deshabilitando botón...');
   btn.disabled = true;
   
+  console.log('Mostrando secciones de progreso y stats...');
   document.getElementById('progressSection').classList.remove('hidden');
   document.getElementById('statsSection').classList.remove('hidden');
   
   const results = [];
   let successCount = 0;
   let errorCount = 0;
+  
+  console.log('=== INICIANDO CREACIÓN DE USUARIOS ===');
 
   for (let i = 0; i < parsedData.length; i++) {
     const user = parsedData[i];
+    console.log(`\n--- Usuario ${i + 1}/${parsedData.length} ---`);
+    console.log('Email:', user.email);
+    console.log('Nombre:', user.full_name);
     
     try {
-      // Generar contraseña temporal aleatoria (no la usarán por force_reset)
+      // Generar contraseña temporal aleatoria
       const tempPassword = 'Temp' + Math.random().toString(36).slice(-8) + '!';
+      console.log('Contraseña temporal generada:', tempPassword);
       
+      console.log('Llamando a createUser()...');
+      const startTime = performance.now();
       const result = await createUser(user.email, user.full_name, tempPassword);
+      const endTime = performance.now();
+      console.log(`createUser() completado en ${(endTime - startTime).toFixed(2)}ms`);
+      console.log('Resultado:', result);
       
       if (result.success) {
         successCount++;
+        console.log('✅ Usuario creado exitosamente');
         results.push({ ...user, status: 'success', message: 'Creado exitosamente' });
       } else {
         errorCount++;
+        console.error('❌ Error al crear usuario:', result.error);
         results.push({ ...user, status: 'error', message: result.error });
       }
     } catch (err) {
       errorCount++;
+      console.error('❌ EXCEPCIÓN al crear usuario:', err);
+      console.error('Stack trace:', err.stack);
       results.push({ ...user, status: 'error', message: err.message });
     }
 
     // Actualizar progreso
     const progress = ((i + 1) / parsedData.length) * 100;
+    console.log(`Progreso: ${progress.toFixed(2)}%`);
+    
     document.getElementById('progressBar').style.width = progress + '%';
     document.getElementById('progressText').textContent = `${i + 1} / ${parsedData.length}`;
     document.getElementById('statTotal').textContent = parsedData.length;
     document.getElementById('statSuccess').textContent = successCount;
     document.getElementById('statError').textContent = errorCount;
+    
+    console.log('Stats actualizadas - Total:', parsedData.length, 'Success:', successCount, 'Error:', errorCount);
   }
 
+  console.log('\n=== CREACIÓN DE USUARIOS COMPLETADA ===');
+  console.log('Resultados finales:');
+  console.log('- Total:', parsedData.length);
+  console.log('- Exitosos:', successCount);
+  console.log('- Fallidos:', errorCount);
+  console.log('Resultados detallados:', results);
+  
   // Mostrar resultados
+  console.log('Mostrando resultados...');
   showResults(results);
+  
+  console.log('Habilitando botón nuevamente...');
   btn.disabled = false;
+  
+  console.log('=== handleCreateUsers() COMPLETADA ===');
 }
 
 async function createUser(email, fullName, password) {
+  console.log('=== createUser() INICIADA ===');
+  console.log('Parámetros recibidos:');
+  console.log('- email:', email);
+  console.log('- fullName:', fullName);
+  console.log('- password:', password);
+  console.log('- tenant_id:', window.CURRENT_TENANT);
+  
+  console.log('Verificando Supabase...');
+  console.log('- window.supabase:', !!window.supabase);
+  console.log('- window.supabase.functions:', !!window.supabase?.functions);
+  console.log('- window.supabase.functions.invoke:', !!window.supabase?.functions?.invoke);
+  
+  if (!window.supabase?.functions?.invoke) {
+    console.error('❌ ERROR CRÍTICO: Supabase.functions.invoke no está disponible');
+    return { success: false, error: 'Supabase no está disponible' };
+  }
+  
   try {
+    const payload = {
+      users: [{
+        email: email,
+        full_name: fullName,
+        password: password
+      }],
+      tenant_id: window.CURRENT_TENANT
+    };
+    
+    console.log('Payload a enviar:', payload);
+    console.log('Invocando función bulk-create-users...');
+    
+    const invokeStartTime = performance.now();
     const { data, error } = await window.supabase.functions.invoke('bulk-create-users', {
-      body: {
-        users: [{
-          email: email,
-          full_name: fullName,
-          password: password
-        }],
-        tenant_id: window.CURRENT_TENANT
-      }
+      body: payload
     });
+    const invokeEndTime = performance.now();
+    
+    console.log(`Invocación completada en ${(invokeEndTime - invokeStartTime).toFixed(2)}ms`);
+    console.log('Respuesta completa:');
+    console.log('- data:', data);
+    console.log('- error:', error);
 
     if (error) {
+      console.error('❌ Error retornado por Supabase:', error);
+      console.error('- Mensaje:', error.message);
+      console.error('- Detalles:', error);
       return { success: false, error: error.message };
     }
 
+    console.log('Analizando respuesta...');
+    console.log('- data.results:', data?.results);
+    console.log('- data.errors:', data?.errors);
+    
     // Verificar si el usuario se creó exitosamente
     if (data.results && data.results.length > 0 && data.results[0].success) {
+      console.log('✅ Usuario creado exitosamente según data.results');
+      console.log('Datos del usuario creado:', data.results[0]);
       return { success: true };
     } else {
-      const errorMsg = data.errors?.[0]?.error || 'Error desconocido';
+      const errorMsg = data.errors?.[0]?.error || data.error || 'Error desconocido';
+      console.error('❌ Creación fallida según data.results');
+      console.error('Mensaje de error extraído:', errorMsg);
       return { success: false, error: errorMsg };
     }
 
   } catch (err) {
+    console.error('❌ EXCEPCIÓN en createUser():', err);
+    console.error('Tipo de error:', err.constructor.name);
+    console.error('Mensaje:', err.message);
+    console.error('Stack trace:', err.stack);
     return { success: false, error: err.message };
+  } finally {
+    console.log('=== createUser() FINALIZADA ===\n');
   }
 }
 
 function showResults(results) {
+  console.log('=== showResults() INICIADA ===');
+  console.log('Resultados recibidos:', results);
+  console.log('Total de resultados:', results.length);
+  
   const resultsSection = document.getElementById('resultsSection');
   const resultsTable = document.getElementById('resultsTable');
   
+  console.log('Elementos DOM:');
+  console.log('- resultsSection:', resultsSection);
+  console.log('- resultsTable:', resultsTable);
+  
+  console.log('Generando HTML de resultados...');
+  
   let html = '<table><thead><tr><th>Email</th><th>Nombre</th><th>Estado</th><th>Mensaje</th></tr></thead><tbody>';
   
-  results.forEach(result => {
+  results.forEach((result, index) => {
+    console.log(`Procesando resultado ${index + 1}:`, result);
     const statusClass = result.status === 'success' ? 'status-success' : 'status-error';
     html += `
       <tr>
@@ -425,9 +659,20 @@ function showResults(results) {
   });
   
   html += '</tbody></table>';
+  
+  console.log('HTML generado, longitud:', html.length, 'caracteres');
+  console.log('Insertando HTML en resultsTable...');
   resultsTable.innerHTML = html;
+  
+  console.log('Mostrando resultsSection...');
   resultsSection.classList.remove('hidden');
+  
+  console.log('✅ Resultados mostrados correctamente');
+  console.log('=== showResults() COMPLETADA ===');
 }
-  </script>
+
+console.log('=== FIN DEL SCRIPT ===');
+console.log('Script cargado completamente en:', new Date().toISOString());
+</script>
 </body>
 </html>
