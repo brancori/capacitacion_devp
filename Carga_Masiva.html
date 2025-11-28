@@ -216,198 +216,218 @@ usuario2@empresa.com,María González
     </div>
   </div>
 
-  <script>
+  <scrip>
+<script>
+// Variables globales
+let parsedData = [];
+let supabaseReady = false;
+window.CURRENT_TENANT = window.CURRENT_TENANT || 'siresi';
+
+// Función para esperar a que Supabase esté listo
 async function waitForSupabase() {
-  while (!window.supabase?.functions?.invoke) {
+  let attempts = 0;
+  const maxAttempts = 50;
+  
+  while (attempts < maxAttempts) {
+    if (window.supabase?.functions?.invoke) {
+      console.log('✅ Supabase listo');
+      return true;
+    }
     await new Promise(resolve => setTimeout(resolve, 100));
+    attempts++;
   }
-  console.log('✅ Supabase listo');
+  return false;
 }
 
-// Inicializar al cargar
-waitForSupabase().then(() => {
+// Inicializar ANTES de cualquier interacción
+(async function init() {
+  supabaseReady = await waitForSupabase();
+  
+  if (!supabaseReady) {
+    alert('❌ Error: Supabase no se pudo inicializar. Recarga la página.');
+    return;
+  }
+  
   console.log('🎯 Tenant:', window.CURRENT_TENANT);
-});
+  setupEventListeners();
+})();
 
-    // Obtener tenant actual
-    window.CURRENT_TENANT = window.CURRENT_TENANT || 'siresi';
-    let parsedData = [];
-    const uploadZone = document.getElementById('uploadZone');
-    const fileInput = document.getElementById('fileInput');
+function setupEventListeners() {
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
 
-    // Drag & Drop
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      uploadZone.addEventListener(eventName, preventDefaults, false);
-    });
+  // Drag & Drop
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadZone.addEventListener(eventName, preventDefaults, false);
+  });
 
-    function preventDefaults(e) {
-      e.preventDefault();
-      e.stopPropagation();
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
+  });
+
+  uploadZone.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) {
+      handleFile(file);
+    }
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  });
+
+  document.getElementById('createBtn').addEventListener('click', handleCreateUsers);
+}
+
+function handleFile(file) {
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      parsedData = results.data.filter(row => row.email && row.full_name);
+      if (parsedData.length === 0) {
+        alert('❌ No se encontraron datos válidos en el CSV');
+        return;
+      }
+      showPreview();
+    },
+    error: (error) => {
+      alert('❌ Error al leer el archivo: ' + error.message);
+    }
+  });
+}
+
+function showPreview() {
+  const previewSection = document.getElementById('previewSection');
+  const previewTable = document.getElementById('previewTable');
+  
+  let html = '<table><thead><tr><th>Email</th><th>Nombre Completo</th><th>Rol</th><th>Estado</th></tr></thead><tbody>';
+  
+  parsedData.forEach(user => {
+    html += `
+      <tr>
+        <td>${user.email}</td>
+        <td>${user.full_name}</td>
+        <td><span class="status status-pending">user</span></td>
+        <td><span class="status status-pending">pending (force_reset)</span></td>
+      </tr>
+    `;
+  });
+  
+  html += '</tbody></table>';
+  previewTable.innerHTML = html;
+  previewSection.classList.remove('hidden');
+}
+
+async function handleCreateUsers() {
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true;
+  
+  document.getElementById('progressSection').classList.remove('hidden');
+  document.getElementById('statsSection').classList.remove('hidden');
+  
+  const results = [];
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (let i = 0; i < parsedData.length; i++) {
+    const user = parsedData[i];
+    
+    try {
+      // Generar contraseña temporal aleatoria (no la usarán por force_reset)
+      const tempPassword = 'Temp' + Math.random().toString(36).slice(-8) + '!';
+      
+      const result = await createUser(user.email, user.full_name, tempPassword);
+      
+      if (result.success) {
+        successCount++;
+        results.push({ ...user, status: 'success', message: 'Creado exitosamente' });
+      } else {
+        errorCount++;
+        results.push({ ...user, status: 'error', message: result.error });
+      }
+    } catch (err) {
+      errorCount++;
+      results.push({ ...user, status: 'error', message: err.message });
     }
 
-    ['dragenter', 'dragover'].forEach(eventName => {
-      uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
-    });
+    // Actualizar progreso
+    const progress = ((i + 1) / parsedData.length) * 100;
+    document.getElementById('progressBar').style.width = progress + '%';
+    document.getElementById('progressText').textContent = `${i + 1} / ${parsedData.length}`;
+    document.getElementById('statTotal').textContent = parsedData.length;
+    document.getElementById('statSuccess').textContent = successCount;
+    document.getElementById('statError').textContent = errorCount;
+  }
 
-    ['dragleave', 'drop'].forEach(eventName => {
-      uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
-    });
+  // Mostrar resultados
+  showResults(results);
+  btn.disabled = false;
+}
 
-    uploadZone.addEventListener('drop', (e) => {
-      const file = e.dataTransfer.files[0];
-      if (file && file.name.endsWith('.csv')) {
-        handleFile(file);
+async function createUser(email, fullName, password) {
+  try {
+    const { data, error } = await window.supabase.functions.invoke('bulk-create-users', {
+      body: {
+        users: [{
+          email: email,
+          full_name: fullName,
+          password: password
+        }],
+        tenant_id: window.CURRENT_TENANT
       }
     });
 
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) {
-        handleFile(e.target.files[0]);
-      }
-    });
-
-    function handleFile(file) {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          parsedData = results.data.filter(row => row.email && row.full_name);
-          if (parsedData.length === 0) {
-            alert('❌ No se encontraron datos válidos en el CSV');
-            return;
-          }
-          showPreview();
-        },
-        error: (error) => {
-          alert('❌ Error al leer el archivo: ' + error.message);
-        }
-      });
+    if (error) {
+      return { success: false, error: error.message };
     }
 
-    function showPreview() {
-      const previewSection = document.getElementById('previewSection');
-      const previewTable = document.getElementById('previewTable');
-      
-      let html = '<table><thead><tr><th>Email</th><th>Nombre Completo</th><th>Rol</th><th>Estado</th></tr></thead><tbody>';
-      
-      parsedData.forEach(user => {
-        html += `
-          <tr>
-            <td>${user.email}</td>
-            <td>${user.full_name}</td>
-            <td><span class="status status-pending">user</span></td>
-            <td><span class="status status-pending">pending (force_reset)</span></td>
-          </tr>
-        `;
-      });
-      
-      html += '</tbody></table>';
-      previewTable.innerHTML = html;
-      previewSection.classList.remove('hidden');
+    // Verificar si el usuario se creó exitosamente
+    if (data.results && data.results.length > 0 && data.results[0].success) {
+      return { success: true };
+    } else {
+      const errorMsg = data.errors?.[0]?.error || 'Error desconocido';
+      return { success: false, error: errorMsg };
     }
 
-    document.getElementById('createBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('createBtn');
-      btn.disabled = true;
-      
-      document.getElementById('progressSection').classList.remove('hidden');
-      document.getElementById('statsSection').classList.remove('hidden');
-      
-      const results = [];
-      let successCount = 0;
-      let errorCount = 0;
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
 
-      for (let i = 0; i < parsedData.length; i++) {
-        const user = parsedData[i];
-        
-        try {
-          // Generar contraseña temporal aleatoria (no la usarán por force_reset)
-          const tempPassword = 'Temp' + Math.random().toString(36).slice(-8) + '!';
-          
-          const result = await createUser(user.email, user.full_name, tempPassword);
-          
-          if (result.success) {
-            successCount++;
-            results.push({ ...user, status: 'success', message: 'Creado exitosamente' });
-          } else {
-            errorCount++;
-            results.push({ ...user, status: 'error', message: result.error });
-          }
-        } catch (err) {
-          errorCount++;
-          results.push({ ...user, status: 'error', message: err.message });
-        }
-
-        // Actualizar progreso
-        const progress = ((i + 1) / parsedData.length) * 100;
-        document.getElementById('progressBar').style.width = progress + '%';
-        document.getElementById('progressText').textContent = `${i + 1} / ${parsedData.length}`;
-        document.getElementById('statTotal').textContent = parsedData.length;
-        document.getElementById('statSuccess').textContent = successCount;
-        document.getElementById('statError').textContent = errorCount;
-      }
-
-      // Mostrar resultados
-      showResults(results);
-      btn.disabled = false;
-    });
-
-    async function createUser(email, fullName, password) {
-            if (!window.supabase?.functions?.invoke) {
-      return { success: false, error: 'Supabase no está inicializado correctamente' };
-    }
-      try {
-        // Usamos el cliente Supabase que ya tienes configurado
-        const { data, error } = await window.supabase.functions.invoke('bulk-create-users', {
-          body: {
-            users: [{
-              email: email,
-              full_name: fullName,
-              password: password
-            }],
-            tenant_id: window.CURRENT_TENANT // Este ya lo detecta automáticamente tu sistema
-          }
-        });
-
-        if (error) {
-          return { success: false, error: error.message };
-        }
-
-        // Verificar si el usuario se creó exitosamente
-        if (data.results && data.results.length > 0 && data.results[0].success) {
-          return { success: true };
-        } else {
-          const errorMsg = data.errors?.[0]?.error || 'Error desconocido';
-          return { success: false, error: errorMsg };
-        }
-
-      } catch (err) {
-        return { success: false, error: err.message };
-      }
-    }
-
-    function showResults(results) {
-      const resultsSection = document.getElementById('resultsSection');
-      const resultsTable = document.getElementById('resultsTable');
-      
-      let html = '<table><thead><tr><th>Email</th><th>Nombre</th><th>Estado</th><th>Mensaje</th></tr></thead><tbody>';
-      
-      results.forEach(result => {
-        const statusClass = result.status === 'success' ? 'status-success' : 'status-error';
-        html += `
-          <tr>
-            <td>${result.email}</td>
-            <td>${result.full_name}</td>
-            <td><span class="status ${statusClass}">${result.status}</span></td>
-            <td>${result.message}</td>
-          </tr>
-        `;
-      });
-      
-      html += '</tbody></table>';
-      resultsTable.innerHTML = html;
-      resultsSection.classList.remove('hidden');
-    }
+function showResults(results) {
+  const resultsSection = document.getElementById('resultsSection');
+  const resultsTable = document.getElementById('resultsTable');
+  
+  let html = '<table><thead><tr><th>Email</th><th>Nombre</th><th>Estado</th><th>Mensaje</th></tr></thead><tbody>';
+  
+  results.forEach(result => {
+    const statusClass = result.status === 'success' ? 'status-success' : 'status-error';
+    html += `
+      <tr>
+        <td>${result.email}</td>
+        <td>${result.full_name}</td>
+        <td><span class="status ${statusClass}">${result.status}</span></td>
+        <td>${result.message}</td>
+      </tr>
+    `;
+  });
+  
+  html += '</tbody></table>';
+  resultsTable.innerHTML = html;
+  resultsSection.classList.remove('hidden');
+}
   </script>
 </body>
 </html>
