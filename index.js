@@ -136,6 +136,49 @@ try {
         return; // DETENER aquí, NO redirigir
     }
 
+       // ---------------------------------------------------------
+    // 2. LOGIN NORMAL (solo si force_reset = false)
+    // ---------------------------------------------------------
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (authError) {
+      console.error('Error login:', authError);
+      throw new Error('Credenciales incorrectas o error de conexión');
+    }
+
+    console.log("🔑 Login correcto. Token recibido.");
+
+    // ---------------------------------------------------------
+    // 3. FIX DE STORAGE
+    // ---------------------------------------------------------
+    if (authData.session) {
+        await supabase.auth.setSession(authData.session);
+        console.log("💉 Sesión inyectada manualmente en el cliente.");
+    }
+
+    // ---------------------------------------------------------
+    // 4. OBTENER PERFIL COMPLETO
+    // ---------------------------------------------------------
+    const { data: rawData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*') 
+        .eq('id', authData.user.id);
+
+    if (profileError) {
+        console.error("❌ Error bajando perfil:", profileError);
+        throw new Error("No se pudo cargar tu perfil de usuario.");
+    }
+
+    const profile = Array.isArray(rawData) ? rawData[0] : rawData;
+
+    console.log("📦 Perfil Procesado:", profile);
+
+    if (!profile) {
+        throw new Error("El perfil existe pero llegó vacío.");
+    }
     // ---------------------------------------------------------
     // 4. GUARDADO Y REDIRECCIÓN
     // ---------------------------------------------------------
