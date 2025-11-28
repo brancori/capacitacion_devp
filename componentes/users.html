@@ -246,60 +246,6 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // CONFIGURACIÓN DE TENANT
-    // ═══════════════════════════════════════════════════════════
-    
-    const setStyle = (prop, value) => {
-        if (value) document.documentElement.style.setProperty(prop, value);
-    };
-
-    const detectTenant = () => {
-        const host = location.hostname || 'localhost';
-        if (host === 'localhost') return 'demo';
-        if (host === '127.0.0.1') return 'default';
-        const parts = host.split('.');
-        if (parts.length > 2 && parts[0] !== 'www') return parts[0];
-        return 'default';
-    };
-
-    async function loadTenantConfig() {
-        const tenantId = detectTenant();
-        try {
-            const response = await fetch('../tenants/tenants.json', { cache: 'no-store' });
-            if (!response.ok) throw new Error('No se pudo cargar tenants.json');
-            const data = await response.json();
-            const config = data[tenantId] || data['default'] || {};
-
-            const { data: tenantDB, error } = await window.supabase
-                .from('tenants')
-                .select('id')
-                .eq('slug', tenantId)
-                .single();
-
-            if (error) throw new Error(`Tenant '${tenantId}' no encontrado en BD.`);
-            config.tenantUUID = tenantDB.id;
-            config.tenantSlug = tenantId;
-
-            return config;
-        } catch (error) {
-            console.warn('⚠️ Error al cargar configuración del tenant:', error);
-            return {};
-        }
-    }
-
-    function applyConfiguration(config) {
-        setStyle('--primaryColor', config.primaryColor);
-        setStyle('--secondaryColor', config.secondaryColor);
-        const companyNameEl = document.getElementById('companyName');
-        if (companyNameEl && config.companyName) {
-            const icon = companyNameEl.querySelector('i');
-            companyNameEl.innerHTML = '';
-            if (icon) companyNameEl.appendChild(icon);
-            companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════
     // AUTENTICACIÓN Y PERMISOS
     // ═══════════════════════════════════════════════════════════
     
@@ -392,12 +338,18 @@ async function loadAdminProfile(config) {
             // 5. VERIFICAR TENANT (Con protección para localhost)
             // ---------------------------------------------------------
             if (userRole === 'admin' || userRole === 'supervisor') {
-                // Solo validamos si config.tenantUUID existe (evita errores en localhost)
-                if (config.tenantUUID && profile.tenant_id !== config.tenantUUID) {
+                
+                // DETECCIÓN DE ENTORNO LOCAL
+                const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+                // Solo validamos estricto si NO es local
+                if (!isLocal && config.tenantUUID && profile.tenant_id !== config.tenantUUID) {
                     console.warn(`⛔ [SECURITY] Conflicto de Tenant: Usuario(${profile.tenant_id}) vs Sitio(${config.tenantUUID})`);
                     showModal('Acceso Restringido', 'Tu cuenta no pertenece a este entorno corporativo.', 'error');
-                    // setTimeout(() => window.location.href = '../index.html', 3000); // Comenta esto si quieres depurar
                     return null;
+                } else if (isLocal && config.tenantUUID && profile.tenant_id !== config.tenantUUID) {
+                    // En local solo avisamos, pero dejamos pasar
+                    console.warn(`⚠️ [DEV] Tenant Mismatch permitido en local.`);
                 }
             }
 
@@ -927,40 +879,46 @@ userListBody.addEventListener('click', async (e) => {
     // INICIALIZACIÓN
     // ═══════════════════════════════════════════════════════════
     
-    async function mainInit() {
-        // 1. Cargar config del Tenant
-        window.tenantConfig = await loadTenantConfig();
-        applyConfiguration(window.tenantConfig);
-        console.log('✅ Tenant listo');
+async function mainInit() {
+        // 1. Esperar a que supabase-client cargue la config global
+        if (!window.supabase || !window.APP_CONFIG) { 
+            setTimeout(mainInit, 100); 
+            return; 
+        }
 
-        // 2. Verificar permisos del Admin
+        // 2. Usar la configuración global
+        window.tenantConfig = window.APP_CONFIG;
+        console.log('✅ Config global detectada:', window.tenantConfig);
+
+        // 3. Actualizar nombre en Navbar (Estético)
+        const companyNameEl = document.getElementById('companyName');
+        if (companyNameEl) {
+             companyNameEl.innerHTML = `<i class="fas fa-graduation-cap"></i> ${window.tenantConfig.companyName || 'Gestión'}`;
+        }
+
+        // 4. Verificar permisos del Admin (pasando la config correcta)
         currentAdmin = await loadAdminProfile(window.tenantConfig);
         if (!currentAdmin) return;
+        
         console.log(`✅ Admin verificado (Rol: ${currentAdmin.role})`);
 
-        // 3. Cargar tenants si es master
+        // 5. Cargar tenants si es master
         if (currentAdmin.role === 'master') {
             await loadTenantsIntoSelect();
-            console.log('✅ Tenants cargados en el modal');
-            
-        }
-        if (currentAdmin.role !== 'master') {
+        } else {
             document.querySelector('.user-table').classList.add('simple-view');
         }
 
-        // 4. Cargar solicitudes pendientes
+        // 6. Cargar datos
         await loadPendingRequests(currentAdmin);
-
-        console.log('✅ Solicitudes pendientes cargadas');
-
-        // 4.5 Activar Realtime para solicitudes pendientes
+        
+        // Activar Realtime
         startPollingUpdates(currentAdmin.role, currentAdmin.tenant_id, window.tenantConfig.tenantSlug);
-
-        // 5. Cargar lista de usuarios autorizados
+        
+        // Cargar usuarios
         await loadUserList(currentAdmin.role, currentAdmin.tenant_id);
-        console.log('✅ Lista de usuarios cargada');
 
-        // 6. Iniciar listeners de la UI
+        // 7. Iniciar UI
         initUIListeners();
         console.log('✅ UI inicializada');
         document.body.style.opacity = 1;

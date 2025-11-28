@@ -19,50 +19,6 @@
     let selectedCoursesToAssign = [];
 
     // =================================================================
-    // CONFIGURACIÓN TENANT & AUTH (CORREGIDA)
-    // =================================================================
-    const setStyle = (prop, value) => value && document.documentElement.style.setProperty(prop, value);
-
-    async function loadTenantConfig() {
-        const host = location.hostname === 'localhost' ? 'demo' : location.hostname.split('.')[0];
-        const tenantId = (host === '127' || host === 'www') ? 'default' : host;
-        let config = {};
-
-        // 1. FIX: Ruta corregida ../../tenants/tenants.json
-        try {
-            const resp = await fetch('../../tenants/tenants.json');
-            if (resp.ok) {
-                const data = await resp.json();
-                config = data[tenantId] || data['default'] || {};
-            } else {
-                console.warn(`⚠️ tenants.json no encontrado en ../../tenants/tenants.json (Status: ${resp.status})`);
-            }
-        } catch (e) { 
-            console.warn('⚠️ Error cargando/parseando tenants.json:', e); 
-        }
-
-        // 2. Fallback a DB
-        try {
-            const { data: tDb } = await window.supabase
-                .from('tenants')
-                .select('id, name')
-                .eq('slug', tenantId)
-            
-            if (tDb) {
-                config.tenantUUID = tDb.id;
-                if (!config.companyName) config.companyName = tDb.name;
-            }
-        } catch (e) {
-            console.error('❌ Error crítico obteniendo Tenant ID de DB:', e);
-        }
-
-        // 3. Fallback visual final
-        if (!config.companyName) config.companyName = tenantId.toUpperCase();
-        
-        return config;
-    }
-
-    // =================================================================
 // RECUPERACIÓN DE SESIÓN (IGUAL QUE EN users.html)
 // =================================================================
 async function recoverSession() {
@@ -1262,76 +1218,64 @@ window.deleteGroup = async (groupId, groupName) => {
     // =================================================================
 async function init() {
     try {
-        // ═══════════════════════════════════════════════════════════
-        // 🔥 CRÍTICO: ESPERAR A QUE SUPABASE ESTÉ LISTO
-        // ═══════════════════════════════════════════════════════════
         console.log('⏳ Esperando cliente Supabase...');
-        
         let attempts = 0;
-        while (!window.supabase || typeof window.supabase.from !== 'function') {
-            if (attempts > 50) { // 5 segundos máximo
-                console.error('❌ Supabase no se inicializó después de 5 segundos');
-                alert('Error: No se pudo conectar con el sistema');
+        
+        // Esperamos a supabase Y a la configuración global (APP_CONFIG)
+        while (!window.supabase || !window.APP_CONFIG) {
+            if (attempts > 50) { 
+                console.error('❌ Timeout esperando dependencias');
                 return;
             }
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
         }
         
-        console.log('✅ Cliente Supabase listo después de', attempts * 100, 'ms');
+        console.log('🚀 Iniciando aplicación de cursos...');
 
-        // ═══════════════════════════════════════════════════════════
-        // Resto de la inicialización
-        // ═══════════════════════════════════════════════════════════
-        console.log('🚀 Iniciando aplicación...');
-
-        // 1. Cargar configuración
-        const config = await loadTenantConfig();
-        console.log('✅ Config cargada:', config);
+        // 1. USAR CONFIGURACIÓN GLOBAL
+        const config = window.APP_CONFIG;
         
-        if (config.primaryColor) setStyle('--primaryColor', config.primaryColor);
-        if (config.secondaryColor) setStyle('--secondaryColor', config.secondaryColor);
-        
-        // 2. Chequear Auth
-        console.log('🔐 Verificando autenticación...');
-        currentAdmin = await checkAuth(config);
-        if (!currentAdmin) {
-            console.error('❌ checkAuth devolvió null, deteniendo...');
-            return;
+        // 2. Actualizar título visualmente (Usando la config global)
+        const companyNameEl = document.getElementById('companyName');
+        if(companyNameEl) {
+            companyNameEl.innerHTML = `<i class="fas fa-graduation-cap"></i> ${config.companyName || 'Admin Cursos'}`;
         }
+
+        // 3. Chequear Auth
+        console.log('🔐 Verificando autenticación...');
+        // Pasamos config a checkAuth por si lo necesita para validar tenantUUID
+        currentAdmin = await checkAuth(config); 
+        
+        if (!currentAdmin) return;
+        
         window.currentAdmin = currentAdmin;
 
-        // 3. FIX: Master puede operar en cualquier tenant
+        // 4. Lógica de Tenant para Master
         const isMaster = currentAdmin.role === 'master';
-
         if (!isMaster && !currentAdmin.tenant_id) {
-            console.error('❌ Admin sin tenant_id');
-            alert('Error: Tu cuenta no tiene tenant asignado');
+            // Usamos showToast en lugar de alert para ser consistentes
+            if(window.showToast) showToast('Error', 'Tu cuenta no tiene tenant asignado', 'error');
             return;
         }
 
-        // Master usa el tenant del subdomain actual
+        // Master usa el tenant del subdomain actual (si aplica)
         if (isMaster && config.tenantUUID) {
             currentAdmin.tenant_id = config.tenantUUID;
         }
 
-        // 5. Cargar datos
-        console.log('📊 Cargando KPIs...');
+        // 5. Cargar datos iniciales
         await updateKPIs();
-        
-        console.log('📈 Cargando compliance...');
         await updateGlobalCompliance();
-        
-        console.log('📁 Cargando grupos...');
         await renderGroups();
 
-        console.log('✅ Aplicación lista');
+        console.log('✅ Aplicación de cursos lista');
+        
+        // Mostrar contenido suavemente
         document.body.style.opacity = 1;
 
     } catch (error) {
         console.error('🔥 ERROR CRÍTICO EN INIT:', error);
-        console.error('Stack:', error.stack);
-        alert('Error crítico al cargar la aplicación. Ver consola (F12).');
     }
 }
 

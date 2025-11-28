@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="./global.css">
     
     <!-- Estilos específicos para esta página de tarjetas -->
-    <link rel="stylesheet" href="./admin.css?v=1.4">
+    <link rel="stylesheet" href="./admin.css">
 
     <!-- Supabase Client (si es necesario para el tenant) -->
     <script src="../lib/supabase.js"></script>
@@ -107,76 +107,38 @@
         
         container.innerHTML = html;
     }
-
-    // =================================================================
-    // LÓGICA DEL TENANT (Copiada de admin.html)
-    // =================================================================
     
-    // Función para establecer variables CSS
-    const setStyle = (prop, value) => {
-        if (value) document.documentElement.style.setProperty(prop, value);
-    };
-
-    // Función para cargar la configuración del tenant (JSON y Supabase)
-// Reemplaza la función loadTenantConfig() en admin.html línea 122
-
-async function loadTenantConfig() {
-    // Detectar tenant desde subdomain o localStorage
-    const subdomain = window.location.hostname.split('.')[0];
-    const tenantId = (subdomain !== 'localhost' && subdomain !== '127') 
-        ? subdomain 
-        : localStorage.getItem('tenant') || 'default';
-    
-    try {
-        const response = await fetch('../tenants/tenants.json', { cache: 'no-store' });
-        if (!response.ok) throw new Error('No se pudo cargar tenants.json');
-        const data = await response.json();
-        const config = data[tenantId] || data['default'] || {};
-        return config;
-    } catch (error) {
-        console.warn('⚠️ Error al cargar configuración del tenant:', error.message);
-        return {};
-    }
-}
-
-    // Función para aplicar la configuración visual
-    function applyConfiguration(config) {
-        setStyle('--primaryColor', config.primaryColor);
-        setStyle('--secondaryColor', config.secondaryColor);
-        
-        // Actualiza el nombre de la compañía si existe
-        const companyNameEl = document.getElementById('companyName');
-        if (companyNameEl && config.companyName) {
-            const icon = companyNameEl.querySelector('i');
-            companyNameEl.innerHTML = ''; // Limpia
-            if (icon) companyNameEl.appendChild(icon); // Restaura el icono
-            companyNameEl.appendChild(document.createTextNode(` ${config.companyName} Admin`));
-        }
-    }
-
     // =================================================================
     // ARRANQUE DE LA PÁGINA
     // =================================================================
     
-    async function mainInit() {
-        // 1. Cargar y aplicar colores del Tenant
-        const config = await loadTenantConfig();
-        applyConfiguration(config);
-        
-        // 2. Dibujar las tarjetas de administración
+async function mainInit() {
+        // 1. Esperar a Supabase y Configuración
+        if (!window.supabase || !window.APP_CONFIG) { 
+            setTimeout(mainInit, 100); 
+            return; 
+        }
+
+        // 2. Aplicar textos visuales (Título del Tenant)
+        const config = window.APP_CONFIG;
+        const companyNameEl = document.getElementById('companyName');
+        if (companyNameEl) {
+             companyNameEl.innerHTML = `<i class="fas fa-shield-alt"></i> ${config.companyName || 'Panel Admin'}`;
+        }
+
+        // 3. Renderizar las tarjetas del menú
         renderCards();
 
-        // 3. FIX: Hacer visible el cuerpo de la página
+        // 4. Mostrar la página
         document.body.style.opacity = 1;
     }
 
-    // Disparador de Carga
+    // FALTABA ESTO: Disparar la función al cargar
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', mainInit);
     } else {
         mainInit();
     }
-
 </script>
 
 </body>
