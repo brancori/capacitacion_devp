@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carga Masiva de Usuarios</title>
-  <script src="./lib/supabase-js@2.js"></script>
   <script src="./lib/papaparse.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -227,9 +226,32 @@ let supabaseReady = false;
 window.CURRENT_TENANT = window.CURRENT_TENANT || 'siresi';
 
 console.log('Variables globales inicializadas');
-console.log('- parsedData:', parsedData);
-console.log('- supabaseReady:', supabaseReady);
 console.log('- CURRENT_TENANT:', window.CURRENT_TENANT);
+
+// Cargar el cliente Supabase que YA está configurado
+console.log('=== Cargando cliente Supabase existente ===');
+
+const supabaseScript = document.createElement('script');
+supabaseScript.src = './componentes/supabase-client.js'; // O './lib/supabase.js' si está ahí
+supabaseScript.onload = () => {
+  console.log('✅ Script supabase-client.js cargado');
+  console.log('window.supabase después de cargar:', window.supabase);
+  console.log('Tipo:', typeof window.supabase);
+  
+  // Esperar un poco más por si acaso
+  setTimeout(() => {
+    console.log('Iniciando aplicación...');
+    initApp();
+  }, 500);
+};
+
+supabaseScript.onerror = (error) => {
+  console.error('❌ ERROR al cargar supabase-client.js:', error);
+  alert('❌ Error crítico: No se pudo cargar el cliente Supabase. Verifica la ruta: ./componentes/supabase-client.js');
+};
+
+console.log('Agregando script al head...');
+document.head.appendChild(supabaseScript);
 
 // Función para esperar a que Supabase esté listo
 async function waitForSupabase() {
@@ -270,9 +292,9 @@ async function waitForSupabase() {
   return false;
 }
 
-// Inicializar ANTES de cualquier interacción
-(async function init() {
-  console.log('=== FUNCIÓN INIT() INICIADA ===');
+// Inicializar aplicación
+async function initApp() {
+  console.log('=== FUNCIÓN initApp() INICIADA ===');
   
   try {
     console.log('Llamando a waitForSupabase()...');
@@ -282,7 +304,7 @@ async function waitForSupabase() {
     if (!supabaseReady) {
       console.error('❌ ERROR CRÍTICO: Supabase no se pudo inicializar');
       console.error('Mostrando alert al usuario...');
-      alert('❌ Error: Supabase no se pudo inicializar. Recarga la página.');
+      alert('❌ Error: Supabase no se pudo inicializar. Verifica que supabase-client.js esté configurado correctamente.');
       return;
     }
     
@@ -293,13 +315,13 @@ async function waitForSupabase() {
     console.log('✅ Event listeners configurados correctamente');
     
   } catch (error) {
-    console.error('❌ ERROR EN INIT():', error);
+    console.error('❌ ERROR EN initApp():', error);
     console.error('Stack trace:', error.stack);
     alert('❌ Error fatal durante la inicialización: ' + error.message);
   }
   
-  console.log('=== FUNCIÓN INIT() COMPLETADA ===');
-})();
+  console.log('=== FUNCIÓN initApp() COMPLETADA ===');
+}
 
 function setupEventListeners() {
   console.log('=== setupEventListeners() INICIADA ===');
