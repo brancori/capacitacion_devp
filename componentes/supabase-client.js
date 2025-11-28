@@ -139,7 +139,7 @@ const TenantSystem = {
         }
 
         // 2. Textos de Marca
-        setTxt('logoText', cfg.companyName);
+        setTxt('logoText', cfg.logoText);
         setTxt('brandTitle', cfg.tagline);
         setTxt('brandDescription', cfg.description);
 

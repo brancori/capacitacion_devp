@@ -196,7 +196,7 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
              actionButton = `<a href="../certificados/view.html?assignment_id=${c.assignment_id}" class="btn btn-outline" style="border-color:var(--success); color:var(--success);"><i class="fas fa-certificate"></i> Ver Certificado</a>`;
         } else {
              // ... botón continuar ...
-             actionButton = `<a href="../curso/curso.html?id=${c.id}" class="btn btn-primary">${progressVal > 0 ? 'Continuar' : 'Iniciar'}</a>`;
+             actionButton = `<a href="./curso/curso.html?id=${c.id}" class="btn btn-primary">${progressVal > 0 ? 'Continuar' : 'Iniciar'}</a>`;
         }
 
         // Renderizado de tarjeta (ajustado para catálogo que no tiene progreso)

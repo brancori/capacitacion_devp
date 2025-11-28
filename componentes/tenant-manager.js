@@ -55,13 +55,13 @@
 
         // Nombre de compañía si existe en DOM (opcional)
         try {
-          const companyNameEl = document.getElementById('companyName');
-          if (companyNameEl && config.companyName) {
+          const companyNameEl = document.getElementById('logoText');
+          if (companyNameEl && config.logoText) {
             // preservar iconos dentro del element
             const icon = companyNameEl.querySelector('i');
             companyNameEl.innerHTML = '';
             if (icon) companyNameEl.appendChild(icon);
-            companyNameEl.appendChild(document.createTextNode(` ${config.companyName}`));
+            companyNameEl.appendChild(document.createTextNode(` ${config.logoText}`));
           }
         } catch (e) {
           // no crítico

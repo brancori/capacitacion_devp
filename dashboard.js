@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.tenantManager) {
             const config = await window.tenantManager.loadFromJson({ path: './tenants/tenants.json' });
             window.tenantManager.applyStyles(config);
-            if (config && config.companyName) document.title = `${config.companyName} - Portal EH&S`;
+            if (config && config.logoText) document.title = `${config.logoText} - Portal EH&S`;
         }
     } catch (err) { console.warn("Error Tenant:", err); }
 
