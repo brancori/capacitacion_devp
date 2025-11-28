@@ -52,6 +52,10 @@
     </div> <!-- Fin de .container -->
 
 <script>
+        window.addEventListener('error', (e) => {
+        console.error('💥 ERROR GLOBAL:', e.error);
+    });
+    
     console.log('🚀 Script admin.html cargado');
     
     // =================================================================
@@ -161,14 +165,21 @@
                 return;
             }
 
-            const role = profile.role || 'authenticated';
-            console.log('🎭 Rol detectado:', role);
-
+            const role = String(profile.role || 'authenticated').toLowerCase().trim();
             const allowedRoles = ['master', 'admin', 'supervisor'];
+            
+            console.log('🎭 DIAGNÓSTICO DE ROL:');
+            console.log('   - Rol crudo:', profile.role);
+            console.log('   - Rol limpio:', role);
+            console.log('   - Roles permitidos:', allowedRoles);
+            console.log('   - ¿Incluido?:', allowedRoles.includes(role));
+            console.log('   - Profile completo:', profile);
 
             if (!allowedRoles.includes(role)) {
-                console.warn('⛔ Acceso denegado para rol:', role);
-                alert('Acceso denegado: No eres administrador.');
+                console.error('⛔ ACCESO DENEGADO');
+                console.error('   Tu rol:', role);
+                console.error('   Roles válidos:', allowedRoles);
+                alert(`Acceso denegado.\nTu rol: "${role}"\nRoles permitidos: ${allowedRoles.join(', ')}`);
                 window.location.href = '../profile/profile.html';
                 return;
             }
