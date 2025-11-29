@@ -580,12 +580,8 @@ body { visibility: hidden; }
     stroke-width: 12;
     stroke-linecap: round;
     stroke-dasharray: 433.5;
-    stroke-dashoffset: 260;
-    animation: donut-fill 1.5s ease-out forwards;
-}
-
-@keyframes donut-fill {
-    to { stroke-dashoffset: calc(433.5 - (433.5 * 40) / 100); }
+    stroke-dashoffset: 433.5;
+    transition: stroke-dashoffset 1.5s ease-out;
 }
 
 .progress-text {

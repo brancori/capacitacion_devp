@@ -283,12 +283,18 @@ async function mainInit() {
         
         window.safeStorage.set('role', realRole);
         window.safeStorage.set('full_name', realName);
-
+        const isStaff = ['master', 'admin', 'supervisor'].includes(realRole);
         // UI Admin
         const manageBtn = document.getElementById('manageUsersBtn');
         if (manageBtn) {
             const isAdmin = ['master', 'admin', 'supervisor'].includes(realRole);
             manageBtn.style.display = isAdmin ? 'flex' : 'none';
+        }
+
+        const dashboardBtn = document.getElementById('dashboardBtn');
+        if (dashboardBtn) {
+            // Si es Staff (Master/Admin), mostramos el botón como 'inline-flex' para que se alinee bien
+            dashboardBtn.style.display = isStaff ? 'inline-flex' : 'none';
         }
 
         // Configuración Global de Tenant (Esto ya lo tenías bien)

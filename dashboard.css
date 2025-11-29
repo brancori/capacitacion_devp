@@ -138,7 +138,6 @@ body {
 .agenda-dot { position: absolute; bottom: 4px; width: 5px; height: 5px; background-color: var(--primaryColor); border-radius: 50%; }
 
 /* Training Card */
-.training-card , .Ergonimic-card { grid-column: span 2; grid-row: span 1; display: flex; flex-direction: column; justify-content: center; border-left: 4px solid var(--primaryColor); cursor: pointer; }
 .training-content { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
 .icon-float { width: 45px; height: 45px; background: #eef2ff; color: var(--primaryColor); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
 .training-card h3 { font-size: 1.1rem; margin: 0; }
@@ -189,4 +188,227 @@ body {
 .Ergonimic-content{
     display: flex;
     flex-direction: column;
+}
+.training-card-modern {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid transparent;
+    cursor: pointer;
+    gap: 1rem;
+}
+
+.training-card-modern:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+    border-color: rgba(35, 75, 149, 0.2);
+}
+
+.card-header-modern {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.icon-box-modern {
+    width: 42px;
+    height: 42px;
+    background: #eef2ff;
+    color: var(--primaryColor);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.header-info h3 {
+    font-size: 1rem;
+    margin: 0;
+    color: var(--textPage);
+}
+
+.header-info .subtitle {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.badge-modern {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: 1px solid #eee;
+    background: #f8f9fa;
+    transition: all 0.3s;
+}
+
+/* Barra de Progreso */
+.progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.progress-track {
+    height: 6px;
+    background: #f0f0f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primaryColor);
+    border-radius: 3px;
+    transition: width 0.5s ease, background-color 0.3s;
+}
+
+/* Grid de Stats */
+.stats-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    background: #f8fafc;
+    padding: 0.8rem;
+    border-radius: 12px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+}
+
+.stat-item i {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    margin-bottom: 2px;
+}
+
+.stat-num {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--textPage);
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+/* === Estilo Especial para Botón de Solicitudes === */
+.request-btn-special {
+    /* Cambiamos a fila (Row) en lugar de columna */
+    flex-direction: row !important; 
+    align-items: center !important;
+    justify-content: space-between !important;
+    
+    /* Estilo de Botón destacado */
+    background: #fff5f5; /* Fondo rojo muy suave */
+    border: 1px solid #ffcccc;
+    border-radius: 8px;
+    padding: 8px 12px !important; /* Ajuste de padding */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    grid-column: span 1; /* Asegura que ocupe su espacio en el grid */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efecto Hover para dar idea de click */
+.request-btn-special:hover {
+    background: #ffe0e0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.2);
+    border-color: var(--primaryColor);
+}
+
+/* Columna 1: Icono a la izquierda */
+.req-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #fff;
+    border-radius: 50%;
+    color: var(--primaryColor); /* Rojo alerta */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Columna 2: Texto (Número y Label) */
+.req-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Alineado a la izquierda */
+    flex: 1;
+    padding-left: 10px;
+    line-height: 1.2;
+}
+
+
+.request-btn-special .stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--primaryColor);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Flechita decorativa a la derecha */
+.req-arrow {
+    font-size: 0.7rem;
+    color: var(--primaryColor);
+    opacity: 0.5;
+    transition: transform 0.2s;
+}
+
+.request-btn-special:hover .req-arrow {
+    opacity: 1;
+    transform: translateX(2px); /* Pequeño movimiento al hacer hover */
+}
+
+.interactive-stat {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px; /* Borde redondeado para el fondo hover */
+    padding: 0.5rem 0; /* Un poco de aire vertical */
+}
+
+.interactive-stat:hover {
+    background-color: #eef2ff; /* Azul muy suave (mismo tono que tu icon-box) */
+    transform: translateY(-2px); /* Elevación sutil */
+    box-shadow: 0 4px 8px rgba(35, 75, 149, 0.15); /* Sombra suave azulada */
+}
+
+.interactive-stat:hover .stat-num,
+.interactive-stat:hover i {
+    color: var(--primaryColor); /* Resalta el texto e icono en azul fuerte */
+}
+
+/* Ajuste para asegurar que el click sea fácil */
+.interactive-stat:active {
+    transform: translateY(0); /* Efecto de presión al hacer click */
+}
+.training-card , .Ergonimic-card { /* <--- BORRAR ", .Ergonimic-card" */
+    grid-column: span 2; 
+    grid-row: span 1; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    cursor: pointer; 
 }
