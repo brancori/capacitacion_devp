@@ -119,7 +119,7 @@
       }
 
       // CASO 2: LOGIN EXITOSO
-if (data.jwt) {
+      if (data.jwt) {
           const { error: sessionError } = await window.supabase.auth.setSession({
               access_token: data.jwt,
               refresh_token: data.jwt 
@@ -127,11 +127,12 @@ if (data.jwt) {
           
           if (sessionError) throw sessionError;
 
+          // Guardar datos sesión
           window.safeStorage.set('role', data.role);
           window.safeStorage.set('tenant', tenantSlug);
           window.safeStorage.set('user_email', email);
           
-          // Lógica de redirección basada en rol
+          // --- LÓGICA DE REDIRECCIÓN CORREGIDA ---
           if (data.role === 'user') {
               window.location.href = './profile/profile.html';
           } else {
