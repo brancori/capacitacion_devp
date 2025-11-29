@@ -111,7 +111,7 @@ body {
 .fill { height: 100%; background: var(--primaryColor); }
 .fill.purple-fill { background: var(--purple); }
 .mini-tags { display: flex; gap: 5px; flex-wrap: wrap; }
-.mini-tags span { font-size: 0.7rem; background: #f8f9fa; padding: 2px 6px; border-radius: 4px; color: #666; border: 1px solid #eee; }
+.mini-tags span, .ergonomic-list p { font-size: 0.7rem; background: #f8f9fa; padding: 2px 6px; border-radius: 4px; color: #666; border: 1px solid #eee; }
 
 /* Safety Counter */
 .safety-counter-card { grid-column: span 1; grid-row: span 2; background: linear-gradient(160deg, var(--primaryColor), var(--secondaryColor)); color: white; display: flex; flex-direction: column; }
@@ -138,15 +138,15 @@ body {
 .agenda-dot { position: absolute; bottom: 4px; width: 5px; height: 5px; background-color: var(--primaryColor); border-radius: 50%; }
 
 /* Training Card */
-.training-card { grid-column: span 2; grid-row: span 1; display: flex; flex-direction: column; justify-content: center; border-left: 4px solid var(--primaryColor); cursor: pointer; }
+.training-card , .Ergonimic-card { grid-column: span 2; grid-row: span 1; display: flex; flex-direction: column; justify-content: center; border-left: 4px solid var(--primaryColor); cursor: pointer; }
 .training-content { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
 .icon-float { width: 45px; height: 45px; background: #eef2ff; color: var(--primaryColor); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
 .training-card h3 { font-size: 1.1rem; margin: 0; }
 
 /* Manager Card (Scorecard) */
-.manager-card { grid-column: span 1; grid-row: span 2; display: flex; flex-direction: column; }
+.manager-card {  display: flex; flex-direction: column; }
 .manager-card h3 { font-size: 1rem; margin-bottom: 1rem; text-align: center; color: var(--textPage); }
-.score-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
+.score-container {  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
 .compliance-gauge { position: relative; width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(var(--success) calc(var(--percent) * 1%), #eee 0); display: flex; align-items: center; justify-content: center; }
 .gauge-inner { width: 100px; height: 100px; background: var(--white); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .score-number { font-size: 1.8rem; font-weight: 800; color: var(--textPage); line-height: 1; }
@@ -184,4 +184,9 @@ body {
     .card, .calendar-card, .training-card, .manager-card { grid-column: span 1 !important; grid-row: span 1 !important; }
     .day-actions-grid { flex-direction: column; }
     .sidebar { width: 0; padding: 0; overflow: hidden; }
+}
+
+.Ergonimic-content{
+    display: flex;
+    flex-direction: column;
 }

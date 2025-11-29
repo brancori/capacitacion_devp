@@ -1,13 +1,6 @@
+// supabase/functions/custom-login/index.ts
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-function log(stage: string, data: any) {
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    stage,
-    ...data
-  }));
-}
 
 serve(async (req) => {
   const corsHeaders = {
@@ -15,152 +8,90 @@ serve(async (req) => {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   }
 
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
-  const requestId = crypto.randomUUID().split('-')[0];
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    log('REQUEST_START', { requestId, method: req.method });
-
     const { email, password, tenant_slug } = await req.json()
-    log('BODY_PARSED', { requestId, email, tenant_slug, hasPassword: !!password });
-
-    const supabase = createClient(
+    
+    // 1. Cliente Admin para poder leer perfiles sin estar logueado
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
-    log('SUPABASE_CLIENT_CREATED', { requestId });
 
-    log('TENANT_CHECK_START', { requestId, tenant_slug });
-    const { data: tenant, error: tenantError } = await supabase
+    // 2. Obtener Tenant
+    const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
       .select('id')
       .eq('slug', tenant_slug)
       .single()
 
-    if (tenantError) {
-      log('TENANT_ERROR', { requestId, error: tenantError.message, code: tenantError.code });
-    }
-
-    if (!tenant) {
-      log('TENANT_NOT_FOUND', { requestId, tenant_slug });
+    if (tenantError || !tenant) {
       return new Response(
-        JSON.stringify({ error: 'Tenant inválido', error_code: 'INVALID_TENANT' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ error: 'Tenant no válido', error_code: 'INVALID_TENANT' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    log('TENANT_FOUND', { requestId, tenant_id: tenant.id });
+    // 3. BUSCAR PERFIL POR EMAIL (Bypass RLS)
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, status, force_reset, role, tenant_id')
+      .eq('email', email)
+      .eq('tenant_id', tenant.id)
+      .single()
 
-    log('AUTH_START', { requestId, email });
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    // 4. LÓGICA DE USUARIO PENDING (El Bypass solicitado)
+    if (profile && profile.status === 'pending' && profile.force_reset) {
+        return new Response(
+            JSON.stringify({ 
+                action: 'FORCE_RESET', 
+                user_id: profile.id,
+                message: 'Usuario requiere configuración inicial' 
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+    }
+
+    // 5. Lógica de Login Normal (Si no es pending, requiere password)
+    if (!password) {
+        return new Response(
+            JSON.stringify({ error: 'Contraseña requerida', error_code: 'PASSWORD_MISSING' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+    }
+
+    // Autenticación estándar
+    const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password
     })
 
     if (authError) {
-      log('AUTH_FAILED', { requestId, error: authError.message, code: authError.code });
       return new Response(
         JSON.stringify({ error: authError.message, error_code: 'AUTH_ERROR' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    log('AUTH_SUCCESS', { requestId, user_id: authData.user.id, has_session: !!authData.session });
-
-    log('PROFILE_CHECK_START', { requestId, user_id: authData.user.id });
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, tenant_id, force_reset') 
-      .eq('id', authData.user.id)
-      .single();
-
-    if (profileError) {
-      log('PROFILE_ERROR', { requestId, error: profileError.message, code: profileError.code });
+    // Verificar perfil post-login (seguridad extra para tenants cruzados)
+    if (profile && profile.role !== 'master' && profile.tenant_id !== tenant.id) {
+       return new Response(JSON.stringify({ error: 'Acceso denegado', error_code: 'WRONG_TENANT' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-
-    if (!profile) {
-      log('PROFILE_NOT_FOUND', { requestId, user_id: authData.user.id });
-      return new Response(
-        JSON.stringify({ error: 'Perfil no encontrado', error_code: 'NO_PROFILE' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      )
-    }
-
-    log('PROFILE_FOUND', { 
-      requestId, 
-      role: profile.role, 
-      tenant_id: profile.tenant_id, 
-      force_reset: profile.force_reset 
-    });
-
-    if (profile.role !== 'master' && profile.tenant_id !== tenant.id) {
-      log('TENANT_MISMATCH', { 
-        requestId, 
-        profile_tenant: profile.tenant_id, 
-        login_tenant: tenant.id,
-        role: profile.role 
-      });
-      return new Response(JSON.stringify({
-        error: 'Acceso denegado: No perteneces a este tenant',
-        error_code: 'WRONG_TENANT'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403
-      });
-    }
-
-    log('TENANT_MATCH_OK', { requestId });
-
-    if (profile.force_reset === true) {
-        console.log("⚠️ Usuario requiere cambio de contraseña");
-        btn.disabled = false;
-        btn.querySelector('span').textContent = 'Ingresar';
-        showResetPasswordModal(authData.user);
-        return; // DETENER aquí, NO redirigir
-    }
-
-    log('PREPARING_RESPONSE', { 
-      requestId, 
-      has_jwt: !!authData.session?.access_token,
-      jwt_length: authData.session?.access_token?.length,
-      role: profile.role 
-    });
-
-    const response = {
-      jwt: authData.session.access_token,
-      user: authData.user,
-      role: profile.role
-    };
-
-    log('SUCCESS', { 
-      requestId, 
-      user_id: authData.user.id, 
-      role: profile.role,
-      response_has_jwt: !!response.jwt 
-    });
 
     return new Response(
-      JSON.stringify(response),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      JSON.stringify({
+        jwt: authData.session.access_token,
+        user: authData.user,
+        role: profile?.role
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    log('UNEXPECTED_ERROR', { 
-      requestId, 
-      error: error.message, 
-      name: error.name,
-      stack: error.stack 
-    });
     return new Response(
-      JSON.stringify({ 
-        error: error.message, 
-        error_code: 'SERVER_ERROR',
-        request_id: requestId 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
