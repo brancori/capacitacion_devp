@@ -119,7 +119,7 @@
       }
 
       // CASO 2: LOGIN EXITOSO
-      if (data.jwt) {
+if (data.jwt) {
           const { error: sessionError } = await window.supabase.auth.setSession({
               access_token: data.jwt,
               refresh_token: data.jwt 
@@ -131,7 +131,12 @@
           window.safeStorage.set('tenant', tenantSlug);
           window.safeStorage.set('user_email', email);
           
-          window.location.href = './profile/profile.html';
+          // Lógica de redirección basada en rol
+          if (data.role === 'user') {
+              window.location.href = './profile/profile.html';
+          } else {
+              window.location.href = './dashboard.html';
+          }
       }
 
     } catch (err) {

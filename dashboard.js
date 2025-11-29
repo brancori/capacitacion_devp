@@ -260,23 +260,41 @@ async function loadTrainingKPIs() {
         const { data: { user } } = await window.supabase.auth.getUser();
         if (!user) return;
 
-        // 1. Obtener Tenant
+        let tenantId = null;
+
+        // Intentar obtener ID desde el perfil
         const { data: profile } = await window.supabase
             .from('profiles')
             .select('tenant_id')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
-        if (!profile) return;
+        if (profile && profile.tenant_id) {
+            tenantId = profile.tenant_id;
+        } else {
+            // Fallback: Obtener ID desde la tabla tenants usando el slug global
+            const currentSlug = window.CURRENT_TENANT || 'default';
+            const { data: tenantData } = await window.supabase
+                .from('tenants')
+                .select('id')
+                .eq('slug', currentSlug)
+                .maybeSingle();
+            
+            if (tenantData) tenantId = tenantData.id;
+        }
 
-        // 2. Consultas
+        if (!tenantId) {
+            console.error("No se pudo identificar el Tenant ID para cargar KPIs");
+            return;
+        }
+
+        // Consultas usando el tenantId validado
         const [usersReq, coursesReq, assignsReq] = await Promise.all([
-            window.supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('tenant_id', profile.tenant_id),
-            window.supabase.from('articles').select('*', { count: 'exact', head: true }).eq('tenant_id', profile.tenant_id),
-            window.supabase.from('user_course_assignments').select('status').eq('tenant_id', profile.tenant_id)
+            window.supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+            window.supabase.from('articles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+            window.supabase.from('user_course_assignments').select('status').eq('tenant_id', tenantId)
         ]);
 
-        // 3. Cálculos
         const userCount = usersReq.count || 0;
         const courseCount = coursesReq.count || 0;
         const assignments = assignsReq.data || [];
@@ -285,10 +303,8 @@ async function loadTrainingKPIs() {
         const completed = assignments.filter(a => a.status === 'completed').length;
         const requests = assignments.filter(a => a.status === 'not_started' || a.status === 'pending').length; 
 
-        // AQUÍ SE DEFINE PERCENT
         const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-        // 4. Renderizar Textos
         const elUsers = document.getElementById('train-users');
         if(elUsers) elUsers.textContent = userCount;
         
@@ -301,28 +317,26 @@ async function loadTrainingKPIs() {
         const elComp = document.getElementById('train-compliance');
         if(elComp) elComp.textContent = `${percent}%`;
 
-        // 5. Estilos Dinámicos (Badge y Barra)
         const badge = document.getElementById('train-badge');
         const progressBar = document.getElementById('train-progress-bar');
         
-        let colorTheme = '#2ecc71'; // Color por defecto (Verde)
+        let colorTheme = '#2ecc71'; 
 
         if (percent <= 50) { 
-            colorTheme = '#c0392b'; // Rojo
+            colorTheme = '#c0392b'; 
             if(badge) {
                 badge.style.backgroundColor = 'rgba(255, 90, 90, 0.1)';
                 badge.style.borderColor = 'rgb(255, 119, 119)';
                 badge.style.color = colorTheme;
             }
         } else if (percent <= 80) { 
-            colorTheme = '#d35400'; // Naranja
+            colorTheme = '#d35400'; 
             if(badge) {
                 badge.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
                 badge.style.borderColor = 'rgb(255, 193, 7)';
                 badge.style.color = colorTheme;
             }
         } else { 
-            // Verde se mantiene
             if(badge) {
                 badge.style.backgroundColor = 'rgba(46, 204, 113, 0.1)';
                 badge.style.borderColor = 'rgb(46, 204, 113)';
@@ -330,7 +344,6 @@ async function loadTrainingKPIs() {
             }
         }
 
-        // Aplicar a la barra de progreso (Usando la variable percent correctamente)
         if (progressBar) {
             progressBar.style.width = `${percent}%`;
             progressBar.style.backgroundColor = colorTheme;
