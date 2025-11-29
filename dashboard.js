@@ -257,85 +257,83 @@ window.onclick = function(ev) {
 
 async function loadTrainingKPIs() {
     try {
-        console.log("🔄 Iniciando carga de KPIs...");
+        console.log("🔄 Carga de KPIs: Estrategia .length");
         
         // 1. Verificar usuario
         const { data: { user } } = await window.supabase.auth.getUser();
         if (!user) return;
 
-        // 2. OBTENCIÓN ROBUSTA DEL TENANT ID
-        // Intentamos obtenerlo de la URL primero (es lo más rápido y seguro en tu caso)
+        // 2. Obtener Tenant ID (Prioridad URL > Perfil)
         let tenantId = null;
-        
         if (window.CURRENT_TENANT) {
-            const { data: tData } = await window.supabase
-                .from('tenants')
-                .select('id')
-                .eq('slug', window.CURRENT_TENANT)
-                .maybeSingle();
+            const { data: tData } = await window.supabase.from('tenants').select('id').eq('slug', window.CURRENT_TENANT).maybeSingle();
             if (tData) tenantId = tData.id;
         }
-
-        // Si falló la URL, intentamos por perfil
         if (!tenantId) {
-             const { data: pData } = await window.supabase
-                .from('profiles')
-                .select('tenant_id')
-                .eq('id', user.id)
-                .maybeSingle();
+             const { data: pData } = await window.supabase.from('profiles').select('tenant_id').eq('id', user.id).maybeSingle();
              if (pData) tenantId = pData.tenant_id;
         }
 
         if (!tenantId) {
-            console.error("❌ No se encontró Tenant ID. KPIs en 0.");
+            console.error("❌ Sin Tenant ID.");
             return;
         }
 
-        console.log("✅ Usando Tenant ID:", tenantId);
-
-        // 3. CONSULTAS (Usando el ID validado)
+        // 3. CONSULTAS (Pedimos solo 'id' para que sea ligero, SIN head:true)
         const [usersReq, coursesReq, assignsReq] = await Promise.all([
-            window.supabase.from('profiles').select('id', { count: 'exact' }).eq('tenant_id', tenantId),
-            window.supabase.from('articles').select('id', { count: 'exact' }).eq('tenant_id', tenantId),
+            window.supabase.from('profiles').select('id').eq('tenant_id', tenantId),
+            window.supabase.from('articles').select('id').eq('tenant_id', tenantId),
             window.supabase.from('user_course_assignments').select('status').eq('tenant_id', tenantId)
         ]);
 
-        // 4. ACTUALIZAR PANTALLA
-        const userCount = usersReq.count || 0;
-        const courseCount = coursesReq.count || 0; // Aquí debería salir 5
-        const assignments = assignsReq.data || [];
-        
-        console.log(`📊 Datos recibidos - Usuarios: ${userCount}, Cursos: ${courseCount}`);
+        // 4. ACTUALIZAR PANTALLA USANDO .length (Esto es lo que arregla el 0)
+        // Si usersReq.data es null, usamos array vacío []
+        const usersData = usersReq.data || [];
+        const coursesData = coursesReq.data || [];
+        const assignsData = assignsReq.data || [];
 
-        // Función helper para escribir en el HTML
+        const userCount = usersData.length;     // Contamos manualmente
+        const courseCount = coursesData.length; // Contamos manualmente
+        
+        console.log(`📊 ÉXITO: Se encontraron ${courseCount} cursos y ${userCount} usuarios.`);
+
+        // Función helper UI
         const setTxt = (id, txt) => { 
             const el = document.getElementById(id); 
-            if(el) { el.textContent = txt; el.classList.remove('loading'); }
+            if(el) { el.textContent = txt; }
         };
 
         setTxt('train-users', userCount);
         setTxt('train-courses', courseCount);
         
         // Cálculos de progreso
-        const total = assignments.length;
-        const requests = assignments.filter(a => ['not_started', 'pending'].includes(a.status)).length; 
-        const completed = assignments.filter(a => a.status === 'completed').length;
+        const total = assignsData.length;
+        const requests = assignsData.filter(a => ['not_started', 'pending'].includes(a.status)).length; 
+        const completed = assignsData.filter(a => a.status === 'completed').length;
         const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
         setTxt('train-requests', requests);
         setTxt('train-compliance', `${percent}%`);
 
-        // Barra de progreso
+        // Estilos barra
         const progressBar = document.getElementById('train-progress-bar');
+        const badge = document.getElementById('train-badge');
+        
         if (progressBar) {
             progressBar.style.width = `${percent}%`;
-            // Color según porcentaje
-            if(percent <= 50) progressBar.style.backgroundColor = '#c0392b';
-            else if(percent <= 80) progressBar.style.backgroundColor = '#d35400';
-            else progressBar.style.backgroundColor = '#2ecc71';
+            // Color semáforo
+            let color = '#2ecc71';
+            if(percent <= 50) color = '#c0392b';
+            else if(percent <= 80) color = '#d35400';
+            
+            progressBar.style.backgroundColor = color;
+            if(badge) {
+                badge.style.color = color;
+                badge.style.borderColor = color;
+            }
         }
 
     } catch (err) {
-        console.error('🔥 Error en KPIs:', err);
+        console.error('🔥 Error KPIs:', err);
     }
 }
