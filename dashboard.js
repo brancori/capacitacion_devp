@@ -295,8 +295,7 @@ async function loadTrainingKPIs() {
 
         // 3. CONSULTAS (Usando el ID validado)
         const [usersReq, coursesReq, assignsReq] = await Promise.all([
-            window.supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
-            // Nota: Quitamos head:true un momento para asegurar que no sea cache
+            window.supabase.from('profiles').select('id', { count: 'exact' }).eq('tenant_id', tenantId),
             window.supabase.from('articles').select('id', { count: 'exact' }).eq('tenant_id', tenantId),
             window.supabase.from('user_course_assignments').select('status').eq('tenant_id', tenantId)
         ]);
