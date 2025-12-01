@@ -5,17 +5,17 @@
   "type": "image",
   "title": "Visualización",
   "payload": {
-    "url": "./cursos_json/permiso_trabajo/Diapositiva1.svg",
+    "url": "./cursos_json/permiso_trabajo/Diapositiva1.PNG",
     "description": "Descripción opcional"
   }
     },
-        {
-      "id": "p0_seguridad_personal",
-      "type": "text",
-      "title": "1. Seguridad Personal y Evaluación de la Escena",
+    {
+      "id": "p10",
+      "type": "image",
+      "title": "Visualización",
       "payload": {
-        "html": "<div style='background:linear-gradient(135deg,#fff 0%,#f8f9fa 100%); padding:25px; border-radius:15px; box-shadow:0 8px 25px rgba(0,0,0,0.1);'><div style='background:linear-gradient(135deg,#dc3545,#c82333); color:white; padding:20px; border-radius:12px; margin-bottom:20px; text-align:center;'><span style='font-size:3rem;'>🛡️</span><h2 color: white; style='margin:10px 0 5px;'>La Regla de Oro: YO, YO, YO</h2><p style='margin:0; opacity:0.9;'>El rescatista NUNCA debe convertirse en una segunda víctima</p></div><div style='display:grid; gap:15px; margin:20px 0;'><div style='background:#fff; padding:20px; border-radius:12px; border-left:5px solid #28a745; box-shadow:0 3px 10px rgba(0,0,0,0.08);'><h4 style='color:#28a745; margin:0 0 10px; display:flex; align-items:center; gap:10px;'><span style='font-size:1.5rem;'>👁️</span> OBSERVAR</h4><p style='margin:0; color:#555;'>Antes de acercarte, evalúa la escena desde una distancia segura. Busca peligros como cables eléctricos, fuego, tráfico, derrames químicos o situaciones de violencia.</p></div><div style='background:#fff; padding:20px; border-radius:12px; border-left:5px solid #007bff; box-shadow:0 3px 10px rgba(0,0,0,0.08);'><h4 style='color:#007bff; margin:0 0 10px; display:flex; align-items:center; gap:10px;'><span style='font-size:1.5rem;'>😷</span> PROTEGERSE</h4><p style='margin:0; color:#555;'>Usa Equipo de Protección Personal (EPP): guantes, protección ocular, mascarilla. Si no tienes guantes, usa bolsas plásticas como barrera.</p></div><div style='background:#fff; padding:20px; border-radius:12px; border-left:5px solid #ffc107; box-shadow:0 3px 10px rgba(0,0,0,0.08);'><h4 style='color:#e6a000; margin:0 0 10px; display:flex; align-items:center; gap:10px;'><span style='font-size:1.5rem;'>🔍</span> EVALUAR MECANISMO</h4><p style='margin:0; color:#555;'>Determina qué causó el accidente. ¿Fue un choque? ¿Una caída? ¿Un colapso súbito? Esto te ayudará a anticipar posibles lesiones.</p></div></div><div style='background:#e7f3ff; padding:20px; border-radius:12px; border:2px dashed #007bff; text-align:center;'><span style='font-size:2rem;'>⚠️</span><p style='margin:10px 0 0; color:#0056b3; font-weight:600;'>RECUERDA: Si la escena NO es segura, NO te acerques. Llama al 911 y espera a los profesionales.</p></div></div>",
-        "showNext": true
+        "url": "./cursos_json/permiso_trabajo/Diapositiva2.PNG",
+        "description": "Descripción opcional"
       }
     }
 
