@@ -287,6 +287,15 @@ window.renderPage = function(index) {
             }
             break;
 
+            case 'image': // Sirve para png, jpg, svg
+    pageContentEl.innerHTML = `
+        <div class="image-slide-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+            <img src="${page.payload.url}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:12px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
+            ${page.payload.description ? `<p style="margin-top:1rem; color:#666;">${page.payload.description}</p>` : ''}
+        </div>
+    `;
+    break;
+
         case 'quiz':
             // Si el quiz viene en el JSON de la página
             if (page.payload && page.payload.questions) {
