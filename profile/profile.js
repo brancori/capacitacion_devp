@@ -229,49 +229,28 @@ function renderCourses(list, containerId, emptyMsg, isCompletedSection = false, 
   // FUNCIÓN PRINCIPAL MAIN INIT
   // ═══════════════════════════════════════════════════════════
 async function mainInit() {
-    // 1. Esperar a Supabase
     if (!window.supabase?.auth) { setTimeout(mainInit, 100); return; }
 
     try {
         const supabase = window.supabase;
-
-        // ═══════════════════════════════════════════════════════════
-        // 🛡️ INICIO BLOQUE DE RECUPERACIÓN (FALTABA ESTO)
-        // ═══════════════════════════════════════════════════════════
         let { data: { session } } = await supabase.auth.getSession();
         
-        // Si Supabase dice "No hay sesión", buscamos manualmente antes de rendirnos
+        // Bloque de recuperación (igual que tu código original)...
         if (!session) {
-            console.warn('⚠️ Sesión no detectada. Buscando respaldo manual...');
-            
-            // Buscar llave de token en localStorage
-            const tokenKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-            
-            if (tokenKey) {
+             const tokenKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+             if (tokenKey) {
                 try {
                     const token = JSON.parse(localStorage.getItem(tokenKey));
-                    // Forzamos la sesión
                     const { data } = await supabase.auth.setSession({
                         access_token: token.access_token,
                         refresh_token: token.refresh_token
                     });
-                    
-                    if (data.session) {
-                        session = data.session;
-                        console.log('✅ ¡Sesión recuperada manualmente!');
-                    }
-                } catch (e) {
-                    console.error('❌ Falló recuperación manual:', e);
-                }
-            }
+                    if (data.session) session = data.session;
+                } catch (e) {}
+             }
         }
-        // ═══════════════════════════════════════════════════════════
-        // 🛡️ FIN BLOQUE DE RECUPERACIÓN
-        // ═══════════════════════════════════════════════════════════
 
-        // Si después del intento sigue sin haber sesión, entonces sí expulsamos
         if (!session) { 
-            console.warn('⛔ Sin sesión válida. Redirigiendo...');
             window.location.href = '../index.html'; 
             return; 
         }
@@ -279,36 +258,34 @@ async function mainInit() {
         const user = session.user;
         const meta = user.app_metadata || {};
         const realRole = meta.role || 'authenticated';
-        const realName = user.user_metadata?.full_name || 'Usuario';
         
+        // --- DEBUG LOGS ---
+        console.group("🔍 DEBUG: Sesión y Roles");
+        console.log("🆔 User ID:", user.id);
+        console.log("🎭 App Metadata Role (Token):", meta.role);
+        console.log("💾 LocalStorage Role (Anterior):", window.safeStorage.get('role'));
+        console.log("🔑 Token JWT completo:", session.access_token); // Útil para decodificar en jwt.io si es necesario
+        console.groupEnd();
+        // ------------------
+
         window.safeStorage.set('role', realRole);
-        window.safeStorage.set('full_name', realName);
+        window.safeStorage.set('full_name', user.user_metadata?.full_name || 'Usuario');
+        
+        // Resto de tu lógica de UI (Admin buttons, etc)...
         const isStaff = ['master', 'admin', 'supervisor'].includes(realRole);
-        // UI Admin
         const manageBtn = document.getElementById('manageUsersBtn');
-        if (manageBtn) {
-            const isAdmin = ['master', 'admin', 'supervisor'].includes(realRole);
-            manageBtn.style.display = isAdmin ? 'flex' : 'none';
-        }
-
+        if (manageBtn) manageBtn.style.display = isStaff ? 'flex' : 'none';
+        
         const dashboardBtn = document.getElementById('dashboardBtn');
-        if (dashboardBtn) {
-            // Si es Staff (Master/Admin), mostramos el botón como 'inline-flex' para que se alinee bien
-            dashboardBtn.style.display = isStaff ? 'inline-flex' : 'none';
-        }
+        if (dashboardBtn) dashboardBtn.style.display = isStaff ? 'inline-flex' : 'none';
 
-        // Configuración Global de Tenant (Esto ya lo tenías bien)
         if (window.APP_CONFIG) {
             const companyNameEl = document.getElementById('companyName');
-            if (companyNameEl) {
-                 companyNameEl.innerHTML = `<i class="fas fa-graduation-cap"></i> ${window.APP_CONFIG.companyName}`;
-            }
+            if (companyNameEl) companyNameEl.innerHTML = `<i class="fas fa-graduation-cap"></i> ${window.APP_CONFIG.companyName}`;
         }
         
         setupNotificationUI();
         initUI();
-
-        console.log('🔄 Cargando datos...'); 
 
         await Promise.all([
             loadRealDashboardData(user.id, window.supabase),
@@ -430,38 +407,49 @@ async function loadCatalog(userId, supabase) {
   else mainInit();
 
 
-  async function loadNotifications(userId, supabase) {
-    console.log('🔔 Buscando notificaciones...');
+async function loadNotifications(userId, supabase) {
     const listContainer = document.querySelector('.notification-list');
     const badge = document.querySelector('.notification-badge');
-    if (!listContainer) return;
+    
+    // --- DEBUG INICIO ---
+    console.log('🔔 Solicitando notificaciones a Supabase...');
+    // --------------------
 
     const { data: notifs, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select('id, title, type, is_read, created_at') // Pedimos campos específicos para ver el 'type'
         .eq('user_id', userId)
         .eq('is_read', false)
         .order('created_at', { ascending: false });
 
-if (error) {
-        console.error('❌ Error cargando notificaciones:', error); // DEBUG IMPORTANTE
+    if (error) {
+        console.error('❌ Error RLS o Red al cargar notificaciones:', error);
         return;
     }
 
-    console.log(`📬 Encontradas ${notifs?.length || 0} notificaciones.`); // DEBUG
+    // --- DEBUG RESULTADOS ---
+    console.group("📬 DEBUG: Resultados de Notificaciones");
+    console.log(`Cantidad recibida: ${notifs?.length || 0}`);
+    if (notifs && notifs.length > 0) {
+        console.table(notifs); // ESTO ES CLAVE: Mira la columna 'type' aquí
+        console.log("Nota: Si ves notificaciones de tipo 'admin' aquí siendo usuario 'user', la RLS está fallando.");
+    } else {
+        console.log("✅ Lista vacía (Correcto si el usuario no tiene permisos)");
+    }
+    console.groupEnd();
+    // ------------------------
 
-    // Actualizar Badge
+    // Lógica de renderizado (Badge UI)
     if (badge) {
         if (notifs && notifs.length > 0) {
             badge.textContent = notifs.length;
             badge.style.display = 'flex';
-            badge.classList.add('pulse'); // Efecto visual opcional
+            badge.classList.add('pulse');
         } else {
             badge.style.display = 'none';
         }
     }
 
-    // Si no hay contenedor (panel no abierto aún), no renderizamos lista, pero el badge ya está listo.
     if (!listContainer) return;
 
     if (!notifs || notifs.length === 0) {
@@ -469,6 +457,7 @@ if (error) {
         return;
     }
 
+    // Renderizado HTML
     listContainer.innerHTML = notifs.map(n => `
         <div class="notification-item ${n.type}" onclick="markAsRead('${n.id}', '${n.link || '#'}')">
             <div class="notification-icon-box">
@@ -476,12 +465,13 @@ if (error) {
             </div>
             <div class="notification-content">
                 <h4>${n.title}</h4>
-                <p>${n.message}</p>
+                <p>${n.message || 'Sin detalle'}</p>
                 <div class="notification-time">${new Date(n.created_at).toLocaleDateString()}</div>
+                <small style="color:red; font-size:10px;">Debug Type: ${n.type}</small>
             </div>
         </div>
     `).join('');
-  }
+}
 
   function getIconForType(type) {
     switch(type) {
