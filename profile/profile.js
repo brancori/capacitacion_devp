@@ -417,7 +417,7 @@ async function loadNotifications(userId, supabase) {
 
     const { data: notifs, error } = await supabase
         .from('notifications')
-        .select('id, title, type, is_read, created_at') // Pedimos campos específicos para ver el 'type'
+        .select('id, title, message, type, is_read, created_at')
         .eq('user_id', userId)
         .eq('is_read', false)
         .order('created_at', { ascending: false });
