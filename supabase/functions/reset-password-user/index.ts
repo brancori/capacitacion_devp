@@ -1,6 +1,6 @@
-// supabase/functions/reset-password-user/index.ts
+// supabase/functions/seed-users/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,50 +11,124 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { userId, newPassword } = await req.json()
-    
-    const supabaseAdmin = createClient(
+    const body = await req.json()
+    const { 
+      cleanup = false,           // Nuevo: limpiar antes de crear
+      tenant_slug = 'test-suite',
+      custom_users = null        // Nuevo: usuarios personalizados con estados
+    } = body
+
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Doble verificación de seguridad: Solo permitir si sigue en pending/force_reset
-    const { data: profile } = await supabaseAdmin
+    // PASO 0: LIMPIEZA (si se solicita)
+    if (cleanup) {
+      console.log('🧹 Limpiando usuarios de prueba...')
+      
+      // Eliminar perfiles de prueba
+      const { data: testProfiles } = await supabase
         .from('profiles')
-        .select('status, force_reset')
-        .eq('id', userId)
-        .single()
+        .select('id')
+        .or('email.like.test.%@test.com,email.like.pending.%@test.com,email.like.forcereset.%@test.com,email.like.othertenant.%@test.com')
 
-    const isValidStatus = profile?.status === 'pending' || profile?.status === 'active';
-
-    if (!profile || !isValidStatus || !profile.force_reset) {
-        throw new Error("Operación no permitida: El usuario no requiere restablecimiento.")
+      if (testProfiles?.length) {
+        for (const profile of testProfiles) {
+          await supabase.auth.admin.deleteUser(profile.id)
+        }
+      }
     }
 
-    // 1. Actualizar contraseña en Auth
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      userId,
-      { password: newPassword, email_confirm: true }
-    )
-    if (updateError) throw updateError
+    // PASO 1: Asegurar Tenant
+    let { data: tenant } = await supabase
+      .from('tenants')
+      .select('id')
+      .eq('slug', tenant_slug)
+      .single()
+    
+    if (!tenant) {
+      const { data: newTenant } = await supabase
+        .from('tenants')
+        .insert({ name: 'Test Suite Tenant', slug: tenant_slug })
+        .select('id')
+        .single()
+      tenant = newTenant
+    }
 
-    // 2. Actualizar perfil a Active
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .update({ status: 'active', force_reset: false })
-      .eq('id', userId)
+    // PASO 2: Definir usuarios a crear
+    const defaultUsers = [
+      { email: 'test.master@test.com', role: 'master', status: 'active', force_reset: false },
+      { email: 'test.admin@test.com', role: 'admin', status: 'active', force_reset: false },
+      { email: 'test.supervisor@test.com', role: 'supervisor', status: 'active', force_reset: false },
+      { email: 'test.auditor@test.com', role: 'auditor', status: 'active', force_reset: false },
+      { email: 'test.user@test.com', role: 'user', status: 'active', force_reset: false },
+    ]
 
-    if (profileError) throw profileError
+    const usersToCreate = custom_users || defaultUsers
+    const results = []
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    )
+    // PASO 3: Crear usuarios
+    for (const u of usersToCreate) {
+      // A. Borrar usuario existente (para resetear)
+      const { data: existingProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', u.email)
+
+      if (existingProfiles?.length) {
+        for (const p of existingProfiles) {
+          await supabase.auth.admin.deleteUser(p.id)
+        }
+      }
+
+      // B. Crear Usuario en Auth
+      const { data: user, error: createError } = await supabase.auth.admin.createUser({
+        email: u.email,
+        password: u.password || 'password123',
+        email_confirm: true,
+        user_metadata: { full_name: u.full_name || `Test ${u.role.toUpperCase()}` }
+      })
+
+      if (createError) {
+        results.push({ email: u.email, status: 'error', msg: createError.message })
+        continue
+      }
+
+      // C. Actualizar Perfil con configuración específica
+      if (user.user) {
+        const targetTenant = u.role === 'master' ? null : tenant.id
+        
+        await supabase
+          .from('profiles')
+          .update({
+            role: u.role,
+            tenant_id: targetTenant,
+            status: u.status || 'active',
+            full_name: u.full_name || `Test ${u.role.toUpperCase()}`,
+            force_reset: u.force_reset || false
+          })
+          .eq('id', user.user.id)
+        
+        results.push({ 
+          email: u.email, 
+          status: 'created', 
+          role: u.role,
+          profile_status: u.status || 'active',
+          force_reset: u.force_reset || false
+        })
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, results }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200 
+    })
 
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: error.message }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500 
+    })
   }
 })
