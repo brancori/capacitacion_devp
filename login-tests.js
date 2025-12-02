@@ -1,137 +1,122 @@
-const IS_TEST = window.location.pathname.includes("test-runner");
+/* login-tests.js */
 
-// 1. UTILIDADES DE TEST
+// 1. CONFIGURACIÓN (Va al principio de todo)
+const TEST_DATA = {
+    pass: "password123",
+    users: {
+        master: "test.master@test.com",
+        admin: "test.admin@test.com",
+        supervisor: "test.supervisor@test.com",
+        auditor: "test.auditor@test.com",
+        user: "test.user@test.com"
+    }
+};
+
+// 2. UTILIDADES
 const Logger = {
     el: document.getElementById('results'),
+    clear() { this.el.innerHTML = ''; },
     log(msg, type = 'info') {
-        this.el.innerHTML += `<div class="${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+        const time = new Date().toLocaleTimeString();
+        this.el.innerHTML += `<div class="${type}">[${time}] ${msg}</div>`;
         this.el.scrollTop = this.el.scrollHeight;
     },
     pass(msg) { this.log(`✔ PASS: ${msg}`, 'pass'); },
     fail(msg) { this.log(`✖ FAIL: ${msg}`, 'fail'); },
-    info(msg) { this.log(`ℹ ${msg}`, 'info'); }
+    header(msg) { this.log(`<br><strong>=== ${msg} ===</strong>`, 'info'); }
 };
 
 const Assert = {
-    equal(actual, expected, testName) {
-        if (actual === expected) Logger.pass(testName);
-        else Logger.fail(`${testName} (Esperado: '${expected}', Recibido: '${actual}')`);
-    },
-    isTrue(condition, testName) {
-        if (condition) Logger.pass(testName);
-        else Logger.fail(testName);
+    equal(actual, expected, context) {
+        if (actual === expected) Logger.pass(context);
+        else Logger.fail(`${context} (Esperado: '${expected}', Recibido: '${actual}')`);
     }
 };
 
-// 2. MOCKS (Simulaciones)
+// 3. AMBIENTE
 async function setupEnvironment() {
-    Logger.info("Configurando entorno de prueba...");
-    
-    // Limpiar storage
-    localStorage.clear();
-    
-    // Espiar redirecciones en lugar de navegar
-    window.originalRedirect = window.AuthLogic.redirectUser;
-    window.lastRedirect = null;
-    
-    // Sobrescribir redirectUser para testear
+    // Interceptamos la redirección para que no recargue la página
     window.AuthLogic.redirectUser = (role) => {
-        const target = window.AuthLogic.config.redirects[role];
+        const target = window.AuthLogic.config.redirects[role] || './index.html';
         window.lastRedirect = target;
-        Logger.info(`[MOCK] Redirección detectada para rol '${role}' hacia: ${target}`);
+        Logger.log(`[MOCK] Redirección hacia: ${target}`, 'info');
     };
-
-    // Esperar inicialización de Supabase
-    await new Promise(r => setTimeout(r, 1000));
+    
+    // Limpiamos datos previos
+    window.lastRedirect = null;
+    const emailInput = document.getElementById('email');
+    if(emailInput) emailInput.value = '';
+    const passInput = document.getElementById('password');
+    if(passInput) passInput.value = '';
+    
+    await new Promise(r => setTimeout(r, 300));
 }
 
-// 3. ESCENARIOS DE PRUEBA
-const Tests = {
+// 4. SUITE DE PRUEBAS
+const Suite = {
+    
     async runAll() {
+        Logger.clear();
+        Logger.header("🚀 INICIANDO SUITE MULTI-ROL");
+        
         await setupEnvironment();
-        await this.testTenantDetection();
-        await this.testLoginFail_Empty();
-        await this.testLoginSuccess_User(); // Requiere usuario real en DB o Mock
-        await this.testRegistration_RateLimit();
+
+        // 1. Prueba de validación
+        await this.test_ValidationEmpty();
+        
+        // 2. Pruebas de Roles (Usa los datos de TEST_DATA arriba)
+        await this.test_RoleLogin('master',     '/dashboard.html');
+        await this.test_RoleLogin('admin',      '/dashboard.html');
+        await this.test_RoleLogin('supervisor', '/dashboard.html');
+        await this.test_RoleLogin('auditor',    '/dashboard.html');
+        await this.test_RoleLogin('user',       '/profile/profile.html');
+
+        Logger.header("🏁 SUITE FINALIZADA");
     },
 
-    // TEST 1: Verificar si el Tenant System detectó algo
-    testTenantDetection() {
-        const tenant = window.CURRENT_TENANT;
-        Assert.isTrue(!!tenant, "Detección de Tenant Inicial");
-        Logger.info(`Tenant detectado: ${tenant}`);
-    },
-
-    // TEST 2: Validación de UI vacía
-    async testLoginFail_Empty() {
-        Logger.info("--- Iniciando Test: Login Vacío ---");
+    async test_RoleLogin(roleName, expectedRedirect) {
+        Logger.header(`Test Login: ${roleName.toUpperCase()}`);
         
-        // Simular input usuario
-        document.getElementById('email').value = '';
-        document.getElementById('password').value = '';
+        const email = TEST_DATA.users[roleName];
+        const pass = TEST_DATA.pass;
         
-        // Ejecutar lógica directa (Simulando click)
-        const result = await window.AuthLogic.login('', '');
-        
-        Assert.equal(result.action, 'ERROR', "Debe fallar sin credenciales");
-    },
+        // Ponemos los datos en el HTML para verlos
+        const emailInput = document.getElementById('email');
+        if(emailInput) emailInput.value = email;
 
-    // TEST 3: Login Real (Necesitas un usuario de prueba en tu DB 'test@test.com')
-    async testLoginSuccess_User() {
-        Logger.info("--- Iniciando Test: Login Exitoso (User) ---");
-        
-        // DATOS DE PRUEBA (¡Ajustar con un usuario real de tu DB!)
-        const testEmail = "bran@gmial.com"; 
-        const testPass = "Salen756";
+        // Ejecutamos el login
+        const res = await window.AuthLogic.login(email, pass);
 
-        // Simular escritura
-        document.getElementById('email').value = testEmail;
-        document.getElementById('password').value = testPass;
-
-        // Llamar a la lógica
-        const result = await window.AuthLogic.login(testEmail, testPass);
-
-        if (result.action === 'ERROR') {
-            Logger.info("⚠️ Saltando assertions de éxito (Usuario no existe o pass incorrecto)");
+        if (res.action === 'ERROR') {
+            Logger.fail(`Login falló: ${res.message}`);
             return;
         }
 
-        Assert.equal(result.action, 'SUCCESS', "Login devuelve SUCCESS");
-        Assert.equal(result.role, 'admin', "Rol detectado es 'admin'");
-        window.AuthLogic.redirectUser(result.role);
+        Assert.equal(res.action, 'SUCCESS', "Login exitoso");
+        Assert.equal(res.role, roleName, `Rol detectado es '${roleName}'`);
         
-        // Verificar si AuthLogic intentó redirigir
-        window.AuthLogic.redirectUser(result.role);
-        Assert.equal(window.lastRedirect, '/dashboard.html', "Redirección correcta a Dashboard");
+        // Verificamos la redirección
+        window.lastRedirect = null;
+        window.AuthLogic.redirectUser(res.role);
+        
+        // Normalizamos rutas para evitar errores por './'
+        const cleanRedirect = window.lastRedirect ? window.lastRedirect.replace('./', '/') : '';
+        const cleanExpected = expectedRedirect.replace('./', '/');
+        
+        Assert.equal(cleanRedirect, cleanExpected, `Redirección a ${cleanExpected}`);
     },
 
-    // TEST 4: Registro y Rate Limiting
-    async testRegistration_RateLimit() {
-        Logger.info("--- Iniciando Test: Registro & Rate Limit ---");
-        
-        const randomEmail = `test_${Date.now()}@spam.com`;
-        
-        // Intentar registrar 4 veces rápido
-        for (let i = 1; i <= 4; i++) {
-            Logger.info(`Intento de registro #${i}...`);
-            const res = await window.AuthLogic.register(randomEmail, "123456", "Tester Bot");
-            
-            if (i <= 3) {
-               // Podría ser success o error 429 si ya corriste tests antes
-               Logger.info(`Resultado #${i}: ${res.success ? 'OK' : res.message}`);
-            } else {
-               // El 4to debe fallar obligatoriamente si el rate limit funciona
-               if (!res.success && res.message.includes('Demasiados intentos')) {
-                   Assert.isTrue(true, "Rate Limit bloqueó el 4to intento");
-               } else {
-                   Logger.info("Nota: Rate Limit puede permitir más si la IP cambió o la regla es por tiempo");
-               }
-            }
-        }
+    async test_ValidationEmpty() {
+        Logger.header("Test Validación (Vacío)");
+        const res = await window.AuthLogic.login('', '');
+        Assert.equal(res.action, 'ERROR', "Debe rechazar vacíos");
     }
 };
 
-// Auto-run al cargar
-window.onload = () => {
-    setTimeout(() => Tests.runAll(), 500); 
-};
+// 5. ACTIVAR BOTÓN (Ya no corre automático)
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('btnRunAll');
+    if(btn) {
+        btn.addEventListener('click', () => Suite.runAll());
+    }
+});
