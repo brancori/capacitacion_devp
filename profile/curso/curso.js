@@ -113,10 +113,6 @@ async function fetchCourseData() {
             .select("title, content_json, quiz_json, tenant_id")
             .eq("id", courseId);
 
-        if (myRole !== "master" && myRole !== "admin") {
-            if (myTenantId) query = query.eq("tenant_id", myTenantId);
-        }
-
         // ⚠️ NOTA: Quitamos .single() por seguridad para manejar el array manualmente
         const { data: rawData, error } = await query;
 
