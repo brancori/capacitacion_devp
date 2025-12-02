@@ -86,52 +86,48 @@ const Suite = {
     },
 
     // --- NUEVO TEST DE REGISTRO ---
-    async test_RegistrationFlow() {
+async test_RegistrationFlow() {
         Logger.header("Test Registro Nuevo Usuario");
 
-        // 1. Generar datos únicos para evitar error "User already exists"
         const timestamp = Date.now();
         const regEmail = `test.reg.${timestamp}@test.com`;
         const regPass = "password123";
         const regName = "Usuario Test Auto";
 
-        Logger.log(`Intentando registrar: ${regEmail}`, 'info');
+        Logger.log(`1. Enviando solicitud para: ${regEmail}`, 'info');
 
-        // 2. Ejecutar la lógica de Registro (AuthLogic.register)
-        // Nota: Esto simula el llenado del modal y el click en "Enviar"
+        // Paso A: Registro
         const res = await window.AuthLogic.register(regEmail, regPass, regName);
 
         if (!res.success) {
             Logger.fail(`Fallo al registrar: ${res.message}`);
             return;
         }
+        Assert.isTrue(res.success, "Solicitud enviada exitosamente");
 
-        // 3. Validaciones
-        Assert.isTrue(res.success, "Respuesta de registro exitosa");
-        
-        // Verificamos si la respuesta trae los datos esperados
-        // Dependiendo de tu Edge Function 'register-user', suele devolver el user o un mensaje
-        if (res.data) {
-            Logger.pass("Datos de usuario recibidos del servidor");
-        }
-
-        // 4. Intento de Login Inmediato (Debe fallar o pedir confirmación)
-        // Si el usuario nace como 'pending', no debería poder loguearse aún sin confirmar email
-        // O si tu lógica lo permite, debería entrar. Vamos a verificar el estado.
-        Logger.log("Verificando login inmediato post-registro...", 'info');
+        // Paso B: Verificar Bloqueo
+        Logger.log("2. Verificando que NO pueda entrar sin aprobación...", 'info');
         const loginRes = await window.AuthLogic.login(regEmail, regPass, TEST_DATA.tenant);
         
         if (loginRes.action === 'ERROR') {
-             if (loginRes.message.includes('Email not confirmed') || loginRes.message.includes('Invalid login')) {
-                 Logger.pass("Login bloqueado correctamente (Esperando confirmación/aprobación)");
-             } else {
-                 Logger.log(`Login post-registro: ${loginRes.message}`, 'info');
-             }
+             Logger.pass("Login bloqueado correctamente");
         } else {
-             Logger.log(`Login post-registro exitoso. Rol: ${loginRes.role}`, 'info');
+             Logger.fail(`¡ALERTA! Usuario entró sin aprobación.`);
         }
 
-        Logger.log("Nota: El usuario de prueba persiste en BD (Auth). Se requiere limpieza manual o RPC Admin.", 'info');
+        // --- PASO C: LIMPIEZA AUTOMÁTICA (NUEVO) ---
+        Logger.log("3. Limpiando datos de prueba...", 'info');
+        try {
+            const { error } = await window.supabase.rpc('cleanup_test_data');
+            
+            if (error) {
+                Logger.log(`Error en limpieza RPC: ${error.message}`, 'fail');
+            } else {
+                Logger.pass("🗑️ Usuario temporal eliminado de BD correctamente");
+            }
+        } catch (e) {
+            Logger.log(`Excepción en limpieza: ${e.message}`, 'fail');
+        }
     },
 
     // --- TESTS DE LOGIN ---
