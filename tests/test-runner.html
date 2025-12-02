@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2E Login Test Suite</title>
+    <style>
+        body { font-family: monospace; background: #1e1e1e; color: #fff; padding: 20px; }
+        .test-container { display: flex; gap: 20px; }
+        .mock-ui { border: 1px solid #444; padding: 20px; border-radius: 8px; width: 300px; background: #141E30; }
+        .logs { flex: 1; background: #000; padding: 15px; border-radius: 8px; height: 80vh; overflow-y: auto; white-space: pre-wrap; }
+        .pass { color: #0f0; } .fail { color: #f00; font-weight: bold; } .info { color: #888; }
+        input { display: block; margin-bottom: 10px; width: 100%; }
+        button { cursor: pointer; padding: 5px; margin-top: 5px; }
+        /* Hidden elements required by TenantSystem */
+        #logoIcon, #logoText, #brandTitle, #brandDescription, #currentYear { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="test-container">
+    <div class="mock-ui">
+        <h3>Simulador de App</h3>
+        <input type="email" id="email" placeholder="Usuario">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button id="loginBtn">Iniciar Sesión</button>
+        <button id="logoutBtn">Salir</button>
+        <div id="companyName"></div>
+        
+        <span id="logoIcon"></span><span id="logoText"></span>
+        <span id="brandTitle"></span><span id="brandDescription"></span>
+        <span id="currentYear"></span>
+    </div>
+
+    <div class="logs" id="testConsole">
+        <h2>> Ejecutando Pruebas E2E...</h2>
+        <div id="results"></div>
+    </div>
+</div>
+
+<script src="../lib/supabase-js@2.js"></script>
+<script src="../componentes/supabase-client.js"></script>
+<script src="../componentes/auth-logic.js"></script>
+
+<script src="./login-tests.js"></script>
+
+</body>
+</html>

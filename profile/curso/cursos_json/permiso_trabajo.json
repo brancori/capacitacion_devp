@@ -1,23 +1,382 @@
 {
   "pages": [
 {
-  "id": "p10",
+  "id": "p0",
   "type": "image",
-  "title": "Visualización",
+  "title": "Inicio",
   "payload": {
     "url": "./cursos_json/permiso_trabajo/Diapositiva1.PNG",
-    "description": "Descripción opcional"
+    "description": ""
   }
+    },
+    {
+      "id": "p01",
+      "type": "image",
+      "title": "Objetivo",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva2.PNG",
+        "description": ""
+      }
+    },
+    {
+      "id": "p02",
+      "type": "image",
+      "title": "Normas",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva3.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p03",
+      "type": "image",
+      "title": "Reglamentos",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva4.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p04",
+      "type": "image",
+      "title": "¿Qué necesita PTW?",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva5.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p05",
+      "type": "image",
+      "title": "Actividad no rutinaria",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva6.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p06",
+      "type": "image",
+      "title": "¿Qué son los trabajos de alto riesto?",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva7.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p07",
+      "type": "image",
+      "title": "Actividades de alto riesgo",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva8.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p08",
+      "type": "image",
+      "title": "Actividades que No requieren permiso",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva9.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p09",
+      "type": "image",
+      "title": "Identificación de Peligros",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva10.PNG",
+        "description": " "
+      }
     },
     {
       "id": "p10",
       "type": "image",
-      "title": "Visualización",
+      "title": "Sistema de permisos de trabajo",
       "payload": {
-        "url": "./cursos_json/permiso_trabajo/Diapositiva2.PNG",
-        "description": "Descripción opcional"
+        "url": "./cursos_json/permiso_trabajo/Diapositiva11.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p11",
+      "type": "image",
+      "title": "Tipo de permisos",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva12.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p12",
+      "type": "image",
+      "title": "Trabajos en alturas",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva13.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p13",
+      "type": "image",
+      "title": "Intrucción a los espacios confinados",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva14.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p14",
+      "type": "image",
+      "title": "Trabajos con Energia Eléctrica",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva15.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p15",
+      "type": "image",
+      "title": "Definición de trabajo en caliente",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva16.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p16",
+      "type": "image",
+      "title": "Manejoa de sustancias químicas",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva17.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p17",
+      "type": "image",
+      "title": "Materiales y sus métodos de comunicación",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva18.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p18",
+      "type": "image",
+      "title": "Definición de riesgo de sepultameniento",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva19.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p19",
+      "type": "image",
+      "title": "Equipos y Maquinarias pesadas",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva20.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p20",
+      "type": "image",
+      "title": "Loto",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva21.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p21",
+      "type": "image",
+      "title": "Procedimiento de Bloqueo y Etiquedado",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva22.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p22",
+      "type": "image",
+      "title": "Definición de Peligro y Riesgo",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva23.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p23",
+      "type": "image",
+      "title": "Jerarquía de Controles de Riesgo",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva24.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p24",
+      "type": "image",
+      "title": "Jerarquí de control",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva25.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p25",
+      "type": "image",
+      "title": "ART (Análisis de Riesgo de Trabajo)",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva26.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p26",
+      "type": "image",
+      "title": "Matriz 5x5",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva27.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p27",
+      "type": "image",
+      "title": "Matriz 5x5 2",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva28.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p28",
+      "type": "image",
+      "title": "Matriz 5x5 3",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva29.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p29",
+      "type": "image",
+      "title": "Permiso de Trabajo Seguro",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva30.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p30",
+      "type": "image",
+      "title": "Mapa de Roles",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva31.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p31",
+      "type": "image",
+      "title": "Definición de Roles",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva32.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p32",
+      "type": "image",
+      "title": "Definición de Roles 2",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva33.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p33",
+      "type": "image",
+      "title": "Definición de Roles 3",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva34.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p34",
+      "type": "image",
+      "title": "Definición de Roles 4",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva35.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p35",
+      "type": "image",
+      "title": "Matriz de roles",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva36.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p36",
+      "type": "image",
+      "title": "Proceso de permiso de Trabajo",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva37.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p37",
+      "type": "image",
+      "title": "Proceso de permiso de trabajo 2",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva38.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p38",
+      "type": "image",
+      "title": "Sanciones",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva39.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p39",
+      "type": "image",
+      "title": "Elementos clave de un PTS",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva40.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p40",
+      "type": "image",
+      "title": "Importancia del PTS",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva41.PNG",
+        "description": " "
+      }
+    },
+    {
+      "id": "p41",
+      "type": "image",
+      "title": "FIN",
+      "payload": {
+        "url": "./cursos_json/permiso_trabajo/Diapositiva42.PNG",
+        "description": " "
       }
     }
-
   ]
 }

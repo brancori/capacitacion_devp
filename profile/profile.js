@@ -360,14 +360,14 @@ async function loadCatalog(userId, supabase) {
     try {
         const { data: assignments, error } = await window.supabase
             .from("user_course_assignments")
-            .select(`id, progress, due_date, status, score, completed_at, articles (id, title, thumbnail_url, duration_text)`)
+            .select(`id, progress, due_date, status, score, completed_at, articles(id, title, thumbnail_url, duration_text)`)
             .eq('user_id', userId);
 
         if (error) throw error;
 
         const allData = (assignments || []).map(a => {
             const art = Array.isArray(a.articles) ? a.articles[0] : a.articles;
-            if (!art) return null;
+
             return { 
                 ...art,
                 assignment_id: a.id,
@@ -512,6 +512,47 @@ if (error) {
         
     } catch (e) { console.error(e); }
   };
+
+window.enrollUser = async function(courseId) {
+    if (!confirm("¿Confirmar inscripción al curso?")) return;
+
+    try {
+        const supabase = window.supabase;
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            alert("Sesión expirada. Recarga la página.");
+            return;
+        }
+
+        // Tu usuario no tiene tenant (undefined), enviamos null
+        const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id || null;
+
+        const { error } = await supabase
+            .from('user_course_assignments')
+            .insert({
+                user_id: user.id,
+                course_id: courseId,
+                tenant_id: tenantId, 
+                status: 'in_progress',
+                progress: 0,
+                assigned_at: new Date().toISOString()
+            });
+
+        if (error) {
+            if (error.code === '23505') alert("Ya estás inscrito en este curso.");
+            else alert("Error al inscribir: " + error.message);
+        } else {
+            alert("¡Inscripción exitosa!");
+            window.location.reload(); // Recargar para ver el cambio
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("Error inesperado intentando inscribir.");
+    }
+};
+
 
 function setupNotificationUI() {
     const btn = document.getElementById('notificationBtn');

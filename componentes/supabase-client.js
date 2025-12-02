@@ -189,13 +189,19 @@ window.safeStorage = {
 function initSupabaseClient() {
   if (window.supabase && typeof window.supabase.functions?.invoke === 'function') {
       console.log('⚡ Cliente Supabase ya estaba activo.');
-      TenantSystem.loadAndApply(); // Asegurar carga de estilos aunque ya exista supabase
+      TenantSystem.loadAndApply(); 
       return; 
   }
 
   const tryInit = () => {
     if (typeof window.supabase?.createClient === 'function') {
       
+      // 1. DETECCIÓN ROBUSTA DE LOCALHOST (Agregamos [::1] por si acaso)
+      const hostname = window.location.hostname;
+      const IS_LOCAL = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+
+      console.log(`🔧 Modo Detectado: ${IS_LOCAL ? 'LOCAL (Directo a Nube)' : 'PROD (Vía Proxy)'}`);
+
       const clientOptions = {
         auth: {
           persistSession: true,
@@ -207,17 +213,20 @@ function initSupabaseClient() {
             removeItem: (key) => window.safeStorage.remove(key)
           }
         },
+        // Clave pública anónima siempre se envía
         global: { headers: { "apikey": SUPABASE_ANON_KEY } }
       };
 
-      if (!IS_LOCAL) clientOptions.functions = { url: SUPABASE_URL + '/functions/v1' };
+      // 2. LÓGICA DE URL DE FUNCIONES
+      // Si NO es local, usamos el proxy. Si ES local, dejamos que Supabase use su URL por defecto (la nube).
+      if (!IS_LOCAL) {
+         clientOptions.functions = { url: SUPABASE_URL + '/functions/v1' };
+      }
 
       window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
-      console.log(`✅ Cliente Supabase inicializado.`);
+      console.log(`✅ Cliente Supabase inicializado contra: ${SUPABASE_URL}`);
       
-      // 🔥 CARGA DE ESTILOS AUTOMÁTICA
       TenantSystem.loadAndApply();
-      
       setupLogoutButton();
     } else {
       setTimeout(tryInit, 100);

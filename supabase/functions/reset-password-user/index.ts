@@ -25,8 +25,10 @@ serve(async (req) => {
         .eq('id', userId)
         .single()
 
-    if (!profile || profile.status !== 'pending' || !profile.force_reset) {
-        throw new Error("Operación no permitida para este usuario.")
+    const isValidStatus = profile?.status === 'pending' || profile?.status === 'active';
+
+    if (!profile || !isValidStatus || !profile.force_reset) {
+        throw new Error("Operación no permitida: El usuario no requiere restablecimiento.")
     }
 
     // 1. Actualizar contraseña en Auth
