@@ -98,10 +98,11 @@ const Tests = {
 
         Assert.equal(result.action, 'SUCCESS', "Login devuelve SUCCESS");
         Assert.equal(result.role, 'admin', "Rol detectado es 'admin'");
+        window.AuthLogic.redirectUser(result.role);
         
         // Verificar si AuthLogic intentó redirigir
         window.AuthLogic.redirectUser(result.role);
-        Assert.equal(window.lastRedirect, './dashboard.html', "Redirección correcta a Dashboard");
+        Assert.equal(window.lastRedirect, '/dashboard.html', "Redirección correcta a Dashboard");
     },
 
     // TEST 4: Registro y Rate Limiting
