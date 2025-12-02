@@ -166,8 +166,13 @@ const DBHelper = {
 
 // 4. AMBIENTE
 async function setupEnvironment() {
+    // CRÍTICO: Forzar tenant para tests
     window.CURRENT_TENANT = TEST_DATA.tenant;
-    Logger.log(`🧪 [Setup] Configurando entorno de pruebas...`, 'info');
+    
+    // Guardar tenant original para restaurar después
+    window._ORIGINAL_TENANT = window.CURRENT_TENANT;
+    
+    Logger.log(`🧪 [Setup] Forzando tenant a: ${TEST_DATA.tenant}`, 'info');
 
     // Interceptar redirección para tests
     window.AuthLogic.redirectUser = (role) => {
