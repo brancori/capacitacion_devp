@@ -1,0 +1,105 @@
+{
+  "questions": [
+    {
+      "answer": 2,
+      "options": [
+        "Registrar la asistencia de los trabajadores.",
+        "Autorizar formalmente la realización de un trabajo de alto riesgo bajo condiciones seguras.",
+        "Sustituir la capacitación en seguridad.",
+        "Informar al área de recursos humanos sobre la actividad."
+      ],
+      "question": "¿Cuál es el objetivo principal de un permiso de trabajo?"
+    },
+
+    {
+      "answer": 2,
+      "options": [
+        "Rutinarias, no rutinarias y administrativas.",
+        "Seguras e inseguras.",
+        "Rutinarias y no rutinarias.",
+        "Operativas y de mantenimiento."
+      ],
+      "question": "Según la NOM-030-STPS-2009, las actividades se clasifican en:"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Barrer el piso de una nave industrial.",
+        "Revisar luminarias en un techo a 4 metros de altura.",
+        "Transportar cajas en un montacargas.",
+        "Realizar limpieza de escritorios en oficina."
+      ],
+      "question": "¿Cuál de las siguientes actividades requiere un permiso de trabajo en altura?"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Supervisar las nóminas.",
+        "Mantener contacto con los ejecutores y ordenar evacuación si es necesario.",
+        "Reemplazar al trabajador en caso de ausencia.",
+        "Firmar el cierre del permiso."
+      ],
+      "question": "El vigía u observador tiene la responsabilidad principal de:"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Encender un ventilador portátil sin revisar el área.",
+        "Medir los niveles de oxígeno y gases peligrosos.",
+        "Colocar un letrero genérico de “peligro”.",
+        "Solicitar permiso al área administrativa."
+      ],
+      "question": "En trabajos en espacios confinados, uno de los requisitos previos al inicio es:"
+    },
+    {
+      "answer": 3,
+      "options": [
+        "Verificar uso de EPP.",
+        "Suspender actividades si hay riesgos imprevistos.",
+        "Autorizar el pago de viáticos al personal.",
+        "Firmar el cierre del permiso."
+      ],
+      "question": "¿Cuál de las siguientes NO es una función del supervisor de seguridad o del área?"
+    },
+    {
+      "answer": 3,
+      "options": [
+        "NOM-002-STPS-2010.",
+        "NOM-028-STPS-2012.",
+        "NOM-020-STPS-2011.",
+        "NOM-033-STPS-2015."
+      ],
+      "question": "¿Qué norma específica regula el trabajo con recipientes sujetos a presión y calderas?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "Confirmar que el área quedó en condiciones seguras.",
+        "Archivar el permiso en recursos humanos.",
+        "Registrar las horas extras del personal.",
+        "Solicitar otro permiso para continuar."
+      ],
+      "question": "El cierre de un permiso de trabajo incluye:"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Realizar directamente todas las tareas de alto riesgo.",
+        "Garantizar recursos y supervisión para aplicar el sistema de permisos.",
+        "Entregar un bono económico a los trabajadores autorizados.",
+        "Sustituir al supervisor en campo."
+      ],
+      "question": "Una de las principales obligaciones del patrón en relación con los permisos de trabajo es:"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Facilitar el trámite administrativo de nóminas.",
+        "Reducir riesgos graves y fatales en la ejecución de trabajos.",
+        "Aumentar la velocidad de producción sin importar la seguridad.",
+        "Sustituir la capacitación en prevención de riesgos."
+      ],
+      "question": "¿Cuál de los siguientes beneficios corresponde al uso adecuado de los permisos de trabajo?"
+    }
+  ]
+}
