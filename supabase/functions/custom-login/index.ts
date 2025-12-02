@@ -13,13 +13,13 @@ serve(async (req) => {
   try {
     const { email, password, tenant_slug } = await req.json()
     
-    // 1. Cliente Admin para poder leer perfiles sin estar logueado
+    // 1. Cliente Admin (Service Role)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 2. Obtener Tenant
+    // 2. Obtener el Tenant al que se intenta acceder
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
       .select('id')
@@ -33,15 +33,18 @@ serve(async (req) => {
       )
     }
 
-    // 3. BUSCAR PERFIL POR EMAIL (Bypass RLS)
+    // 3. BUSCAR PERFIL [CRÍTICO: LÓGICA MASTER IMPLEMENTADA]
+    // Buscamos un perfil que coincida con el email Y ADEMÁS:
+    // Opción A: Pertenezca al tenant actual.
+    // Opción B: Tenga tenant_id NULO (Usuario Global/Master).
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('id, status, force_reset, role, tenant_id')
       .eq('email', email)
-      .eq('tenant_id', tenant.id)
+      .or(`tenant_id.eq.${tenant.id},tenant_id.is.null`) // <--- AQUÍ ESTÁ EL CAMBIO
       .single()
 
-    // 4. LÓGICA DE USUARIO PENDING (El Bypass solicitado)
+    // 4. LÓGICA DE USUARIO PENDING (Bypass de contraseña para configuración inicial)
     if (profile && profile.status === 'pending' && profile.force_reset) {
         return new Response(
             JSON.stringify({ 
@@ -53,7 +56,7 @@ serve(async (req) => {
         )
     }
 
-    // 5. Lógica de Login Normal (Si no es pending, requiere password)
+    // 5. Login Normal (Requiere password)
     if (!password) {
         return new Response(
             JSON.stringify({ error: 'Contraseña requerida', error_code: 'PASSWORD_MISSING' }),
@@ -61,7 +64,7 @@ serve(async (req) => {
         )
     }
 
-    // Autenticación estándar
+    // Autenticación estándar con Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password
@@ -74,7 +77,10 @@ serve(async (req) => {
       )
     }
 
-    // Verificar perfil post-login (seguridad extra para tenants cruzados)
+    // 6. VERIFICACIÓN FINAL DE SEGURIDAD
+    // Ya encontramos el perfil, pero validamos una última vez:
+    // Si NO es Master, es OBLIGATORIO que su tenant_id coincida con el tenant actual.
+    // Esto previene que un usuario de "Siresi" entre a "JNJ" aunque hayamos encontrado su perfil por error.
     if (profile && profile.role !== 'master' && profile.tenant_id !== tenant.id) {
        return new Response(JSON.stringify({ error: 'Acceso denegado', error_code: 'WRONG_TENANT' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -83,7 +89,7 @@ serve(async (req) => {
       JSON.stringify({
         jwt: authData.session.access_token,
         user: authData.user,
-        role: profile?.role
+        role: profile?.role // Ahora sí devolverá 'master'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
