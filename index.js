@@ -259,6 +259,8 @@
     // 1. Tabs
     const tabButtons = $$('.tab-btn');
     const forms = $$('.login-form');
+
+    
     
     if (tabButtons.length > 0) {
         tabButtons.forEach(button => {
@@ -294,7 +296,7 @@
     if (registerBtn) {
       registerBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        showModal('Registro', 'Por favor contacta a RRHH para tu registro.', 'info');
+        showRegistrationModal();
       });
     }
 
@@ -305,6 +307,130 @@
         showModal('Recuperación', 'Contacta a tu supervisor para restablecer tu acceso.', 'info');
       });
     }
+  }
+
+// =================================================================
+  // 5.1 MODAL DE REGISTRO (Nueva Función)
+  // =================================================================
+  async function showRegistrationModal() {
+    const modalRoot = $('#modalRoot');
+    const supabase = window.supabase;
+    // Configuración segura por si window.APP_CONFIG no cargó
+    const config = window.APP_CONFIG || { companyName: 'Tu Compañía', tenantSlug: 'default' };
+    const companyName = config.companyName;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    
+    // HTML DEL FORMULARIO
+    modal.innerHTML = `
+      <div class="modal-content modal-form">
+        <h3 class="modal-title">Solicitar Registro</h3>
+        <div class="modal-body">
+          <form id="registrationForm">
+            <div class="form-group"><label class="form-label" for="regName">Nombre Completo</label><input type="text" id="regName" class="form-input" required></div>
+            <div class="form-group"><label class="form-label" for="regCompany">Compañía</label><input type="text" id="regCompany" class="form-input" value="${companyName}" readonly></div>
+            <div class="form-group"><label class="form-label" for="regArea">Área o Departamento</label><input type="text" id="regArea" class="form-input" required></div>
+            <div class="form-group"><label class="form-label" for="regEmail">Correo Electrónico</label><input type="email" id="regEmail" class="form-input" required></div>
+            <div class="form-group">
+              <label class="form-label" for="regPassword">Crear Contraseña</label><input type="password" id="regPassword" class="form-input" placeholder="••••••••" required>
+              <ul class="password-rules"><li id="rule-length">8+ Caracteres</li><li id="rule-number">1 Número</li><li id="rule-letter">1 Letra</li></ul>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regConfirmPassword">Confirmar Contraseña</label><input type="password" id="regConfirmPassword" class="form-input" placeholder="••••••••" required>
+              <ul class="password-rules"><li id="rule-match">Las contraseñas coinciden</li></ul>
+            </div>
+          </form>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="modalCancel">Cancelar</button>
+          <button class="btn btn-primary" id="modalSubmit">Crear Cuenta</button>
+        </div>
+      </div>
+    `;
+    
+    modalRoot.innerHTML = '';
+    modalRoot.appendChild(modal);
+
+    // FUNCIONES INTERNAS DEL MODAL
+    const closeModal = () => {
+      modal.style.animation = 'fadeOut 200ms ease-out forwards';
+      setTimeout(() => { modalRoot.innerHTML = ''; }, 200);
+    };
+
+    // Validación de Contraseña en tiempo real
+    const passInput = modal.querySelector('#regPassword');
+    const confirmInput = modal.querySelector('#regConfirmPassword');
+    const rules = {
+      length: modal.querySelector('#rule-length'),
+      number: modal.querySelector('#rule-number'),
+      letter: modal.querySelector('#rule-letter'),
+      match: modal.querySelector('#rule-match')
+    };
+
+    const validatePassword = () => {
+      const pass = passInput.value;
+      const confirm = confirmInput.value;
+      const isLength = pass.length >= 8;
+      const hasNumber = /\d/.test(pass);
+      const hasLetter = /[a-zA-Z]/.test(pass);
+      const isMatch = pass.length > 0 && pass === confirm;
+      
+      rules.length.classList.toggle('valid', isLength);
+      rules.number.classList.toggle('valid', hasNumber);
+      rules.letter.classList.toggle('valid', hasLetter);
+      rules.match.classList.toggle('valid', isMatch);
+      
+      return isLength && hasNumber && hasLetter && isMatch;
+    };
+
+    passInput.addEventListener('input', validatePassword);
+    confirmInput.addEventListener('input', validatePassword);
+    modal.querySelector('#modalCancel').addEventListener('click', closeModal);
+
+    // ENVÍO DEL FORMULARIO
+    modal.querySelector('#modalSubmit').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const submitBtn = modal.querySelector('#modalSubmit');
+
+      if (!modal.querySelector('#registrationForm').checkValidity() || !validatePassword()) {
+        showModal('Error', 'Completa todos los campos y revisa tu contraseña.', 'error');
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+        
+        // Usamos la configuración cargada o el tenant global
+        const tenantSlug = window.APP_CONFIG?.tenantSlug || window.CURRENT_TENANT || 'default';
+
+        const payload = {
+          email: modal.querySelector('#regEmail').value.trim(),
+          password: modal.querySelector('#regPassword').value.trim(),
+          full_name: modal.querySelector('#regName').value.trim(),
+          tenant_slug: tenantSlug,
+          user_type: 'employee',
+          meta: { area: modal.querySelector('#regArea').value.trim() }
+        };
+
+        const { data, error } = await supabase.functions.invoke('register-user', { body: payload });
+
+        if (error || (data && data.error)) {
+            throw new Error(data?.error || error?.message || 'Error desconocido');
+        }
+
+        closeModal();
+        setTimeout(() => {
+          showModal('Solicitud Recibida', 'Tu cuenta está pendiente de aprobación por el administrador.', 'success');
+        }, 300);
+
+      } catch (error) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Crear Cuenta';
+        showModal('Error', error.message, 'error');
+      }
+    });
   }
 
   // =================================================================
