@@ -149,25 +149,29 @@ async function fetchCourseData() {
         }
 
         // Limpieza de quizzes viejos
-        if (finalCourseData.pages) {
-            finalCourseData.pages = finalCourseData.pages.filter(p => p.type !== 'quiz');
+if (finalCourseData.pages) {
+            finalCourseData.pages = finalCourseData.pages.filter(p => p.type !== 'quiz' && p.type !== 'survey');
         }
 
-        // Inyección del Quiz
+        // 2. Inyección del Quiz (PENÚLTIMO)
         if (fetchedCourse.quiz_json) {
-            try {
-                let quizObj = typeof fetchedCourse.quiz_json === 'string' ? JSON.parse(fetchedCourse.quiz_json) : fetchedCourse.quiz_json;
-                if (quizObj?.questions?.length > 0) {
-                    finalCourseData.pages.push({ type: 'quiz', title: 'Evaluación Final', payload: quizObj });
-                }
-            } catch (e) {}
+            let quizObj = typeof fetchedCourse.quiz_json === 'string' ? JSON.parse(fetchedCourse.quiz_json) : fetchedCourse.quiz_json;
+            if (quizObj?.questions?.length > 0) {
+                finalCourseData.pages.push({ 
+                    type: 'quiz', 
+                    title: 'Evaluación de Conocimiento', 
+                    payload: quizObj 
+                });
+            }
         }
+
+        // 3. Inyección de Encuesta (ÚLTIMO)
         if (fetchedCourse.survey_json) {
-             // Si existe configuración de encuesta, la agregamos como última página
+             let surveyObj = typeof fetchedCourse.survey_json === 'string' ? JSON.parse(fetchedCourse.survey_json) : fetchedCourse.survey_json;
              finalCourseData.pages.push({ 
                  type: 'survey', 
                  title: 'Encuesta de Satisfacción', 
-                 payload: fetchedCourse.survey_json 
+                 payload: surveyObj 
              });
         } else {
              // Encuesta por defecto si no viene de la BD
@@ -532,49 +536,39 @@ window.selectOption = function(qIdx, oIdx) {
 
 // 5.3 ENTREGAR EXAMEN (Guarda y Desbloquea)
 window.submitQuiz = async function() {
-    console.log("[QUIZ] Entregando examen de conocimientos...");
+    console.log("[QUIZ] Entregando examen...");
     
+    // 1. Calcular Score y recopilar respuestas
     const questionDivs = document.querySelectorAll('.quiz-options');
     let correctCount = 0;
-    
-    // Array para guardar detalle de preguntas y respuestas
     let quizDetails = [];
 
-    // 1. Calcular y Recopilar datos
     questionDivs.forEach((div, idx) => {
-        const questionText = div.previousElementSibling.innerText; // El texto h4
+        const questionText = div.previousElementSibling.innerText;
         const correctAnsIdx = parseInt(div.getAttribute('data-correct'));
         const userAnsIdx = currentAnswers[idx];
         
-        // Obtener texto de la respuesta seleccionada
+        // Texto de respuesta
         const options = div.querySelectorAll('.quiz-btn');
         const userAnsText = userAnsIdx !== undefined ? options[userAnsIdx].innerText.trim() : "Sin responder";
         const isCorrect = (userAnsIdx === correctAnsIdx);
 
         if (isCorrect) correctCount++;
 
-        // Guardar detalle para BD
         quizDetails.push({
             question: questionText,
             selected_option: userAnsText,
             is_correct: isCorrect
         });
-
-        // UI Feedback (Visual)
-        options.forEach(b => b.disabled = true);
-        if (userAnsIdx !== undefined && options[userAnsIdx]) {
-            options[userAnsIdx].classList.add(isCorrect ? 'correct' : 'incorrect');
-        }
-        if (options[correctAnsIdx]) options[correctAnsIdx].classList.add('correct');
     });
 
     const finalScore = Math.round((correctCount / questionDivs.length) * 100);
-    const passed = finalScore >= 80;
+    
+    // NOTA: "Sin importar la respuesta" -> No evaluamos si passed es true/false para la navegación
+    // Pero sí guardamos el status real en BD.
+    const passed = finalScore >= 80; 
 
-    // 2. Terminar modo bloqueo
-    endQuizMode();
-
-    // 3. Guardar en BD (SOLO SCORE Y RESPUESTAS, NO COMPLETAR)
+    // 2. Guardar en BD (Silenciosamente)
     try {
         const { data: { user } } = await supabase.auth.getUser();
         const courseId = new URLSearchParams(location.search).get("id");
@@ -582,35 +576,36 @@ window.submitQuiz = async function() {
         if (user && courseId) {
             const updateData = {
                 score: finalScore,
-                quiz_answers: quizDetails // <--- Guardamos el JSON de respuestas
+                quiz_answers: quizDetails,
+                // Si quieres que el progreso suba al 95% al terminar el quiz
+                progress: 95 
             };
 
-            // Si pasó, aseguramos progreso alto, pero NO status completed aun
-            if (passed) {
-                updateData.progress = 95; 
-            }
-
-            const { error } = await supabase
+            await supabase
                 .from('user_course_assignments')
                 .update(updateData)
                 .eq('user_id', user.id)
                 .eq('course_id', courseId);
-            
-            if(error) console.error("Error saving quiz:", error);
         }
     } catch (e) {
-        console.error("Error:", e);
+        console.error("Error guardando quiz:", e);
     }
 
-    // 4. Navegación
-    if (passed) {
-        alert(`¡Aprobaste con ${finalScore}%!\n\nAhora por favor responde la encuesta de satisfacción para finalizar.`);
-        // Ir a la siguiente página (Encuesta)
-        if (currentPageIndex < courseData.pages.length - 1) {
-            renderPage(currentPageIndex + 1);
-        }
+    // 3. LÓGICA DE NAVEGACIÓN FORZADA
+    // Desactivamos el bloqueo del quiz para poder cambiar de página
+    isQuizInProgress = false; 
+    document.body.classList.remove('quiz-mode');
+
+    // Buscamos si existe una página siguiente (la encuesta)
+    const nextPageIndex = currentPageIndex + 1;
+    
+    if (nextPageIndex < courseData.pages.length) {
+        alert("Examen finalizado. Pasando a la Encuesta de Satisfacción.");
+        renderPage(nextPageIndex); // Manda a la encuesta
     } else {
-        showResultModal(false, finalScore); // Modal de "Sigue intentando"
+        // Si por error no hay encuesta, mandamos al perfil
+        alert("Curso finalizado.");
+        window.location.href = '../profile.html';
     }
 };
 
@@ -771,29 +766,27 @@ function renderSurvey(page) {
 window.submitSurvey = async function(e) {
     e.preventDefault();
     
-    // Obtener datos del formulario
     const formData = new FormData(e.target);
-    const rating = formData.get('rating');
-    const honesty = formData.get('honesty');
+    const surveyData = [];
+    
+    // Convertir FormData a JSON array legible
+    formData.forEach((value, key) => {
+        surveyData.push({ question: key, answer: value });
+    });
 
-    const surveyData = [
-        { question: "Calificación (Estrellas)", answer: rating },
-        { question: "Declaración de Honestidad", answer: honesty }
-    ];
+    console.log("[SURVEY] Enviando y Finalizando...");
 
-    console.log("[SURVEY] Enviando:", surveyData);
-
-    // Guardar y Completar Curso
     try {
         const { data: { user } } = await supabase.auth.getUser();
         const courseId = new URLSearchParams(location.search).get("id");
 
+        // 1. Actualizar BD: Status COMPLETED
         const { error } = await supabase
             .from('user_course_assignments')
             .update({
-                status: 'completed',           // <--- AQUI SE COMPLETA EL CURSO
+                status: 'completed',
                 completed_at: new Date().toISOString(),
-                survey_answers: surveyData,    // <--- Guardamos respuestas
+                survey_answers: surveyData,
                 progress: 100
             })
             .eq('user_id', user.id)
@@ -801,11 +794,13 @@ window.submitSurvey = async function(e) {
 
         if (error) throw error;
 
-        // Mostrar Modal de Éxito Final
-        showResultModal(true, 100); // Reusamos el modal, pasamos 100 o el score real si lo tienes guardado en variable global
+        // 2. REDIRECCIÓN AUTOMÁTICA
+        alert("¡Muchas gracias! Tu curso ha sido completado correctamente.");
+        window.location.href = '../profile.html'; // <--- Redirección final
 
     } catch (err) {
-        alert("Error al guardar encuesta: " + err.message);
+        console.error(err);
+        alert("Error al finalizar: " + err.message);
     }
 };
 // Iniciar todo al cargar la página
