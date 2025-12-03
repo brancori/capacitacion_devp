@@ -24,6 +24,7 @@ serve(async (req) => {
     const errors = []
 
     for (const user of users) {
+      const email = user.email.toLowerCase()
       try {
         // 1. Crear en Auth
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({

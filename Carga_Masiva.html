@@ -453,6 +453,7 @@ function handleFile(file) {
       
       console.log('Filtrando datos válidos...');
       parsedData = results.data.filter(row => {
+      if (row.email) row.email = row.email.toLowerCase();
         const isValid = row.email && row.full_name;
         if (!isValid) {
           console.warn('⚠️ Fila inválida descartada:', row);
