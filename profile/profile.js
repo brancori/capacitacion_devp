@@ -166,7 +166,12 @@ async function loadRealDashboardData(userId, supabase) {
 
   // Función para escuchar cambios en la BD en vivo
 function initRolePolling(userId, supabase) {
+    // Verificamos cada 2 minutos (120000ms) para ser aún más conservadores
+    // 1 minuto estaba bien, pero 2 es suficiente para cambios de rol.
     setInterval(async () => {
+        // 1. OPTIMIZACIÓN: Si la pestaña no se ve, no gastamos recursos
+        if (document.hidden) return;
+
         try {
             const { data } = await supabase
                 .from('profiles')
@@ -176,16 +181,16 @@ function initRolePolling(userId, supabase) {
 
             if (data && data.role) {
                 const currentStoredRole = window.safeStorage.get('role');
-                
                 if (data.role !== currentStoredRole) {
                     window.safeStorage.set('role', data.role);
                     updateAdminButton(data.role);
                 }
             }
-        } catch (e) { }
-    }, 60000); 
+        } catch (e) { 
+            // Silencioso para no ensuciar la consola
+        }
+    }, 120000); 
 }
-
   // ═══════════════════════════════════════════════════════════
   // RENDERIZADO DE HISTORIAL
   // ═══════════════════════════════════════════════════════════
