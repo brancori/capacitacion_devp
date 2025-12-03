@@ -110,7 +110,7 @@ async function fetchCourseData() {
         // 3. QUERY
         let query = supabase
             .from("articles")
-            .select("title, content_json, quiz_json, survey_json, tenant_id")
+            .select("title, content_json, quiz_json, survey_json, tenant_id, question_show")
             .eq("id", courseId);
 
         // ⚠️ NOTA: Quitamos .single() por seguridad para manejar el array manualmente
@@ -156,7 +156,14 @@ if (finalCourseData.pages) {
         // 2. Inyección del Quiz (PENÚLTIMO)
         if (fetchedCourse.quiz_json) {
             let quizObj = typeof fetchedCourse.quiz_json === 'string' ? JSON.parse(fetchedCourse.quiz_json) : fetchedCourse.quiz_json;
+            
             if (quizObj?.questions?.length > 0) {
+                if (fetchedCourse.question_show && fetchedCourse.question_show > 0) {
+                    const shuffled = quizObj.questions.sort(() => 0.5 - Math.random());
+                    const limit = Math.min(fetchedCourse.question_show, shuffled.length);
+                    quizObj.questions = shuffled.slice(0, limit);
+                }
+
                 finalCourseData.pages.push({ 
                     type: 'quiz', 
                     title: 'Evaluación de Conocimiento', 

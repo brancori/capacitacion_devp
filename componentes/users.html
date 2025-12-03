@@ -903,10 +903,16 @@ async function mainInit() {
         console.log(`✅ Admin verificado (Rol: ${currentAdmin.role})`);
 
         // 5. Cargar tenants si es master
+        const tenantHeader = document.getElementById('tenant-header-col');
+
         if (currentAdmin.role === 'master') {
             await loadTenantsIntoSelect();
+            // Aseguramos que el master lo vea
+            if (tenantHeader) tenantHeader.style.display = 'flex'; 
         } else {
             document.querySelector('.user-table').classList.add('simple-view');
+            // ESTA LÍNEA ES LA QUE FALTA: Ocultar el encabezado explícitamente
+            if (tenantHeader) tenantHeader.style.display = 'none'; 
         }
 
         // 6. Cargar datos

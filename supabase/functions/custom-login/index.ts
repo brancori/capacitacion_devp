@@ -10,10 +10,12 @@ serve(async (req) => {
 
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  try {
-    const { email, password, tenant_slug } = await req.json()
-    
-    console.log(`🔐 [custom-login] Intento de login: ${email} → tenant: ${tenant_slug}`)
+try {
+    // 1. Cambiamos 'const' por 'let' para permitir modificación
+    let { email, password, tenant_slug } = await req.json()
+    // 2. Forzamos minúsculas inmediatamente (Protección de Backend)
+    if (email) email = email.toLowerCase()
+    console.log(`[custom-login] Intento de login: ${email} → tenant: ${tenant_slug}`)
     
     // 1. Cliente Admin (Service Role)
     const supabaseAdmin = createClient(
@@ -29,7 +31,7 @@ serve(async (req) => {
       .single()
 
     if (tenantError || !tenant) {
-      console.log(`❌ Tenant no encontrado: ${tenant_slug}`)
+      console.log(`Tenant no encontrado: ${tenant_slug}`)
       return new Response(
         JSON.stringify({ error: 'Tenant no válido', error_code: 'INVALID_TENANT' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -47,7 +49,7 @@ serve(async (req) => {
       .single()
 
     if (profileError) {
-      console.log(`❌ Error buscando perfil: ${profileError.message}`)
+      console.log(`Error buscando perfil: ${profileError.message}`)
       return new Response(
         JSON.stringify({ error: 'Usuario no encontrado', error_code: 'USER_NOT_FOUND' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -55,7 +57,7 @@ serve(async (req) => {
     }
 
     if (!profile) {
-      console.log(`❌ Perfil no encontrado para: ${email}`)
+      console.log(`Perfil no encontrado para: ${email}`)
       return new Response(
         JSON.stringify({ error: 'Usuario no encontrado', error_code: 'USER_NOT_FOUND' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -66,7 +68,7 @@ serve(async (req) => {
 
     // 4. LÓGICA DE USUARIO PENDING CON FORCE_RESET
     if (profile.status === 'pending' && profile.force_reset) {
-        console.log(`⚠️ Usuario requiere configuración inicial (FORCE_RESET)`)
+        console.log(`Usuario requiere configuración inicial (FORCE_RESET)`)
         return new Response(
             JSON.stringify({ 
                 action: 'FORCE_RESET', 
@@ -79,7 +81,7 @@ serve(async (req) => {
 
     // 5. Login Normal (Requiere password)
     if (!password) {
-        console.log(`❌ Password faltante`)
+        console.log(`Password faltante`)
         return new Response(
             JSON.stringify({ error: 'Contraseña requerida', error_code: 'PASSWORD_MISSING' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -87,14 +89,14 @@ serve(async (req) => {
     }
 
     // 6. Autenticación con Supabase Auth
-    console.log(`🔑 Intentando autenticación con Supabase Auth...`)
+    console.log(`Intentando autenticación con Supabase Auth...`)
     const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password
     })
 
     if (authError) {
-      console.log(`❌ Error de autenticación: ${authError.message}`)
+      console.log(`Error de autenticación: ${authError.message}`)
       console.log(`   Código: ${authError.status}`)
       return new Response(
         JSON.stringify({ 
@@ -106,11 +108,11 @@ serve(async (req) => {
       )
     }
 
-    console.log(`✅ Autenticación exitosa`)
+    console.log(`Autenticación exitosa`)
 
     // 7. VERIFICACIÓN FINAL DE SEGURIDAD MULTI-TENANT
     if (profile.role !== 'master' && profile.tenant_id !== tenant.id) {
-       console.log(`❌ Usuario de otro tenant intentando acceder`)
+       console.log(`Usuario de otro tenant intentando acceder`)
        return new Response(
          JSON.stringify({ error: 'Acceso denegado', error_code: 'WRONG_TENANT' }), 
          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -130,7 +132,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`✅ Login exitoso: ${email} como ${profile.role}`)
+    console.log(`Login exitoso: ${email} como ${profile.role}`)
 
     return new Response(
       JSON.stringify({
@@ -142,7 +144,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('❌ Error inesperado:', error.message)
+    console.error('Error inesperado:', error.message)
     console.error('   Stack:', error.stack)
     return new Response(
       JSON.stringify({ 

@@ -52,46 +52,63 @@ window.safeStorage = window.safeStorage || {
   // ═══════════════════════════════════════════════════════════
   // LÓGICA DE DATOS DASHBOARD
   // ═══════════════════════════════════════════════════════════
-  async function loadRealDashboardData(userId, supabase) {
-    const cachedRole = window.safeStorage.get('role');
-    const cachedName = window.safeStorage.get('full_name');
-
-    // 1. Obtener asignaciones con score y fecha de completado
-    const [assignmentsRes, myBadgesRes, allBadgesRes] = await Promise.all([
-      supabase.from('user_course_assignments')
-        .select('*, articles:course_id(title, duration_text)')
-        .eq('user_id', userId),
-      supabase.from('user_badges')
-        .select('badge_id')
-        .eq('user_id', userId), 
-      supabase.from('badges').select('*')
+async function loadRealDashboardData(userId, supabase) {
+    
+    // 1. Obtener datos (Mantenemos tu lógica existente)
+    const [assignmentsRes, myBadgesRes, allBadgesRes, profileRes] = await Promise.all([
+      supabase.from('user_course_assignments').select('*, articles:course_id(title, duration_text)').eq('user_id', userId),
+      supabase.from('user_badges').select('badge_id').eq('user_id', userId), 
+      supabase.from('badges').select('*'),
+      supabase.from('profiles').select('full_name, email, role').eq('id', userId).single() // Traemos el ROL aquí
     ]);
 
     const assignments = assignmentsRes.data || [];
     const myBadgesIds = new Set((myBadgesRes.data || []).map(b => b.badge_id)); 
     const allBadges = allBadgesRes.data || [];
+    const userProfile = profileRes.data;
 
-    // Render Perfil Básico
+    // 2. Lógica de Nombre (Tu lógica existente)
+    let displayName = 'Usuario';
+    let currentRole = 'user'; // Rol por defecto
+
+    if (userProfile) {
+        if (userProfile.full_name && userProfile.full_name.trim() !== '') {
+            displayName = userProfile.full_name;
+        } else if (userProfile.email) {
+            displayName = userProfile.email.split('@')[0];
+            displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+        }
+        // Capturamos el rol real de la BD
+        currentRole = userProfile.role || 'user';
+        
+        // Actualizamos storage
+        window.safeStorage.set('full_name', displayName);
+        window.safeStorage.set('role', currentRole);
+    } else {
+        displayName = window.safeStorage.get('full_name') || 'Usuario';
+        currentRole = window.safeStorage.get('role') || 'user';
+    }
+
+    // 3. ACTUALIZACIÓN DE UI (BOTÓN ADMIN)
+    updateAdminButton(currentRole);
+
+    // 4. Renderizado de Perfil (Tu código existente)
     const profileNameEl = document.getElementById('profileName');
-    if (profileNameEl) profileNameEl.textContent = cachedName || 'Usuario';
+    if (profileNameEl) profileNameEl.textContent = displayName;
 
     const avatarEl = document.querySelector('.avatar');
-    if (avatarEl && cachedName) {
-      const initials = cachedName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+    if (avatarEl && displayName !== 'Usuario') {
+      const initials = displayName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
       avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`;
     }
 
-    // Estadísticas
+    // 5. Estadísticas (Tu código existente)
     const totalCursos = assignments.length;
-    // Criterio de completado: status 'completed' o score >= 8 (aprobado)
-    const completados = assignments.filter(a => 
-      a.status === 'completed' || Number(a.progress) === 100 || (a.score && Number(a.score) >= 8)
-    );
+    const completados = assignments.filter(a => a.status === 'completed' || Number(a.progress) === 100 || (a.score && Number(a.score) >= 8));
     const numCompletados = completados.length;
     const pendientes = totalCursos - numCompletados;
     const percentage = totalCursos > 0 ? Math.round((numCompletados / totalCursos) * 100) : 0;
 
-    // Actualizar Gráfica Donut
     const donutFg = document.querySelector('.progress-donut-fg');
     const donutText = document.querySelector('.progress-text');
     const progressMsg = document.querySelector('.profile-card p[style*="primary"]');
@@ -106,13 +123,11 @@ window.safeStorage = window.safeStorage || {
     if (donutText) donutText.textContent = `${percentage}%`;
     if (progressMsg) progressMsg.textContent = `${numCompletados} de ${totalCursos} cursos completados`;
 
-    // Tarjetas Superiores
     const statCards = document.querySelectorAll('.stat-card h3');
     if (statCards[0]) statCards[0].textContent = totalCursos;
     if (statCards[1]) statCards[1].textContent = numCompletados;
     if (statCards[2]) statCards[2].textContent = pendientes;
 
-    // Badges
     const badgesContainer = document.querySelector('.badges-grid');
     if (badgesContainer) {
       badgesContainer.innerHTML = allBadges.length === 0 
@@ -123,8 +138,53 @@ window.safeStorage = window.safeStorage || {
           }).join('');
     }
 
-    // Historial / Timeline
     renderHistoryTimeline(completados);
+
+    // 6. INICIAR REALTIME (Suscripción a cambios de rol)
+    subscribeToRoleChanges(userId, supabase);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FUNCIONES AUXILIARES (NUEVAS)
+  // ═══════════════════════════════════════════════════════════
+
+  // Función para mostrar/ocultar botón según rol
+  function updateAdminButton(role) {
+      const manageBtn = document.getElementById('manageUsersBtn');
+      const dashboardBtn = document.getElementById('dashboardBtn'); // Botón dashboard navbar
+      const allowedRoles = ['master', 'admin', 'supervisor'];
+      
+      const shouldShow = allowedRoles.includes(role);
+      
+      if (manageBtn) {
+          manageBtn.style.display = shouldShow ? 'flex' : 'none';
+      }
+      if (dashboardBtn) {
+          dashboardBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+      }
+  }
+
+  // Función para escuchar cambios en la BD en vivo
+  function subscribeToRoleChanges(userId, supabase) {
+      console.log('📡 Conectando Realtime para perfil:', userId);
+      
+      supabase
+        .channel('public:profiles')
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'profiles', 
+            filter: `id=eq.${userId}` 
+        }, (payload) => {
+            console.log('🔄 Cambio de perfil detectado:', payload.new);
+            if (payload.new && payload.new.role) {
+                // Actualizar UI inmediatamente
+                updateAdminButton(payload.new.role);
+                // Actualizar storage
+                window.safeStorage.set('role', payload.new.role);
+            }
+        })
+        .subscribe();
   }
 
   // ═══════════════════════════════════════════════════════════

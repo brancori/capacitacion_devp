@@ -87,7 +87,7 @@
     if (!emailInput || !btn) return;
 
     const originalBtnText = btn.querySelector('span') ? btn.querySelector('span').textContent : 'Ingresar';
-    const email = emailInput.value.trim();
+    const email = emailInput.value.trim().toLowerCase();
     const password = passwordInput ? passwordInput.value.trim() : '';
     const tenantSlug = window.CURRENT_TENANT || 'default';
 
@@ -406,7 +406,7 @@
         const tenantSlug = window.APP_CONFIG?.tenantSlug || window.CURRENT_TENANT || 'default';
 
         const payload = {
-          email: modal.querySelector('#regEmail').value.trim(),
+          email: modal.querySelector('#regEmail').value.trim().toLowerCase(),
           password: modal.querySelector('#regPassword').value.trim(),
           full_name: modal.querySelector('#regName').value.trim(),
           tenant_slug: tenantSlug,
