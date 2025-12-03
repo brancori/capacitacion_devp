@@ -166,10 +166,9 @@ async function loadRealDashboardData(userId, supabase) {
 
   // Función para escuchar cambios en la BD en vivo
 function initRolePolling(userId, supabase) {
-    // Verificamos cada 2 minutos (120000ms) para ser aún más conservadores
-    // 1 minuto estaba bien, pero 2 es suficiente para cambios de rol.
+    // Verificamos cada 2 minutos (120000ms)
     setInterval(async () => {
-        // 1. OPTIMIZACIÓN: Si la pestaña no se ve, no gastamos recursos
+        // OPTIMIZACIÓN: Si la pestaña no está visible, no consultamos nada
         if (document.hidden) return;
 
         try {
@@ -181,13 +180,15 @@ function initRolePolling(userId, supabase) {
 
             if (data && data.role) {
                 const currentStoredRole = window.safeStorage.get('role');
+                // Solo si el rol cambió en la BD, actualizamos la UI
                 if (data.role !== currentStoredRole) {
                     window.safeStorage.set('role', data.role);
                     updateAdminButton(data.role);
+                    console.log('🔄 Rol actualizado vía Polling:', data.role);
                 }
             }
         } catch (e) { 
-            // Silencioso para no ensuciar la consola
+            // Silencioso
         }
     }, 120000); 
 }
@@ -320,9 +321,15 @@ async function mainInit() {
         }
         
         const user = session.user;
-        const meta = user.app_metadata || {};
-        const realRole = meta.role || 'authenticated';
-        
+        let finalRole = 'user';
+        try {
+            // Consultamos la BD directamente para evitar el 'authenticated' falso
+            const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+            if (data?.role) finalRole = data.role;
+            else finalRole = window.safeStorage.get('role') || 'user'; // Fallback a caché
+        } catch (e) {
+            finalRole = window.safeStorage.get('role') || 'user';
+        }        
         // --- DEBUG LOGS ---
         console.group("🔍 DEBUG: Sesión y Roles");
         console.log("🆔 User ID:", user.id);
