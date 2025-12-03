@@ -54,45 +54,62 @@ window.safeStorage = window.safeStorage || {
   // ═══════════════════════════════════════════════════════════
 async function loadRealDashboardData(userId, supabase) {
     
-    // 1. Obtener datos (Mantenemos tu lógica existente)
+    // 1. Obtener datos
     const [assignmentsRes, myBadgesRes, allBadgesRes, profileRes] = await Promise.all([
       supabase.from('user_course_assignments').select('*, articles:course_id(title, duration_text)').eq('user_id', userId),
       supabase.from('user_badges').select('badge_id').eq('user_id', userId), 
       supabase.from('badges').select('*'),
-      supabase.from('profiles').select('full_name, email, role').eq('id', userId).single() // Traemos el ROL aquí
+      supabase.from('profiles').select('full_name, email, role').eq('id', userId).single()
     ]);
 
     const assignments = assignmentsRes.data || [];
     const myBadgesIds = new Set((myBadgesRes.data || []).map(b => b.badge_id)); 
     const allBadges = allBadgesRes.data || [];
-    const userProfile = profileRes.data;
+    
+    // 🔥 FIX CRÍTICO: Manejar respuesta como Array o Objeto
+    let userProfile = profileRes.data;
+    if (Array.isArray(userProfile)) {
+        userProfile = userProfile[0];
+    }
 
-    // 2. Lógica de Nombre (Tu lógica existente)
+    // 2. Lógica de Nombre
     let displayName = 'Usuario';
-    let currentRole = 'user'; // Rol por defecto
+    let currentRole = 'user'; // Default seguro
 
     if (userProfile) {
+        // Extraer nombre
         if (userProfile.full_name && userProfile.full_name.trim() !== '') {
             displayName = userProfile.full_name;
         } else if (userProfile.email) {
             displayName = userProfile.email.split('@')[0];
             displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
         }
-        // Capturamos el rol real de la BD
-        currentRole = userProfile.role || 'user';
         
-        // Actualizamos storage
+        // 🔥 FIX: ROL DESDE BD, NO DESDE STORAGE
+        if (userProfile.role) {
+            currentRole = userProfile.role;
+            console.log('🔄 [loadRealDashboardData] Rol obtenido de BD:', currentRole);
+        } else {
+            console.warn('⚠️ [loadRealDashboardData] userProfile sin role, usando storage como fallback');
+            currentRole = window.safeStorage.get('role') || 'user';
+        }
+        
+        // 🚨 CRÍTICO: Solo guardar en storage si el rol de BD es válido
         window.safeStorage.set('full_name', displayName);
         window.safeStorage.set('role', currentRole);
+        
     } else {
+        // 🔥 SI NO HAY PERFIL, USAR STORAGE PERO NO SOBRESCRIBIR
+        console.warn('⚠️ [loadRealDashboardData] No se obtuvo perfil de BD');
         displayName = window.safeStorage.get('full_name') || 'Usuario';
         currentRole = window.safeStorage.get('role') || 'user';
     }
 
     // 3. ACTUALIZACIÓN DE UI (BOTÓN ADMIN)
+    console.log('🎨 [loadRealDashboardData] Llamando updateAdminButton con:', currentRole);
     updateAdminButton(currentRole);
 
-    // 4. Renderizado de Perfil (Tu código existente)
+    // 4. Renderizado de Perfil
     const profileNameEl = document.getElementById('profileName');
     if (profileNameEl) profileNameEl.textContent = displayName;
 
@@ -102,7 +119,7 @@ async function loadRealDashboardData(userId, supabase) {
       avatarEl.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold;">${initials}</span>`;
     }
 
-    // 5. Estadísticas (Tu código existente)
+    // 5. Estadísticas
     const totalCursos = assignments.length;
     const completados = assignments.filter(a => a.status === 'completed' || Number(a.progress) === 100 || (a.score && Number(a.score) >= 8));
     const numCompletados = completados.length;
@@ -140,9 +157,9 @@ async function loadRealDashboardData(userId, supabase) {
 
     renderHistoryTimeline(completados);
 
-    // 6. INICIAR REALTIME (Suscripción a cambios de rol)
+    // 6. INICIAR REALTIME
     initRolePolling(userId, supabase);
-  }
+}
 
   // ═══════════════════════════════════════════════════════════
   // FUNCIONES AUXILIARES (NUEVAS)
