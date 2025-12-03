@@ -323,23 +323,42 @@ async function mainInit() {
         const user = session.user;
 let finalRole = 'user'; 
 
-        // 2. Consultamos la Base de Datos (La fuente de la verdad)
-            try {
-            // Quitamos .single() para evitar errores si el proxy fuerza un array
-            const { data } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id);
-            
-            // FIX CRÍTICO: Detectar si es Array (Prod) u Objeto (Local)
-            const profileData = Array.isArray(data) ? data[0] : data;
+// 2. Consultamos la Base de Datos (La fuente de la verdad)
+try {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id);
+    
+    // 🔥 LOG CRÍTICO (temporal para debug)
+    console.log('🔍 [mainInit] Respuesta BD:', { data, error, esArray: Array.isArray(data) });
+    
+    if (error) throw error;
+    
+    // FIX ROBUSTO: Manejar tanto Array como Objeto
+    const profileData = Array.isArray(data) ? data[0] : data;
+    
+    // 🔥 LOG CRÍTICO 2
+    console.log('📦 [mainInit] profileData extraído:', profileData);
+    
+    if (profileData?.role) {
+        finalRole = profileData.role;
+        console.log('✅ [mainInit] Rol asignado:', finalRole);
+    } else {
+        console.warn('⚠️ [mainInit] No se encontró role en profileData');
+    }
+    
+    } catch (e) {
+        console.error('❌ [mainInit] Error crítico leyendo perfil:', e);
+    }
 
-            if (profileData && profileData.role) {
-                finalRole = profileData.role; 
-            }
-        } catch (e) {
-            console.warn('⚠️ Fallo lectura de perfil:', e);
-        }
+    // 3. Guardamos el rol REAL confirmado
+    window.safeStorage.set('role', finalRole);
+    console.log('💾 [mainInit] Rol guardado en storage:', window.safeStorage.get('role'));
+
+    // 4. Actualizar UI inmediatamente
+    updateAdminButton(finalRole);
+    console.log('🎨 [mainInit] updateAdminButton llamado con:', finalRole);
 
         // 3. Guardamos el rol REAL confirmado
         window.safeStorage.set('role', finalRole);
