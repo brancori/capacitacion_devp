@@ -321,26 +321,33 @@ async function mainInit() {
         }
         
         const user = session.user;
-        let finalRole = 'user';
+let finalRole = 'user'; 
+
+        // 2. Consultamos la Base de Datos (La fuente de la verdad)
         try {
-            // Consultamos la BD directamente para evitar el 'authenticated' falso
-            const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-            if (data?.role) finalRole = data.role;
-            else finalRole = window.safeStorage.get('role') || 'user'; // Fallback a caché
+            const { data } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+            
+            if (data && data.role) {
+                finalRole = data.role; // Aquí capturamos 'admin'
+            }
         } catch (e) {
-            finalRole = window.safeStorage.get('role') || 'user';
-        }        
-        // --- DEBUG LOGS ---
+            console.warn('⚠️ No se pudo verificar rol en BD, usando default.');
+        }
+
+        // 3. Guardamos el rol REAL confirmado
+        window.safeStorage.set('role', finalRole);
+        window.safeStorage.set('full_name', user.user_metadata?.full_name || 'Usuario');
+
+        // --- DEBUG LOGS CORREGIDOS ---
         console.group("🔍 DEBUG: Sesión y Roles");
         console.log("🆔 User ID:", user.id);
-        console.log("🎭 App Metadata Role (Token):", user.app_metadata?.role); 
-        console.log("💾 LocalStorage Role (Anterior):", window.safeStorage.get('role'));
-        console.log("🔑 Token JWT completo:", session.access_token);
-        console.groupEnd();
-        // ------------------
+        console.log("🎭 Rol Final Confirmado:", finalRole);
+        console.groupEnd();     
 
-        window.safeStorage.set('role', finalRole); 
-        window.safeStorage.set('full_name', user.user_metadata?.full_name || 'Usuario');
         
         // Resto de tu lógica de UI (Admin buttons, etc)...
         const isStaff = ['master', 'admin', 'supervisor'].includes(finalRole);
