@@ -141,7 +141,7 @@ async function loadRealDashboardData(userId, supabase) {
     renderHistoryTimeline(completados);
 
     // 6. INICIAR REALTIME (Suscripción a cambios de rol)
-    subscribeToRoleChanges(userId, supabase);
+    initRolePolling(userId, supabase);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -165,27 +165,26 @@ async function loadRealDashboardData(userId, supabase) {
   }
 
   // Función para escuchar cambios en la BD en vivo
-  function subscribeToRoleChanges(userId, supabase) {
-      console.log('📡 Conectando Realtime para perfil:', userId);
-      
-      supabase
-        .channel('public:profiles')
-        .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'profiles', 
-            filter: `id=eq.${userId}` 
-        }, (payload) => {
-            console.log('🔄 Cambio de perfil detectado:', payload.new);
-            if (payload.new && payload.new.role) {
-                // Actualizar UI inmediatamente
-                updateAdminButton(payload.new.role);
-                // Actualizar storage
-                window.safeStorage.set('role', payload.new.role);
+function initRolePolling(userId, supabase) {
+    setInterval(async () => {
+        try {
+            const { data } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', userId)
+                .single();
+
+            if (data && data.role) {
+                const currentStoredRole = window.safeStorage.get('role');
+                
+                if (data.role !== currentStoredRole) {
+                    window.safeStorage.set('role', data.role);
+                    updateAdminButton(data.role);
+                }
             }
-        })
-        .subscribe();
-  }
+        } catch (e) { }
+    }, 60000); 
+}
 
   // ═══════════════════════════════════════════════════════════
   // RENDERIZADO DE HISTORIAL
