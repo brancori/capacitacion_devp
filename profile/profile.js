@@ -333,17 +333,17 @@ async function mainInit() {
         // --- DEBUG LOGS ---
         console.group("🔍 DEBUG: Sesión y Roles");
         console.log("🆔 User ID:", user.id);
-        console.log("🎭 App Metadata Role (Token):", meta.role);
+        console.log("🎭 App Metadata Role (Token):", user.app_metadata?.role); 
         console.log("💾 LocalStorage Role (Anterior):", window.safeStorage.get('role'));
-        console.log("🔑 Token JWT completo:", session.access_token); // Útil para decodificar en jwt.io si es necesario
+        console.log("🔑 Token JWT completo:", session.access_token);
         console.groupEnd();
         // ------------------
 
-        window.safeStorage.set('role', realRole);
+        window.safeStorage.set('role', finalRole); 
         window.safeStorage.set('full_name', user.user_metadata?.full_name || 'Usuario');
         
         // Resto de tu lógica de UI (Admin buttons, etc)...
-        const isStaff = ['master', 'admin', 'supervisor'].includes(realRole);
+        const isStaff = ['master', 'admin', 'supervisor'].includes(finalRole);
         const manageBtn = document.getElementById('manageUsersBtn');
         if (manageBtn) manageBtn.style.display = isStaff ? 'flex' : 'none';
         
