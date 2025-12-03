@@ -324,18 +324,21 @@ async function mainInit() {
 let finalRole = 'user'; 
 
         // 2. Consultamos la Base de Datos (La fuente de la verdad)
-        try {
+            try {
+            // Quitamos .single() para evitar errores si el proxy fuerza un array
             const { data } = await supabase
                 .from('profiles')
                 .select('role')
-                .eq('id', user.id)
-                .single();
+                .eq('id', user.id);
             
-            if (data && data.role) {
-                finalRole = data.role; // Aquí capturamos 'admin'
+            // FIX CRÍTICO: Detectar si es Array (Prod) u Objeto (Local)
+            const profileData = Array.isArray(data) ? data[0] : data;
+
+            if (profileData && profileData.role) {
+                finalRole = profileData.role; 
             }
         } catch (e) {
-            console.warn('⚠️ No se pudo verificar rol en BD, usando default.');
+            console.warn('⚠️ Fallo lectura de perfil:', e);
         }
 
         // 3. Guardamos el rol REAL confirmado
