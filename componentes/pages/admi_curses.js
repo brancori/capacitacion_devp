@@ -270,20 +270,19 @@ async function getGroupStats(groupId) {
     const { data: members } = await window.supabase
         .from('group_members')
         .select('status, due_date')
-        .eq('group_id', groupId)
-        .eq('assignment_status', 'active');
+        .eq('group_id', groupId);
 
     if (!members || members.length === 0) {
         return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
     }
 
     const userIds = members.map(m => m.user_id);
-    const now = new Date().toISOString();
 
     const { data: assignments } = await window.supabase
         .from('user_course_assignments')
         .select('status, due_date')
-        .in('user_id', userIds);
+        .in('user_id', userIds)
+        .eq('assignment_status', 'active');
 
     if (!assignments) return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
 
