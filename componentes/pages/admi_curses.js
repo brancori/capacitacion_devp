@@ -269,7 +269,7 @@ async function checkAuth(config) {
 async function getGroupStats(groupId) {
     const { data: members } = await window.supabase
         .from('group_members')
-        .select('status, due_date')
+        .select('user_id')
         .eq('group_id', groupId);
 
     if (!members || members.length === 0) {
@@ -277,12 +277,12 @@ async function getGroupStats(groupId) {
     }
 
     const userIds = members.map(m => m.user_id);
+    const now = new Date().toISOString();
 
     const { data: assignments } = await window.supabase
         .from('user_course_assignments')
         .select('status, due_date')
-        .in('user_id', userIds)
-        .eq('assignment_status', 'active');
+        .in('user_id', userIds);
 
     if (!assignments) return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
 
@@ -321,8 +321,7 @@ window.openUserDetail = async (userId, userName) => {
     const { data: assignments } = await window.supabase
         .from('user_course_assignments')
         .select('*, articles(title)')
-        .eq('user_id', userId)
-        .eq('assignment_status', 'active');
+        .eq('user_id', userId);
 
     if (!assignments || assignments.length === 0) {
         summaryEl.innerHTML = '<p>Este usuario no tiene cursos asignados.</p>';
@@ -457,8 +456,7 @@ async function loadTrackingData() {
         const { data: assignments } = await window.supabase
             .from('user_course_assignments')
             .select('*, articles(title)')
-            .eq('user_id', user.id)
-            .eq('assignment_status', 'active');
+            .eq('user_id', user.id);
 
         let completed = 0, inProgress = 0, expired = 0;
         const courses = [];
@@ -1315,6 +1313,7 @@ async function loadCourseAnalytics() {
             .from('articles')
             .select('id, title, instructor_name')
             .eq('tenant_id', admin.tenant_id);
+            
 
         // 2. Obtener todas las asignaciones
         const { data: assignments } = await window.supabase
