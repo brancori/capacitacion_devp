@@ -540,7 +540,7 @@ async function loadNotifications(userId, supabase) {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('❌ Error RLS o Red al cargar notificaciones:', error);
+        console.error(' Error RLS o Red al cargar notificaciones:', error);
         return;
     }
 
