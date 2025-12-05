@@ -724,3 +724,35 @@ body.quiz-mode .course-content-area {
     height: 18px;
     accent-color: var(--primaryColor);
 }
+
+.page-btn.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f4f4f4;
+    pointer-events: none;
+    position: relative;
+}
+
+.page-btn.locked::after {
+    content: "\f023";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute;
+    right: 15px;
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.practice-completed-card {
+    text-align: center;
+    padding: 40px;
+    background: #f8fff9;
+    border: 2px solid #28a745;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.practice-completed-card h3 {
+    color: #28a745;
+    margin-bottom: 10px;
+}

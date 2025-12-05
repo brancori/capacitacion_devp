@@ -1,14 +1,11 @@
 /* ========================================================================
    ESTILOS GESTIÓN DE CURSOS Y GRUPOS
    ======================================================================== */
-
 body {
-    background-color: var(--light-gray) !important;
-    font-size: .95rem;
-}
+    background-color: var(--light-gray) !important;font-size: .95rem;}
 
 .groups-layout {
-display: grid !important;
+    display: grid !important;
     grid-template-columns: minmax(280px, 320px) 1fr !important; 
     gap: 2rem; 
     align-items: start;
@@ -162,6 +159,9 @@ display: grid !important;
         position: static;
         margin-bottom: 1rem;
     }
+    .main-tabs{
+        display: grid !important;
+    }
 }
 
 /* === Dos Columnas para Miembros === */
@@ -251,7 +251,7 @@ display: grid !important;
     .navbar-a{
         display: flex;
     }
-    ..logo-section {
+    .logo-section {
         justify-content: center;
     }
 }

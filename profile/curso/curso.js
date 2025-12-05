@@ -5,9 +5,9 @@
 let supabase; 
 let courseData = null;
 let currentPageIndex = 0;
-let isQuizInProgress = false; // 🔒 El candado del examen
+let isQuizInProgress = false; //  El candado del examen
 let currentAnswers = {};      // Respuestas temporales
-
+let maxUnlockedIndex = 0; // Control de navegación
 // Referencias a elementos del HTML (se llenan al iniciar)
 let pageContentEl, sidebarListEl, prevPageBtn, nextPageBtn, courseTitleEl, footerMessageEl;
 
@@ -67,7 +67,6 @@ async function initCourse() {
 async function fetchCourseData() {
     const params = new URLSearchParams(location.search);
     const courseId = params.get("id");
-    console.log(`🔎 [DEBUG] ID buscado en URL: ${courseId}`);
 
     if (!courseId) {
         pageContentEl.innerHTML = "<p class='error-message'>Error: URL sin ID.</p>";
@@ -75,13 +74,10 @@ async function fetchCourseData() {
     }
 
     try {
-        // 1. AUTO-REPARACIÓN DE SESIÓN
         let { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (!session || sessionError) {
-            console.warn("⚠️ [RECOVERY] Buscando token manual...");
             const customKey = Object.keys(window.localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-
             if (customKey) {
                 try {
                     const token = JSON.parse(window.localStorage.getItem(customKey));
@@ -100,118 +96,82 @@ async function fetchCourseData() {
             return;
         }
 
-        // 2. DATOS DE USUARIO
-        const user = session.user;
-        const myRole = user?.app_metadata?.role || user?.user_metadata?.role || localStorage.getItem('role') || 'authenticated';
-        const myTenantId = user?.app_metadata?.tenant_id || user?.user_metadata?.tenant_id || localStorage.getItem('tenant');
-
-        console.log(`👤 [DEBUG] User: ${user.email} | Rol: ${myRole}`);
-
-        // 3. QUERY
-        let query = supabase
+        const { data: rawData, error } = await supabase
             .from("articles")
             .select("title, content_json, quiz_json, survey_json, tenant_id, question_show")
             .eq("id", courseId);
 
-        // ⚠️ NOTA: Quitamos .single() por seguridad para manejar el array manualmente
-        const { data: rawData, error } = await query;
-
-        if (error) {
-            console.error("❌ [SUPABASE ERROR]:", error);
-            pageContentEl.innerHTML = `<div class='error-message'>Error BD: ${error.message}</div>`;
+        if (error || !rawData) {
+            pageContentEl.innerHTML = `<div class='error-message'>Error cargando curso.</div>`;
             return;
         }
 
-        // ============================================================
-        // 🛠️ FIX DEL ARRAY (La corrección mágica)
-        // ============================================================
-        // Si rawData es un array (lista), tomamos el primero. Si es objeto, lo usamos directo.
         const fetchedCourse = Array.isArray(rawData) ? rawData[0] : rawData;
 
-        if (!fetchedCourse) {
-            pageContentEl.innerHTML = "<div class='error-message'>Curso no encontrado (posible bloqueo RLS).</div>";
-            return;
-        }
-
-        console.log("✅ [EXITO] Título:", fetchedCourse.title);
-
-        // 5. PROCESAMIENTO
         let finalCourseData;
-        if (typeof fetchedCourse.content_json === 'string') {
-            try {
-                finalCourseData = JSON.parse(fetchedCourse.content_json);
-            } catch (e) {
-                pageContentEl.innerHTML = `<div class='error-message'>JSON Corrupto: ${e.message}</div>`;
-                return;
-            }
-        } else {
-            finalCourseData = fetchedCourse.content_json || { pages: [] };
+        try {
+            finalCourseData = typeof fetchedCourse.content_json === 'string' 
+                ? JSON.parse(fetchedCourse.content_json) 
+                : (fetchedCourse.content_json || { pages: [] });
+        } catch (e) {
+            finalCourseData = { pages: [] };
         }
 
-        // Limpieza de quizzes viejos
-if (finalCourseData.pages) {
+        if (finalCourseData.pages) {
             finalCourseData.pages = finalCourseData.pages.filter(p => p.type !== 'quiz' && p.type !== 'survey');
         }
 
-        // 2. Inyección del Quiz (PENÚLTIMO)
+        // Quiz Final
         if (fetchedCourse.quiz_json) {
             let quizObj = typeof fetchedCourse.quiz_json === 'string' ? JSON.parse(fetchedCourse.quiz_json) : fetchedCourse.quiz_json;
-            
             if (quizObj?.questions?.length > 0) {
                 if (fetchedCourse.question_show && fetchedCourse.question_show > 0) {
                     const shuffled = quizObj.questions.sort(() => 0.5 - Math.random());
-                    const limit = Math.min(fetchedCourse.question_show, shuffled.length);
-                    quizObj.questions = shuffled.slice(0, limit);
+                    quizObj.questions = shuffled.slice(0, fetchedCourse.question_show);
                 }
-
-                finalCourseData.pages.push({ 
-                    type: 'quiz', 
-                    title: 'Evaluación de Conocimiento', 
-                    payload: quizObj 
-                });
+                finalCourseData.pages.push({ type: 'quiz', title: 'Evaluación Final', payload: quizObj });
             }
         }
 
-        // 3. Inyección de Encuesta (ÚLTIMO)
-        if (fetchedCourse.survey_json) {
-             let surveyObj = typeof fetchedCourse.survey_json === 'string' ? JSON.parse(fetchedCourse.survey_json) : fetchedCourse.survey_json;
-             finalCourseData.pages.push({ 
-                 type: 'survey', 
-                 title: 'Encuesta de Satisfacción', 
-                 payload: surveyObj 
-             });
-        } else {
-             // Encuesta por defecto si no viene de la BD
-             finalCourseData.pages.push({
-                 type: 'survey',
-                 title: 'Encuesta de Satisfacción',
-                 payload: { default: true }
-             });
-        }
-        // 6. RECUPERAR PROGRESO
-        let startIndex = 0;
-        try {
-            const { data: assignment } = await supabase
-                .from('user_course_assignments')
-                .select('progress, status')
-                .eq('user_id', user.id)
-                .eq('course_id', courseId)
-                // Aquí también aplicamos el fix por si acaso devuelve array
-                .maybeSingle(); 
+        // Encuesta
+        const surveyPayload = fetchedCourse.survey_json 
+            ? (typeof fetchedCourse.survey_json === 'string' ? JSON.parse(fetchedCourse.survey_json) : fetchedCourse.survey_json)
+            : { default: true };
+            
+        finalCourseData.pages.push({ type: 'survey', title: 'Encuesta de Satisfacción', payload: surveyPayload });
 
-            if (assignment && assignment.status !== 'completed' && assignment.progress > 0) {
-                 const contentPages = finalCourseData.pages.filter(p => p.type !== 'quiz');
-                 if (contentPages.length > 0) {
-                    startIndex = Math.round((assignment.progress / 90) * contentPages.length) - 1;
-                    startIndex = Math.max(0, Math.min(startIndex, finalCourseData.pages.length - 1));
-                 }
+        // Obtener Progreso
+        const { data: assignment } = await supabase
+            .from('user_course_assignments')
+            .select('progress, status')
+            .eq('user_id', session.user.id)
+            .eq('course_id', courseId)
+            .maybeSingle();
+
+        // CÁLCULO DE BLOQUEO
+        const totalPages = finalCourseData.pages.length;
+        maxUnlockedIndex = 0;
+
+        if (assignment) {
+            if (assignment.status === 'completed') {
+                maxUnlockedIndex = totalPages - 1;
+            } else {
+                // (Progreso / 90) * Total = Índice
+                const rawIndex = (assignment.progress / 90) * totalPages;
+                maxUnlockedIndex = Math.floor(rawIndex);
+                
+                if (assignment.progress > 0 && maxUnlockedIndex === 0) maxUnlockedIndex = 1;
+                if (maxUnlockedIndex >= totalPages) maxUnlockedIndex = totalPages - 1;
             }
-        } catch (err) {}
+        }
+
+        let startIndex = maxUnlockedIndex;
+        if (assignment && assignment.status === 'completed') startIndex = 0;
 
         loadCourseUI(fetchedCourse.title, finalCourseData, startIndex);
 
     } catch (e) {
-        console.error("❌ [CRITICO]:", e);
+        console.error("Error crítico en init:", e);
     }
 }
 
@@ -255,130 +215,241 @@ function loadCourseUI(title, data, startIndex = 0) {
 // ==========================================
 // Se asigna a window para que el HTML pueda llamarla
 window.renderPage = function(index) {
-    console.log(`[RENDER] Intentando ir a página ${index}`);
+    // Bloqueo estricto
+    if (index > maxUnlockedIndex) {
+        console.warn(" Navegación bloqueada.");
+        return; 
+    }
 
-    // Bloqueo de Quiz (Sin cambios)
     if (isQuizInProgress) {
-        if(!confirm("⚠️ ¡Evaluación en curso! Si sales, perderás progreso.")) return;
+        if(!confirm(" ¡Evaluación en curso! Si sales, perderás progreso.")) return;
         else endQuizMode();
     }
 
-    // Validación de datos
-    if (!courseData || !courseData.pages || !courseData.pages[index]) {
-        console.error("❌ [RENDER] Página no encontrada o datos vacíos");
-        return;
-    }
-
-    // Limpiar modal si existe
-    const modal = document.getElementById('resultModal');
-    if (modal) modal.style.display = 'none';
+    if (!courseData || !courseData.pages || !courseData.pages[index]) return;
 
     currentPageIndex = index;
     const page = courseData.pages[currentPageIndex];
-    pageContentEl.innerHTML = ''; // Limpiar pantalla anterior
+    pageContentEl.innerHTML = ''; 
 
-    // Guardar progreso (si no es quiz)
-    if (page.type !== 'quiz') saveProgress(index, false);
+    // Guardar progreso automáticamente si NO es Quiz, Practice o Encuesta
+    if (page.type !== 'quiz' && page.type !== 'practice' && page.type !== 'survey') {
+        if (index >= maxUnlockedIndex) {
+            maxUnlockedIndex = index + 1; // Preparamos el siguiente
+            saveProgress(index, false);
+        }
+    }
+    
+    // IMPORTANTE: Si es 'practice' y ya fue superado, permitimos avanzar visualmente
+    if (page.type === 'practice' && index < maxUnlockedIndex) {
+         // Ya estaba aprobado, no bloqueamos
+    }
 
-    // =======================================================
-    // AQUÍ ESTÁ LA SOLUCIÓN: MANEJAR CADA TIPO CORRECTAMENTE
-    // =======================================================
     switch (page.type) {
         case 'text':
-            // IMPORTANTE: Tu JSON usa page.payload.html
-            if (page.payload && page.payload.html) {
-                pageContentEl.innerHTML = page.payload.html;
-            } else {
-                pageContentEl.innerHTML = "<p>⚠️ Error: Esta página de texto no tiene contenido HTML.</p>";
-            }
+            pageContentEl.innerHTML = page.payload?.html || "<p>Sin contenido.</p>";
             break;
-
         case 'video':
-            // Asumiendo que el JSON de video usa page.payload.url
-            if (page.payload && page.payload.url) {
+            if (page.payload?.url) {
                 pageContentEl.innerHTML = `
                     <div class="video-container" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
                         <iframe style="position:absolute; top:0; left:0; width:100%; height:100%;" 
-                                src="${page.payload.url}" 
-                                frameborder="0" allowfullscreen>
-                        </iframe>
-                    </div>
-                    ${page.payload.description ? `<p style="margin-top:1rem">${page.payload.description}</p>` : ''}
-                `;
+                                src="${page.payload.url}" frameborder="0" allowfullscreen></iframe>
+                    </div>`;
             }
             break;
-
-case 'image':
-    pageContentEl.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; min-height:60vh;">
-            <img src="${page.payload.url}" 
-                 alt="${page.title}"
-                 style="
-                    width: auto;
-                    height: auto;
-                    max-width: 100%;
-                    max-height: 75vh; 
-                    object-fit: contain;
-                    aspect-ratio: 16/9;
-                    display: block;
-                 ">
-            ${page.payload.description ? 
-                `<p style="margin-top:10px; color:var(--textForm); font-size:0.9rem; text-align:center;">${page.payload.description}</p>` 
-                : ''}
-        </div>
-    `;
-    break;
-
+        case 'image':
+            pageContentEl.innerHTML = `
+                <div style="display:flex; justify-content:center;">
+                    <img src="${page.payload.url}" style="max-width:100%; max-height:75vh;">
+                </div>`;
+            break;
+        case 'practice': 
+            renderPracticeQuiz(page);
+            break;
         case 'quiz':
-            // Si el quiz viene en el JSON de la página
-            if (page.payload && page.payload.questions) {
-                renderQuizTemplate(page.payload.questions);
-            } else {
-                pageContentEl.innerHTML = "<p>⚠️ Error: Datos del examen no encontrados.</p>";
-            }
+            if (page.payload?.questions) renderQuizTemplate(page.payload.questions);
             break;
-
-        default:
-            pageContentEl.innerHTML = `<p>Tipo de contenido desconocido: ${page.type}</p>`;
         case 'flipCards':
             renderFlipCards(page);
             break;
-
         case 'interactive':
-            renderInteractive(page);
+        case 'comparison':
+            pageContentEl.innerHTML = page.payload.html;
             break;
-
         case 'stepByStep':
             renderStepByStep(page);
             break;
         case 'survey':
             renderSurvey(page);
             break;
-
-        case 'comparison':
-            renderComparison(page);
-            break;
-            }
-            
+        default:
+            pageContentEl.innerHTML = `<p>Tipo desconocido: ${page.type}</p>`;
+    }
 
     updateNavigationUI(index);
 };
-
 function updateNavigationUI(index) {
-    // Actualizar Footer
+    // 1. Footer
     prevPageBtn.disabled = (index === 0);
-    nextPageBtn.disabled = (index === courseData.pages.length - 1);
+    
+    //  Lógica especial para botón Siguiente
+    const currentPage = courseData.pages[index];
+    
+    // Si es práctica y NO ha superado el índice desbloqueado, bloqueamos "Siguiente"
+    if (currentPage.type === 'practice' && index >= maxUnlockedIndex) {
+        nextPageBtn.disabled = true; 
+    } else {
+        nextPageBtn.disabled = (index === courseData.pages.length - 1);
+    }
+    
     footerMessageEl.textContent = `Página ${index + 1} de ${courseData.pages.length}`;
 
-    // Actualizar Sidebar
+    // 2. Sidebar (Bloqueo visual)
     const btns = document.querySelectorAll('.page-btn');
     btns.forEach((btn, idx) => {
-        const isActive = idx === index;
-        btn.classList.toggle('active', isActive);
-        if (isActive) {
-            setTimeout(() => btn.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 100);
+        // Estado activo
+        btn.classList.toggle('active', idx === index);
+        
+        // Estado bloqueado (Lock)
+        if (idx > maxUnlockedIndex) {
+            btn.classList.add('locked');
+            // Opcional: Agregar candado visualmente
+            if(!btn.querySelector('.fa-lock')) {
+                btn.innerHTML += ' <i class="fas fa-lock" style="font-size:0.7em; margin-left:auto;"></i>';
+            }
+        } else {
+            btn.classList.remove('locked');
+            const lockIcon = btn.querySelector('.fa-lock');
+            if(lockIcon) lockIcon.remove();
         }
     });
+}
+
+function renderPracticeQuiz(page) {
+    const config = page.payload.config || { pool_size: 4 };
+    const bank = page.payload.bank || [];
+    
+    // Si maxUnlockedIndex es mayor al índice actual, significa que ya pasamos por aquí
+    const isAlreadyPassed = maxUnlockedIndex > currentPageIndex;
+
+    // 1. VISTA: YA APROBADO
+    if (isAlreadyPassed) {
+        pageContentEl.innerHTML = `
+            <div class="practice-container">
+                <div class="practice-completed-card">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
+                    <h3>¡Actividad Completada!</h3>
+                    <p>Ya has aprobado este módulo.</p>
+                    <button class="btn btn-secondary" onclick="window.startPracticeMode()">
+                        <i class="fas fa-sync"></i> Practicar de nuevo
+                    </button>
+                </div>
+            </div>
+        `;
+        document.getElementById('nextPageBtn').disabled = false;
+        return;
+    }
+
+    // 2. VISTA: MODO EXAMEN
+    window.startPracticeMode = function() {
+        const shuffled = [...bank].sort(() => 0.5 - Math.random());
+        const selectedQuestions = shuffled.slice(0, config.pool_size);
+
+        let html = `
+            <div class="practice-container">
+                <h2 style="color:var(--primaryColor); text-align:center;">${page.title || 'Práctica'}</h2>
+                <form id="practiceForm">
+        `;
+
+        selectedQuestions.forEach((q, idx) => {
+            html += `
+                <div class="practice-card" data-answer="${q.answer}">
+                    <p><strong>${idx + 1}. ${q.question}</strong></p>
+                    <div class="practice-options">
+                        ${q.options.map((opt, optIdx) => `
+                            <label>
+                                <input type="radio" name="q${idx}" value="${optIdx}">
+                                <span>${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div class="feedback-msg" style="margin-top:5px; display:none;"></div>
+                </div>
+            `;
+        });
+
+        html += `
+                <div id="practiceActions" style="text-align:center; margin-top:20px;">
+                    <button type="button" class="btn btn-primary" onclick="checkPracticeAnswers()">Verificar</button>
+                </div>
+                <div id="practiceResult" class="practice-completed-card" style="display:none; margin-top:20px;"></div>
+            </form>
+            </div>
+        `;
+        pageContentEl.innerHTML = html;
+        // Si no está aprobado, bloqueamos el botón siguiente
+        if (!isAlreadyPassed) document.getElementById('nextPageBtn').disabled = true;
+    };
+
+    window.startPracticeMode();
+
+    window.checkPracticeAnswers = function() {
+        const cards = document.querySelectorAll('.practice-card');
+        let allCorrect = true;
+
+        cards.forEach(card => {
+            const correctIdx = parseInt(card.dataset.answer);
+            const selectedInput = card.querySelector('input:checked');
+            const feedbackEl = card.querySelector('.feedback-msg');
+            const labels = card.querySelectorAll('label');
+
+            labels.forEach(l => l.classList.remove('correct', 'incorrect'));
+            
+            if (!selectedInput) {
+                allCorrect = false;
+                feedbackEl.textContent = "Selecciona una opción";
+                feedbackEl.style.color = "red";
+                feedbackEl.style.display = 'block';
+                return;
+            }
+
+            const userVal = parseInt(selectedInput.value);
+            if (userVal === correctIdx) {
+                selectedInput.parentElement.classList.add('correct');
+                feedbackEl.textContent = "Correcto";
+                feedbackEl.style.color = "green";
+            } else {
+                selectedInput.parentElement.classList.add('incorrect');
+                feedbackEl.textContent = "Incorrecto";
+                feedbackEl.style.color = "red";
+                allCorrect = false;
+            }
+            feedbackEl.style.display = 'block';
+        });
+
+        const resultArea = document.getElementById('practiceResult');
+        const actionArea = document.getElementById('practiceActions');
+
+        if (allCorrect) {
+            resultArea.innerHTML = `<h4>¡Correcto!</h4><p>Puedes continuar.</p>`;
+            resultArea.style.display = 'block';
+            actionArea.style.display = 'none';
+
+            // Desbloquear si es necesario
+            if (currentPageIndex >= maxUnlockedIndex) {
+                maxUnlockedIndex = currentPageIndex + 1;
+                saveProgress(currentPageIndex, false);
+                updateNavigationUI(currentPageIndex);
+            }
+            document.getElementById('nextPageBtn').disabled = false;
+        } else {
+            const btn = actionArea.querySelector('button');
+            btn.innerHTML = "Reintentar (Nuevas Preguntas)";
+            btn.classList.replace('btn-primary', 'btn-secondary');
+            btn.onclick = () => window.renderPage(currentPageIndex);
+        }
+    };
 }
 
 function renderFlipCards(page) {
@@ -622,77 +693,48 @@ async function saveProgress(pageIndex, isQuizCompleted = false) {
         const { data: { user } } = await supabase.auth.getUser();
         const courseId = new URLSearchParams(location.search).get("id");
         
-        if (!user || !courseId) {
-            console.warn("[PROGRESS] No hay usuario o curso ID");
-            return;
-        }
+        if (!user || !courseId) return;
 
-        let progress;
-        if (isQuizCompleted) {
-            progress = 100;
-        } else {
-            const totalWithoutQuiz = courseData.pages.length;
-            progress = Math.round(((pageIndex + 1) / totalWithoutQuiz) * 90);
-            progress = Math.min(progress, 90);
-        }
-
-        console.log(`[PROGRESS] Guardando progreso: ${progress}%`);
-
+        // Verificar estado actual para no degradar 'completed'
         const { data: existing } = await supabase
             .from('user_course_assignments')
-            .select('status, score')
+            .select('status, progress')
             .eq('user_id', user.id)
             .eq('course_id', courseId)
             .maybeSingle();
 
-        if (existing?.status === 'completed') {
-            console.log("[PROGRESS] Curso ya completado, no se actualiza");
-            return;
+        if (existing?.status === 'completed') return;
+
+        let newProgress;
+        
+        if (isQuizCompleted) {
+            newProgress = 95; // Examen final aprobado
+        } else {
+            // Fórmula: ((PáginasVistas) / Total) * 90
+            const totalPages = courseData.pages.length;
+            newProgress = ((pageIndex + 1) / totalPages) * 90;
+            newProgress = Math.round(newProgress * 100) / 100;
+            if (newProgress > 90) newProgress = 90;
         }
 
-        // 🔧 FIX: Usar UPDATE en lugar de UPSERT
+        if (existing && existing.progress >= newProgress) return;
+
         const payload = {
-            progress: progress,
-            status: progress < 100 ? 'in_progress' : existing?.status || 'in_progress',
-            assigned_at: new Date().toISOString()
+            progress: newProgress,
+            status: 'in_progress',
+            last_accessed: new Date().toISOString()
         };
 
-        const { data: check } = await supabase
+        await supabase
             .from('user_course_assignments')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('course_id', courseId)
-            .maybeSingle();
-
-        let error;
-        if (check) {
-            // UPDATE
-            ({ error } = await supabase
-                .from('user_course_assignments')
-                .update(payload)
-                .eq('user_id', user.id)
-                .eq('course_id', courseId));
-        } else {
-            // INSERT
-            ({ error } = await supabase
-                    .from('user_course_assignments')
-                    .insert({ 
-                        ...payload, 
-                        user_id: user.id, 
-                        course_id: courseId,
-                        assigned_at: new Date().toISOString() // Solo al crear
-                    }));
-        }
-
-        if (error) {
-            console.error("[PROGRESS] Error:", error);
-            return;
-        }
-
-        console.log(`[PROGRESS] Guardado exitosamente: ${progress}%`);
+            .upsert({ 
+                user_id: user.id, 
+                course_id: courseId,
+                ...payload
+            }, { onConflict: 'user_id, course_id' });
 
     } catch (e) {
-        console.error("[PROGRESS] Error guardando progreso:", e);
+        console.error("Error saveProgress:", e);
     }
 }
 
@@ -814,3 +856,41 @@ window.submitSurvey = async function(e) {
 document.addEventListener('DOMContentLoaded', initCourse);
 
 
+/* 
+Json, type practice
+{
+  "type": "practice",
+  "title": "Repaso: Normas de Seguridad",
+  "payload": {
+    "config": {
+      "pool_size": 4
+    },
+    "bank": [
+      {
+        "question": "¿Cuál es la altura mínima para considerar trabajo en altura?",
+        "options": ["1.5 metros", "1.8 metros", "2.0 metros"],
+        "answer": 1
+      },
+      {
+        "question": "¿Qué norma regula el EPP?",
+        "options": ["NOM-017", "NOM-035", "NOM-030"],
+        "answer": 0
+      },
+      {
+        "question": "¿Color de seguridad para prohibición?",
+        "options": ["Azul", "Rojo", "Amarillo"],
+        "answer": 1
+      },
+      {
+        "question": "¿Color para advertencia?",
+        "options": ["Verde", "Amarillo", "Rojo"],
+        "answer": 1
+      },
+      {
+        "question": "¿Extintor para fuego tipo A?",
+        "options": ["CO2", "Agua", "Polvo Químico"],
+        "answer": 1
+      }
+    ]
+  }
+} */
