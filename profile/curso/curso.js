@@ -690,51 +690,100 @@ window.submitQuiz = async function() {
 
 async function saveProgress(pageIndex, isQuizCompleted = false) {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const courseId = new URLSearchParams(location.search).get("id");
+        // 1. Verificación de seguridad de sesión
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (!user || !courseId) return;
+        if (sessionError || !session) {
+            console.warn("[SAVE] No hay sesión activa. Posible bloqueo de navegador.");
+            return;
+        }
 
-        // Verificar estado actual para no degradar 'completed'
-        const { data: existing } = await supabase
+        const user = session.user;
+        const params = new URLSearchParams(location.search);
+        const courseId = params.get("id"); // Obtenemos ID limpio
+        
+        if (!user || !courseId) {
+            console.error("[SAVE] Faltan datos críticos (User o CourseID)");
+            return;
+        }
+
+        // 2. Calcular Progreso Matemático
+        let newProgress;
+        if (isQuizCompleted) {
+            newProgress = 95; 
+        } else {
+            const totalPages = courseData.pages.length || 1;
+            // Fórmula: ((PáginaActual + 1) / Total) * 90
+            newProgress = ((pageIndex + 1) / totalPages) * 90;
+            newProgress = Math.round(newProgress * 100) / 100; // Redondear 2 decimales
+            if (newProgress > 90) newProgress = 90;
+        }
+
+        console.log(`[SAVE] Intentando guardar: ${newProgress}% para Curso: ${courseId}`);
+
+        // 3. ESTRATEGIA CHECK-THEN-ACT (Evita error 400 de Upsert)
+        
+        // A. Consultar si ya existe registro
+        const { data: existing, error: fetchError } = await supabase
             .from('user_course_assignments')
-            .select('status, progress')
+            .select('id, status, progress')
             .eq('user_id', user.id)
             .eq('course_id', courseId)
             .maybeSingle();
 
-        if (existing?.status === 'completed') return;
-
-        let newProgress;
-        
-        if (isQuizCompleted) {
-            newProgress = 95; // Examen final aprobado
-        } else {
-            // Fórmula: ((PáginasVistas) / Total) * 90
-            const totalPages = courseData.pages.length;
-            newProgress = ((pageIndex + 1) / totalPages) * 90;
-            newProgress = Math.round(newProgress * 100) / 100;
-            if (newProgress > 90) newProgress = 90;
+        if (fetchError) {
+            console.error("[SAVE] Error consultando estado:", fetchError);
+            return;
         }
 
-        if (existing && existing.progress >= newProgress) return;
+        // B. Si ya está completado, no hacemos nada (Protección)
+        if (existing?.status === 'completed') {
+            console.log("[SAVE] Curso ya completado. No se sobrescribe.");
+            return;
+        }
 
+        // C. No guardar si el progreso nuevo es menor al existente (Evitar retroceso)
+        if (existing && existing.progress >= newProgress) {
+            return; 
+        }
+
+        // 4. EJECUTAR UPDATE O INSERT
         const payload = {
             progress: newProgress,
             status: 'in_progress',
             last_accessed: new Date().toISOString()
         };
 
-        await supabase
-            .from('user_course_assignments')
-            .upsert({ 
-                user_id: user.id, 
-                course_id: courseId,
-                ...payload
-            }, { onConflict: 'user_id, course_id' });
+        let errorAction;
+
+        if (existing) {
+            // --- UPDATE (Si ya existe ID) ---
+            const { error } = await supabase
+                .from('user_course_assignments')
+                .update(payload)
+                .eq('id', existing.id); // Usamos ID directo, más seguro
+            errorAction = error;
+        } else {
+            // --- INSERT (Si es nuevo) ---
+            const { error } = await supabase
+                .from('user_course_assignments')
+                .insert({
+                    user_id: user.id,
+                    course_id: courseId,
+                    ...payload,
+                    assigned_at: new Date().toISOString()
+                });
+            errorAction = error;
+        }
+
+        if (errorAction) {
+            console.error("[SAVE] Error al guardar en BD:", errorAction);
+        } else {
+            console.log("[SAVE] ✅ Progreso guardado correctamente.");
+        }
 
     } catch (e) {
-        console.error("Error saveProgress:", e);
+        console.error("[SAVE] Excepción crítica:", e);
     }
 }
 
