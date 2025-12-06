@@ -661,6 +661,8 @@ window.enrollUser = async function(courseId) {
 };
 
 
+
+
 function setupNotificationUI() {
     const btn = document.getElementById('notificationBtn');
     if (!btn) return;

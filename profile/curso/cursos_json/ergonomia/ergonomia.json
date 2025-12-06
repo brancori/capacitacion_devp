@@ -1,0 +1,147 @@
+{
+  "pages": [
+        {
+      "id": "p1",
+      "type": "image",
+      "title": "Inicio",
+      "payload": {
+        "url": "./cursos_json/ergonomia_curso/p1.png",
+        "description": ""
+      }
+    },
+    {
+      "id": "p2",
+      "type": "text",
+      "title": "Objetivos del Curso",
+      "payload": {
+        "html": "<div class='container'><h3>¿Qué vamos a lograr?</h3><ul style='line-height:1.8; color:var(--textForm);'><li>✅ <strong>Comprender</strong> conceptos básicos de ergonomía física y sus aplicaciones.</li><li>✅ <strong>Identificar</strong> factores de riesgo: Postura, Fuerza, Frecuencia y Duración.</li><li>✅ <strong>Aplicar</strong> la normativa NOM-036-1-STPS-2018 para manejo manual de cargas.</li><li>✅ <strong>Integrar</strong> estándares corporativos en la evaluación de puestos de trabajo.</li></ul><div style='background:#e3f2fd; padding:15px; border-left:5px solid var(--primaryColor); margin-top:20px;'><p style='margin:0;'><strong>Nota:</strong> Este curso es fundamental para cumplir con los requerimientos legales de seguridad y salud en el trabajo.</p></div><br><audio controls style='width:100%'><source src='PLACEHOLDER_AUDIO_OBJETIVOS.mp3' type='audio/mpeg'></audio></div>"
+      }
+    },
+    {
+      "id": "p3",
+      "type": "text",
+      "title": "¿Qué es la Ergonomía?",
+      "payload": {
+        "html": "<div style='text-align:center;'><h3>Adaptar el trabajo a la persona</h3><p>La ergonomía no busca que el trabajador se adapte a una máquina incómoda, sino diseñar el entorno para respetar las capacidades biomecánicas del ser humano.</p><div style='display:flex; justify-content:center; gap:20px; margin:30px 0;'><div style='text-align:center;'><i class='fas fa-user-shield' style='font-size:3rem; color:var(--primaryColor);'></i><p>Seguridad</p></div><div style='text-align:center;'><i class='fas fa-chart-line' style='font-size:3rem; color:var(--success);'></i><p>Productividad</p></div><div style='text-align:center;'><i class='fas fa-heartbeat' style='font-size:3rem; color:#e83e8c;'></i><p>Salud</p></div></div><p>Escucha la definición detallada a continuación:</p><audio controls style='width:100%'><source src='PLACEHOLDER_AUDIO_DEFINICION.mp3' type='audio/mpeg'></audio></div>"
+      }
+    },
+{
+      "id": "p4",
+      "type": "flipCards",
+      "title": "Tipos de Ergonomía",
+      "payload": {
+        "instruction": "<p style='text-align:center'>Haz clic en las tarjetas para ver su enfoque:</p>",
+        "cards": [
+          {
+            "front": { "color": "var(--primaryColor)", "icon": "<i class='fas fa-walking'></i>", "letter": "F", "title": "Ergonomía Física" },
+            "back": { "content": "Anatomía, antropometría, fisiología y biomecánica (Posturas, manejo de cargas).", "action": "Enfoque del curso" }
+          },
+          {
+            "front": { "color": "var(--secondaryColor)", "icon": "<i class='fas fa-brain'></i>", "letter": "C", "title": "Ergonomía Cognitiva" },
+            "back": { "content": "Procesos mentales: percepción, memoria, razonamiento y respuesta motora (Carga mental).", "action": "Interacción humano-sistema" }
+          },
+          {
+            "front": { "color": "#28a745", "icon": "<i class='fas fa-users'></i>", "letter": "O", "title": "Ergonomía Organizacional" },
+            "back": { "content": "Estructuras organizacionales, políticas y procesos (Sistemas sociotécnicos).", "action": "Organización del trabajo" }
+          }
+        ]
+      }
+    },
+    {
+      "id": "p5",
+      "type": "stepByStep",
+      "title": "Factores de Riesgo (1)",
+      "payload": {
+        "intro": "<p>Para identificar un riesgo ergonómico, debemos descomponer la tarea en sus componentes básicos:</p>",
+        "steps": [
+          {
+            "tip": "Evita giros de tronco y trabajos por encima de los hombros.",
+            "icon": "<i class='fas fa-male'></i>",
+            "title": "Postura",
+            "number": "1",
+            "content": "Cualquier desviación de la posición neutra del cuerpo. Cuanto más extrema es la postura, mayor es la tensión mecánica."
+          },
+          {
+            "tip": "Un mal agarre incrementa la fuerza necesaria significativamente.",
+            "icon": "<i class='fas fa-dumbbell'></i>",
+            "title": "Fuerza",
+            "number": "2",
+            "content": "El esfuerzo físico requerido para ejecutar una labor (levantar, empujar, sostener). Depende del peso y del agarre."
+          }
+        ]
+      }
+    },
+    {
+      "id": "p6",
+      "type": "stepByStep",
+      "title": "Factores de Riesgo (2)",
+      "payload": {
+        "intro": "<p>Continuando con los factores críticos:</p>",
+        "steps": [
+          {
+            "tip": "Movimientos ligeros pero muy repetitivos pueden causar tendinitis.",
+            "icon": "<i class='fas fa-redo-alt'></i>",
+            "title": "Frecuencia",
+            "number": "3",
+            "content": "La cantidad de veces que se repite un movimiento en un periodo determinado (ciclos por minuto)."
+          },
+          {
+            "tip": "Las pausas activas ayudan a mitigar este factor.",
+            "icon": "<i class='fas fa-hourglass-half'></i>",
+            "title": "Duración",
+            "number": "4",
+            "content": "El tiempo total de exposición al riesgo. No es lo mismo cargar algo una vez que hacerlo durante 8 horas."
+          }
+        ]
+      }
+    },
+    {
+      "id": "p7",
+      "type": "practice",
+      "title": "Validación de Conocimientos",
+      "payload": {
+        "bank": [
+          {
+            "answer": 1,
+            "options": [
+              "Que el trabajador se adapte a la máquina",
+              "Adaptar el trabajo a las capacidades de la persona",
+              "Aumentar la velocidad de producción sin importar el riesgo"
+            ],
+            "question": "¿Cuál es el objetivo principal de la ergonomía?"
+          },
+          {
+            "answer": 1,
+            "options": [
+              "Fuerza excesiva",
+              "Alta frecuencia (Repetitividad)",
+              "Postura estática"
+            ],
+            "question": "Si un trabajador realiza el mismo movimiento de muñeca cada 3 segundos durante 8 horas, ¿qué factor de riesgo predomina?"
+          },
+          {
+            "answer": 1,
+            "options": [
+              "Las posturas de trabajo",
+              "Los procesos mentales y la carga de trabajo mental",
+              "La organización de turnos"
+            ],
+            "question": "La ergonomía cognitiva se encarga de:"
+          },
+          {
+            "answer": 1,
+            "options": [
+              "Fuerza",
+              "Duración",
+              "Asimetría"
+            ],
+            "question": "¿Qué factor considera el tiempo total de exposición?"
+          }
+        ],
+        "config": {
+          "pool_size": 3
+        }
+      }
+    }
+  ]
+}

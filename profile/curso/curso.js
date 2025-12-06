@@ -280,6 +280,9 @@ window.renderPage = function(index) {
         case 'stepByStep':
             renderStepByStep(page);
             break;
+        case 'fillBlanks':
+            renderFillBlanks(page);
+            break;
         case 'survey':
             renderSurvey(page);
             break;
@@ -289,32 +292,184 @@ window.renderPage = function(index) {
 
     updateNavigationUI(index);
 };
-function updateNavigationUI(index) {
-    // 1. Footer
-    prevPageBtn.disabled = (index === 0);
+function renderFillBlanks(page) {
+    const data = page.payload;
+    // data.text debe contener marcadores como {0}, {1} para los huecos
+    // data.blanks es un array con las respuestas correctas ["Ergonomía", "Física"]
+    // data.distractors son palabras extra incorrectas (opcional)
+
+    // 1. Preparar el banco de palabras (Correctas + Distractores)
+    let allWords = [...data.blanks];
+    if (data.distractors) allWords = allWords.concat(data.distractors);
+    // Barajar palabras
+    allWords.sort(() => 0.5 - Math.random());
+
+    // 2. Generar HTML del texto con huecos
+    let contentHtml = data.text;
+    data.blanks.forEach((ans, index) => {
+        // Reemplazamos {index} o marcadores por un span clicable
+        // Usamos un regex simple para buscar las llaves {}
+        // Ojo: asumiremos que el JSON viene con placeholders tipo ___ o similar, 
+        // pero para hacerlo robusto, mejor usamos un array de segmentos.
+        
+        // ESTRATEGIA: El texto en JSON debe usar tokens como {{0}}, {{1}}
+        contentHtml = contentHtml.replace(`{{${index}}}`, 
+            `<span class="blank-space" data-index="${index}" onclick="selectBlank(this)">____</span>`
+        );
+    });
+
+    pageContentEl.innerHTML = `
+        <div class="fill-blanks-container">
+            <h2 style="color:var(--primaryColor); text-align:center;">${page.title}</h2>
+            <p style="text-align:center; font-size:0.9rem; color:#666;">
+                Toca un espacio vacío para seleccionarlo y luego elige la palabra correcta.
+            </p>
+            
+            <div class="sentence-line">
+                ${contentHtml}
+            </div>
+
+            <div class="word-bank" id="wordBank">
+                ${allWords.map(word => `<div class="bank-word" onclick="placeWord(this)">${word}</div>`).join('')}
+            </div>
+
+            <div class="fb-feedback" id="fbFeedback"></div>
+
+            <div style="text-align:center; margin-top:20px;">
+                <button class="btn btn-primary" onclick="checkFillBlanks()">Verificar</button>
+                <button class="btn btn-secondary" onclick="resetFillBlanks()" style="margin-left:10px;">Reiniciar</button>
+            </div>
+        </div>
+    `;
+
+    // Estado local para esta slide
+    window.fbState = {
+        currentBlank: null, // El span que está seleccionado actualmente
+        answers: {},        // {0: "Palabra", 1: "Palabra"}
+        correctAnswers: data.blanks
+    };
+}
+
+// Funciones auxiliares globales para FillBlanks
+window.selectBlank = function(el) {
+    // Si ya está corregido (verde), no hacer nada
+    if (el.classList.contains('correct')) return;
+
+    // Quitar activo de otros
+    document.querySelectorAll('.blank-space').forEach(b => b.classList.remove('active'));
     
-    //  Lógica especial para botón Siguiente
+    // Activar este
+    el.classList.add('active');
+    window.fbState.currentBlank = el;
+};
+
+window.placeWord = function(wordEl) {
+    if (!window.fbState.currentBlank || wordEl.classList.contains('used')) return;
+
+    const blank = window.fbState.currentBlank;
+    const wordText = wordEl.innerText;
+    const blankIndex = blank.dataset.index;
+
+    // Si había una palabra antes, liberarla en el banco visualmente
+    if (window.fbState.answers[blankIndex]) {
+        const prevWord = window.fbState.answers[blankIndex];
+        // Buscar esa palabra en el banco y quitarle 'used'
+        const bankWords = document.querySelectorAll('.bank-word');
+        for(let w of bankWords) {
+            if (w.innerText === prevWord && w.classList.contains('used')) {
+                w.classList.remove('used');
+                break; // Solo reactivar una instancia
+            }
+        }
+    }
+
+    // Colocar nueva palabra
+    blank.innerText = wordText;
+    blank.classList.remove('active');
+    window.fbState.answers[blankIndex] = wordText;
+    
+    // Marcar palabra como usada
+    wordEl.classList.add('used');
+    window.fbState.currentBlank = null; // Deseleccionar
+};
+
+window.checkFillBlanks = function() {
+    const state = window.fbState;
+    let correctCount = 0;
+    let total = state.correctAnswers.length;
+    const blanks = document.querySelectorAll('.blank-space');
+    
+    // Limpiar estilos previos de error
+    blanks.forEach(b => b.classList.remove('incorrect'));
+
+    let allFilled = true;
+
+    blanks.forEach(blank => {
+        const idx = blank.dataset.index;
+        const userWord = state.answers[idx];
+        const correctWord = state.correctAnswers[idx];
+
+        if (!userWord) {
+            allFilled = false;
+            return;
+        }
+
+        if (userWord === correctWord) {
+            blank.classList.add('correct');
+            blank.classList.remove('incorrect');
+            correctCount++;
+        } else {
+            blank.classList.add('incorrect');
+        }
+    });
+
+    const feedback = document.getElementById('fbFeedback');
+    feedback.style.display = 'block';
+
+    if (correctCount === total) {
+        feedback.innerHTML = `<span style="color:#28a745"><i class="fas fa-check-circle"></i> ¡Excelente! Todo correcto.</span>`;
+        // Desbloquear siguiente página
+        if (currentPageIndex >= maxUnlockedIndex) {
+             maxUnlockedIndex = currentPageIndex + 1;
+             saveProgress(currentPageIndex, false);
+             updateNavigationUI(currentPageIndex);
+        }
+        document.getElementById('nextPageBtn').disabled = false;
+    } else {
+        feedback.innerHTML = `<span style="color:#dc3545">Tienes ${total - correctCount} errores. Inténtalo de nuevo.</span>`;
+    }
+};
+
+window.resetFillBlanks = function() {
+    window.renderPage(currentPageIndex); // Recargar simple
+};
+
+function updateNavigationUI(index) {
+    // 1. Actualizar textos y botones del Footer
+    footerMessageEl.textContent = `Página ${index + 1} de ${courseData.pages.length}`;
+    prevPageBtn.disabled = (index === 0);
+
     const currentPage = courseData.pages[index];
     
-    // Si es práctica y NO ha superado el índice desbloqueado, bloqueamos "Siguiente"
+    // Lógica de bloqueo del botón "Siguiente"
+    // Si es práctica y NO ha superado el índice desbloqueado, bloqueamos
     if (currentPage.type === 'practice' && index >= maxUnlockedIndex) {
         nextPageBtn.disabled = true; 
     } else {
         nextPageBtn.disabled = (index === courseData.pages.length - 1);
     }
-    
-    footerMessageEl.textContent = `Página ${index + 1} de ${courseData.pages.length}`;
 
-    // 2. Sidebar (Bloqueo visual)
+    // 2. Actualizar Sidebar (Colores y SCROLL AUTOMÁTICO)
     const btns = document.querySelectorAll('.page-btn');
+    
     btns.forEach((btn, idx) => {
-        // Estado activo
-        btn.classList.toggle('active', idx === index);
+        // A. Estado Activo
+        const isActive = (idx === index);
+        btn.classList.toggle('active', isActive);
         
-        // Estado bloqueado (Lock)
+        // B. Estado Bloqueado (Candado)
         if (idx > maxUnlockedIndex) {
             btn.classList.add('locked');
-            // Opcional: Agregar candado visualmente
             if(!btn.querySelector('.fa-lock')) {
                 btn.innerHTML += ' <i class="fas fa-lock" style="font-size:0.7em; margin-left:auto;"></i>';
             }
@@ -323,6 +478,16 @@ function updateNavigationUI(index) {
             const lockIcon = btn.querySelector('.fa-lock');
             if(lockIcon) lockIcon.remove();
         }
+
+        // C. 🔥 SCROLL AUTOMÁTICO (La lógica recuperada)
+        if (isActive) {
+            // Esto hace que la barra lateral se mueva sola hasta el botón activo
+            btn.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest', // 'nearest' evita saltos bruscos si ya es visible
+                inline: 'start'
+            });
+        }
     });
 }
 
@@ -330,18 +495,17 @@ function renderPracticeQuiz(page) {
     const config = page.payload.config || { pool_size: 4 };
     const bank = page.payload.bank || [];
     
-    // Si maxUnlockedIndex es mayor al índice actual, significa que ya pasamos por aquí
     const isAlreadyPassed = maxUnlockedIndex > currentPageIndex;
 
-    // 1. VISTA: YA APROBADO
+    // 1. VISTA: YA APROBADO (Sin cambios)
     if (isAlreadyPassed) {
         pageContentEl.innerHTML = `
-            <div class="practice-container">
+            <div class="practice-container" style="text-align:center; display:flex; flex-direction:column; justify-content:center;">
                 <div class="practice-completed-card">
-                    <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
-                    <h3>¡Actividad Completada!</h3>
-                    <p>Ya has aprobado este módulo.</p>
-                    <button class="btn btn-secondary" onclick="window.startPracticeMode()">
+                    <i class="fas fa-check-circle" style="font-size: 4rem; color: #28a745; margin-bottom: 20px;"></i>
+                    <h3 style="color: #28a745;">¡Actividad Completada!</h3>
+                    <p>Ya has aprobado este módulo anteriormente.</p>
+                    <button class="btn btn-secondary" style="margin-top:20px;" onclick="window.startPracticeMode()">
                         <i class="fas fa-sync"></i> Practicar de nuevo
                     </button>
                 </div>
@@ -351,92 +515,121 @@ function renderPracticeQuiz(page) {
         return;
     }
 
-    // 2. VISTA: MODO EXAMEN
+    // 2. VISTA: MODO EXAMEN (NUEVO DISEÑO)
     window.startPracticeMode = function() {
         const shuffled = [...bank].sort(() => 0.5 - Math.random());
         const selectedQuestions = shuffled.slice(0, config.pool_size);
 
+        // Generamos el HTML con la nueva estructura de tarjetas y botones
         let html = `
             <div class="practice-container">
-                <h2 style="color:var(--primaryColor); text-align:center;">${page.title || 'Práctica'}</h2>
-                <form id="practiceForm">
+                <h2 style="color:var(--primaryColor); margin-bottom:25px;">${page.title || 'Validación de Conocimientos'}</h2>
+                <div id="practiceQuestionsList">
         `;
 
         selectedQuestions.forEach((q, idx) => {
             html += `
-                <div class="practice-card" data-answer="${q.answer}">
-                    <p><strong>${idx + 1}. ${q.question}</strong></p>
+                <div class="practice-card" id="p-card-${idx}" data-answer="${q.answer}">
+                    <h4>${idx + 1}. ${q.question}</h4>
                     <div class="practice-options">
                         ${q.options.map((opt, optIdx) => `
-                            <label>
-                                <input type="radio" name="q${idx}" value="${optIdx}">
-                                <span>${opt}</span>
-                            </label>
+                            <button type="button" class="quiz-option-btn" onclick="selectPracticeOption(${idx}, ${optIdx})">
+                                ${opt}
+                            </button>
                         `).join('')}
                     </div>
-                    <div class="feedback-msg" style="margin-top:5px; display:none;"></div>
                 </div>
             `;
         });
 
         html += `
-                <div id="practiceActions" style="text-align:center; margin-top:20px;">
-                    <button type="button" class="btn btn-primary" onclick="checkPracticeAnswers()">Verificar</button>
                 </div>
-                <div id="practiceResult" class="practice-completed-card" style="display:none; margin-top:20px;"></div>
-            </form>
+                <div id="practiceActions" style="text-align:center; margin-top:30px; margin-bottom:20px;">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="checkPracticeAnswers()">
+                        Verificar Respuestas
+                    </button>
+                </div>
+                <div id="practiceResult" class="practice-completed-card" style="display:none; margin-top:30px; text-align:center;"></div>
             </div>
         `;
         pageContentEl.innerHTML = html;
-        // Si no está aprobado, bloqueamos el botón siguiente
         if (!isAlreadyPassed) document.getElementById('nextPageBtn').disabled = true;
+    };
+
+    // NUEVA FUNCIÓN: Maneja la selección visual de las opciones
+    window.selectPracticeOption = function(cardIdx, optIdx) {
+        const card = document.getElementById(`p-card-${cardIdx}`);
+        // Si los botones están deshabilitados (ya se verificó), no hacer nada
+        if (card.querySelector('.quiz-option-btn').disabled) return;
+
+        const options = card.querySelectorAll('.quiz-option-btn');
+
+        // Quitar clase 'selected' de todas las opciones de esta tarjeta
+        options.forEach(btn => btn.classList.remove('selected'));
+
+        // Agregar 'selected' a la opción clickeada y guardar su índice
+        options[optIdx].classList.add('selected');
+        card.dataset.selected = optIdx;
     };
 
     window.startPracticeMode();
 
+    // FUNCIÓN ACTUALIZADA: Verifica las respuestas con la nueva estructura
     window.checkPracticeAnswers = function() {
         const cards = document.querySelectorAll('.practice-card');
         let allCorrect = true;
+        let anyUnanswered = false;
 
         cards.forEach(card => {
             const correctIdx = parseInt(card.dataset.answer);
-            const selectedInput = card.querySelector('input:checked');
-            const feedbackEl = card.querySelector('.feedback-msg');
-            const labels = card.querySelectorAll('label');
+            // Obtenemos la selección del dataset que guardamos en selectPracticeOption
+            const selectedIdx = card.dataset.selected ? parseInt(card.dataset.selected) : null;
+            const options = card.querySelectorAll('.quiz-option-btn');
 
-            labels.forEach(l => l.classList.remove('correct', 'incorrect'));
-            
-            if (!selectedInput) {
+            // Limpiar estilos previos
+            options.forEach(btn => btn.classList.remove('correct', 'incorrect'));
+            card.style.border = "";
+
+            if (selectedIdx === null) {
                 allCorrect = false;
-                feedbackEl.textContent = "Selecciona una opción";
-                feedbackEl.style.color = "red";
-                feedbackEl.style.display = 'block';
-                return;
-            }
-
-            const userVal = parseInt(selectedInput.value);
-            if (userVal === correctIdx) {
-                selectedInput.parentElement.classList.add('correct');
-                feedbackEl.textContent = "Correcto";
-                feedbackEl.style.color = "green";
+                anyUnanswered = true;
+                // Resaltar tarjeta incompleta
+                card.style.border = "2px solid var(--warning)";
             } else {
-                selectedInput.parentElement.classList.add('incorrect');
-                feedbackEl.textContent = "Incorrecto";
-                feedbackEl.style.color = "red";
-                allCorrect = false;
+                // Aplicar feedback visual y lógica
+                if (selectedIdx === correctIdx) {
+                    options[selectedIdx].classList.add('correct');
+                } else {
+                    options[selectedIdx].classList.add('incorrect');
+                    // Opcional: mostrar cuál era la correcta
+                    // options[correctIdx].classList.add('correct'); 
+                    allCorrect = false;
+                }
             }
-            feedbackEl.style.display = 'block';
+            
+            // Deshabilitar botones para evitar cambios después de verificar
+            if (!anyUnanswered) {
+                options.forEach(btn => btn.disabled = true);
+            }
         });
+
+        if (anyUnanswered) {
+            alert("Por favor, responde todas las preguntas antes de verificar.");
+            return;
+        }
 
         const resultArea = document.getElementById('practiceResult');
         const actionArea = document.getElementById('practiceActions');
 
         if (allCorrect) {
-            resultArea.innerHTML = `<h4>¡Correcto!</h4><p>Puedes continuar.</p>`;
+            resultArea.innerHTML = `
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
+                <h3 style="color:#28a745">¡Excelente trabajo!</h3>
+                <p>Has respondido correctamente todas las preguntas.</p>
+            `;
             resultArea.style.display = 'block';
             actionArea.style.display = 'none';
 
-            // Desbloquear si es necesario
             if (currentPageIndex >= maxUnlockedIndex) {
                 maxUnlockedIndex = currentPageIndex + 1;
                 saveProgress(currentPageIndex, false);
@@ -445,43 +638,63 @@ function renderPracticeQuiz(page) {
             document.getElementById('nextPageBtn').disabled = false;
         } else {
             const btn = actionArea.querySelector('button');
-            btn.innerHTML = "Reintentar (Nuevas Preguntas)";
+            btn.innerHTML = "<i class='fas fa-sync-alt'></i> Intentar de nuevo";
             btn.classList.replace('btn-primary', 'btn-secondary');
+            // Recargar la página para reiniciar el intento
             btn.onclick = () => window.renderPage(currentPageIndex);
         }
     };
 }
 
 function renderFlipCards(page) {
-    let html = page.payload.instruction || '';
+    // 1. Usamos 'practice-card' para el contenedor principal para que se vea IGUAL al quiz
+    let html = `
+        <div style="height:100%; display:flex; flex-direction:column; justify-content:center; max-width: 800px; margin: 0 auto; width:100%;">
+            
+            <div class="practice-card">
+                <h2 style="color:var(--primaryColor); margin-top:0; margin-bottom:20px; font-size:1.1rem; font-weight:600;">
+                    ${page.title}
+                </h2>
+                
+                ${page.payload.instruction ? `<p style="margin-bottom:20px; color:#666;">${page.payload.instruction}</p>` : ''}
+                
+                <div class="cards-list-container">
+    `;
     
-    html += '<div class="flip-cards-container">';
-    page.payload.cards.forEach(card => {
+    page.payload.cards.forEach((card, index) => {
+        // Icono y color
+        const iconHtml = card.front.icon || '<i class="fas fa-info-circle"></i>';
+        const iconColor = card.front.color || 'var(--primaryColor)';
+        
         html += `
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front" style="background:${card.front.color}">
-                        <div class="card-icon">${card.front.icon}</div>
-                        <div class="card-letter">${card.front.letter}</div>
-                        <div class="card-title">${card.front.title}</div>
+            <div class="accordion-card" id="acc-card-${index}">
+                <div class="accordion-header" onclick="window.toggleAccordion(${index})">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <span style="color: ${iconColor}; font-size: 1rem;">${iconHtml}</span>
+                        <span>${card.front.title}</span>
                     </div>
-                    <div class="flip-card-back">
-                        <p><strong>${card.back.content}</strong></p>
-                        <hr style="border-color:rgba(255,255,255,0.3); margin:15px 0;">
-                        <p style="font-size:0.85rem;">⚡ ${card.back.action}</p>
-                    </div>
+                    <i class="fas fa-chevron-down toggle-icon" style="font-size:0.8rem;"></i>
+                </div>
+                
+                <div class="accordion-body">
+                    <p style="margin-bottom:10px;"><strong>Definición:</strong> ${card.back.content}</p>
+                    ${card.back.action ? `<div style="font-size:0.9rem; color:var(--secondaryColor); text-align:right;"><i class="fas fa-arrow-right"></i> ${card.back.action}</div>` : ''}
                 </div>
             </div>
         `;
     });
-    html += '</div>';
     
-    if (page.payload.summary) {
-        html += page.payload.summary;
-    }
+    html += `       </div> </div>     </div>`;       // Cierre contenedor principal wrapper
     
-    pageContentEl.innerHTML = html; // 
+    pageContentEl.innerHTML = html;
 }
+
+// NUEVA FUNCIÓN AUXILIAR (Asegúrate de copiarla también)
+window.toggleAccordion = function(index) {
+    const card = document.getElementById(`acc-card-${index}`);
+    // Cierra otros si quisieras comportamiento exclusivo (opcional, aquí desactivado para permitir varios abiertos)
+    card.classList.toggle('active');
+};
 
 // ============================================
 // RENDER: Interactive (Contenido interactivo)
