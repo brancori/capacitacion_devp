@@ -267,6 +267,9 @@ window.renderPage = function(index) {
         case 'practice': 
             renderPracticeQuiz(page);
             break;
+        case 'gallery':
+            renderGallery(page);
+            break;
         case 'quiz':
             if (page.payload?.questions) renderQuizTemplate(page.payload.questions);
             break;
@@ -695,7 +698,54 @@ window.toggleAccordion = function(index) {
     // Cierra otros si quisieras comportamiento exclusivo (opcional, aquí desactivado para permitir varios abiertos)
     card.classList.toggle('active');
 };
+function renderGallery(page) {
+    const data = page.payload;
+    
+    let html = `
+        <div class="gallery-container" style="text-align:center;">
+            <h2 style="color:var(--primaryColor);">${page.title}</h2>
+            <p>${data.instruction || ''}</p>
+            <div class="gallery-btn-group">`;
 
+    data.buttons.forEach(btn => {
+        const btnClass = btn.style === 'good' ? 'btn-success' : 'btn-danger';
+        const icon = btn.style === 'good' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>';
+        
+        html += `
+            <button class="btn ${btnClass} gallery-trigger" 
+                onclick="openImageModal('${btn.url}', '${btn.caption}')">
+                ${icon} ${btn.label}
+            </button>`;
+    });
+
+    html += `</div></div>`;
+    pageContentEl.innerHTML = html;
+}
+
+window.openImageModal = function(url, caption) {
+    let modal = document.getElementById('imgModalViewer');
+    
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'imgModalViewer';
+        modal.className = 'course-modal-overlay';
+        modal.onclick = (e) => { if(e.target === modal) modal.style.display = 'none'; };
+        modal.innerHTML = `
+            <div class="course-modal" style="max-width:90vh; width:auto; padding:20px;">
+                <div style="text-align:right; margin-bottom:10px;">
+                    <span onclick="document.getElementById('imgModalViewer').style.display='none'" 
+                          style="cursor:pointer; font-size:1.5rem; color:#666;">&times;</span>
+                </div>
+                <img id="imgModalSrc" style="max-width:100%; max-height:70vh; border-radius:8px; display:block; margin:0 auto;">
+                <p id="imgModalCap" style="margin-top:15px; font-weight:bold; color:var(--textForm); text-align:center;"></p>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    document.getElementById('imgModalSrc').src = url;
+    document.getElementById('imgModalCap').innerText = caption;
+    modal.style.display = 'flex';
+};
 // ============================================
 // RENDER: Interactive (Contenido interactivo)
 // ============================================

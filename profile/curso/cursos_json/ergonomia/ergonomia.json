@@ -5,50 +5,46 @@
       "type": "image",
       "title": "Inicio",
       "payload": {
-        "url": "./cursos_json/ergonomia_curso/p1.png",
+        "url": "./cursos_json/ergonomia/img/p1.png",
         "description": ""
       }
     },
     {
       "id": "p2",
-      "type": "text",
-      "title": "Objetivos del Curso",
+      "type": "image",
+      "title": "Objetivos",
       "payload": {
-        "html": "<div class='container'><h3>¿Qué vamos a lograr?</h3><ul style='line-height:1.8; color:var(--textForm);'><li>✅ <strong>Comprender</strong> conceptos básicos de ergonomía física y sus aplicaciones.</li><li>✅ <strong>Identificar</strong> factores de riesgo: Postura, Fuerza, Frecuencia y Duración.</li><li>✅ <strong>Aplicar</strong> la normativa NOM-036-1-STPS-2018 para manejo manual de cargas.</li><li>✅ <strong>Integrar</strong> estándares corporativos en la evaluación de puestos de trabajo.</li></ul><div style='background:#e3f2fd; padding:15px; border-left:5px solid var(--primaryColor); margin-top:20px;'><p style='margin:0;'><strong>Nota:</strong> Este curso es fundamental para cumplir con los requerimientos legales de seguridad y salud en el trabajo.</p></div><br><audio controls style='width:100%'><source src='PLACEHOLDER_AUDIO_OBJETIVOS.mp3' type='audio/mpeg'></audio></div>"
+        "url": "./cursos_json/ergonomia/img/p2.png",
+        "description": ""
       }
     },
-    {
+        {
       "id": "p3",
-      "type": "text",
-      "title": "¿Qué es la Ergonomía?",
+      "type": "image",
+      "title": "Tipos de ergonomía",
       "payload": {
-        "html": "<div style='text-align:center;'><h3>Adaptar el trabajo a la persona</h3><p>La ergonomía no busca que el trabajador se adapte a una máquina incómoda, sino diseñar el entorno para respetar las capacidades biomecánicas del ser humano.</p><div style='display:flex; justify-content:center; gap:20px; margin:30px 0;'><div style='text-align:center;'><i class='fas fa-user-shield' style='font-size:3rem; color:var(--primaryColor);'></i><p>Seguridad</p></div><div style='text-align:center;'><i class='fas fa-chart-line' style='font-size:3rem; color:var(--success);'></i><p>Productividad</p></div><div style='text-align:center;'><i class='fas fa-heartbeat' style='font-size:3rem; color:#e83e8c;'></i><p>Salud</p></div></div><p>Escucha la definición detallada a continuación:</p><audio controls style='width:100%'><source src='PLACEHOLDER_AUDIO_DEFINICION.mp3' type='audio/mpeg'></audio></div>"
+        "url": "./cursos_json/ergonomia/img/p3.png",
+        "description": ""
       }
     },
 {
-      "id": "p4",
-      "type": "flipCards",
-      "title": "Tipos de Ergonomía",
-      "payload": {
-        "instruction": "<p style='text-align:center'>Haz clic en las tarjetas para ver su enfoque:</p>",
-        "cards": [
-          {
-            "front": { "color": "var(--primaryColor)", "icon": "<i class='fas fa-walking'></i>", "letter": "F", "title": "Ergonomía Física" },
-            "back": { "content": "Anatomía, antropometría, fisiología y biomecánica (Posturas, manejo de cargas).", "action": "Enfoque del curso" }
-          },
-          {
-            "front": { "color": "var(--secondaryColor)", "icon": "<i class='fas fa-brain'></i>", "letter": "C", "title": "Ergonomía Cognitiva" },
-            "back": { "content": "Procesos mentales: percepción, memoria, razonamiento y respuesta motora (Carga mental).", "action": "Interacción humano-sistema" }
-          },
-          {
-            "front": { "color": "#28a745", "icon": "<i class='fas fa-users'></i>", "letter": "O", "title": "Ergonomía Organizacional" },
-            "back": { "content": "Estructuras organizacionales, políticas y procesos (Sistemas sociotécnicos).", "action": "Organización del trabajo" }
-          }
-        ]
-      }
-    },
+  "id": "p4",
+  "type": "text",
+  "title": "¿Qué es la Ergonomía?",
+  "payload": {
+    "html": "<div style='text-align:left;'><h2 style='color:var(--primaryColor); margin-bottom: 10px;'>¿Qué es la Ergonomía?</h2><hr style='border: 0; height: 2px; background-color: #F39C12; margin-bottom: 30px;'></div><div style='display:flex; flex-wrap:wrap; gap:40px;'><div><ul style='list-style:none; padding:0; margin:0;'><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1.2rem; margin-right:15px; margin-top:4px;'></i><div><strong>Adaptar el trabajo</strong> a la persona. No se busca que el trabajador se adapte a una máquina incómoda, sino diseñar el entorno respetando sus capacidades biomecánicas.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1.2rem; margin-right:15px; margin-top:4px;'></i><div><strong>Integrar conocimientos</strong> de diversas disciplinas (ingeniería, fisiología, psicología) para optimizar la interacción entre el ser humano y los elementos del sistema de trabajo.</div></li></ul></div><div style='flex:1 1 300px;'><ul style='list-style:none; padding:0; margin:0;'><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1.2rem; margin-right:15px; margin-top:4px;'></i><div><strong>Priorizar la seguridad</strong> y la salud ocupacional, identificando y mitigando los factores de riesgo que pueden causar lesiones musculoesqueléticas o enfermedades.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1.2rem; margin-right:15px; margin-top:4px;'></i><div><strong>Maximizar la productividad</strong> y la eficiencia del sistema al reducir la fatiga, el disconfort y los errores operativos derivados de un mal diseño.</div></li></ul></div></div>"
+  }
+},
+{
+  "id": "p5",
+  "type": "text",
+  "title": "Conceptos Clave",
+  "payload": {
+    "html": "<div class='concept-card'><h2 class='concept-title'>Conceptos Clave y Lesiones</h2><h4 class='concept-subtitle'>Factores de Riesgo</h4><ul class='concept-list'><li class='concept-item'><i class='fas fa-check-circle concept-icon'></i><div><span class='concept-key'>Postura:</span> Desviación de la posición neutra.</div></li><li class='concept-item'><i class='fas fa-check-circle concept-icon'></i><div><span class='concept-key'>Fuerza:</span> Esfuerzo muscular requerido.</div></li><li class='concept-item'><i class='fas fa-check-circle concept-icon'></i><div><span class='concept-key'>Frecuencia:</span> Repeticiones por ciclo.</div></li><li class='concept-item'><i class='fas fa-check-circle concept-icon'></i><div><span class='concept-key'>Duración:</span> Tiempo de exposición.</div></li></ul><h4 class='concept-subtitle'>Lesiones Comunes</h4><p style='color:#555; margin-left:5px;'>Lumbar, Cuello, Hombro, Muñeca, Tendinitis.</p><hr style='margin: 30px 0; border: 0; border-top: 1px solid #ddd;'><div style='text-align:center;'><p style='font-weight:bold; color:#006699; margin-bottom:15px;'>Ver Ejemplos Visuales:</p><div style='display:flex; justify-content:center; gap:15px; flex-wrap:wrap;'><button class='btn btn-success' onclick=\"window.openImageModal('./cursos_json/ergonomia/img/img1.png', 'Buenas Posturas: Espalda recta')\"><i class='fas fa-check'></i> Buenas Posturas</button><button class='btn btn-danger' onclick=\"window.openImageModal('./cursos_json/ergonomia/img/img2.png', 'Malas Posturas: Evita encorvarte')\"><i class='fas fa-times'></i> Malas Posturas</button></div></div></div>"
+  }
+},
     {
-      "id": "p5",
+      "id": "p6",
       "type": "stepByStep",
       "title": "Factores de Riesgo (1)",
       "payload": {
@@ -72,7 +68,7 @@
       }
     },
     {
-      "id": "p6",
+      "id": "p7",
       "type": "stepByStep",
       "title": "Factores de Riesgo (2)",
       "payload": {
@@ -96,7 +92,7 @@
       }
     },
     {
-      "id": "p7",
+      "id": "p8",
       "type": "practice",
       "title": "Validación de Conocimientos",
       "payload": {
@@ -142,6 +138,353 @@
           "pool_size": 3
         }
       }
+    },
+            {
+      "id": "p9",
+      "type": "image",
+      "title": "Tipos de ergonomía",
+      "payload": {
+        "url": "./cursos_json/ergonomia/img/p9.png",
+        "description": ""
+      }
+    },
+    {
+  "id": "p10",
+  "type": "text",
+  "title": "Obligaciones: Patrón vs Trabajador",
+  "payload": {
+    "html": "<div style='text-align:left; flex:none;'><h2 style='color:var(--primaryColor); margin-bottom: 10px;'>Obligaciones: Patrón vs Trabajador</h2><hr style='border: 0; height: 2px; background-color: #F39C12; margin-bottom: 30px;'></div><div style='display:flex; flex-wrap:wrap; gap:40px;'><div><h3 style='color:var(--primaryColor); margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom:10px;'><i class='fas fa-user-tie' style='margin-right:10px;'></i>Patrón</h3><ul style='list-style:none; padding:0; margin:0;'><li style='display:flex; align-items:flex-start; margin-bottom:15px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1rem; margin-right:10px; margin-top:4px;'></i><div>Contar con el análisis de los factores de riesgo ergonómico.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:15px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1rem; margin-right:10px; margin-top:4px;'></i><div>Adoptar medidas de prevención y/o control.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:15px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1rem; margin-right:10px; margin-top:4px;'></i><div>Informar y capacitar a los trabajadores (POES).</div></li><li style='display:flex; align-items:flex-start; margin-bottom:15px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1rem; margin-right:10px; margin-top:4px;'></i><div>Vigilancia a la salud del personal ocupacionalmente expuesto.</div></li></ul></div><div><h3 style='color:var(--primaryColor); margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom:10px;'><i class='fas fa-user-cog' style='margin-right:10px;'></i>Trabajador</h3><ul style='list-style:none; padding:0; margin:0;'><li style='display:flex; align-items:flex-start; margin-bottom:15px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1rem; margin-right:10px; margin-top:4px;'></i><div>Observar las medidas de seguridad y salud establecidas.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:15px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1rem; margin-right:10px; margin-top:4px;'></i><div>Participar en la capacitación y adiestramiento.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:15px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1rem; margin-right:10px; margin-top:4px;'></i><div>Informar inmediatamente sobre condiciones inseguras.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:15px;'><i class='fas fa-check-circle' style='color:#F39C12; font-size:1rem; margin-right:10px; margin-top:4px;'></i><div>Someterse a los exámenes médicos requeridos.</div></li></ul></div></div>"
+  }
+},
+{
+  "id": "p11",
+  "type": "text",
+  "title": "Alcance de la NOM-036",
+  "payload": {
+    "html": "<div style='text-align:left;'><h2 style='color:var(--primaryColor); margin-bottom: 10px;'>Alcance de la NOM-036</h2><hr style='border: 0; height: 2px; background-color: #F39C12; margin-bottom: 30px;'></div><div style='display:flex; flex-wrap:wrap; gap:40px; align-items:center;'><div><ul style='list-style:none; padding:0; margin:0;'><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-box-open' style='color:#F39C12; font-size:1.4rem; margin-right:15px; margin-top:4px;'></i><div><strong>Manipulación manual de cargas:</strong> Se refiere a cualquier actividad que implique levantar, bajar, empujar, jalar o transportar objetos de <strong>3 kg o más</strong>.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-user-injured' style='color:#F39C12; font-size:1.4rem; margin-right:15px; margin-top:4px;'></i><div><strong>Posturas forzadas:</strong> Posiciones que desvían al cuerpo de su estado natural o neutro, aumentando la tensión mecánica (ej. torcer la espalda).</div></li><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-sync-alt' style='color:#F39C12; font-size:1.4rem; margin-right:15px; margin-top:4px;'></i><div><strong>Movimientos repetitivos:</strong> Ejecución de la misma acción de forma cíclica y frecuente durante la jornada laboral, sin pausas suficientes de recuperación.</div></li></ul></div><div style='flex: 1 1 300px; text-align:center;'><img src='./cursos_json/ergonomia/img/img3.png' alt='Ilustración de factores de riesgo ergonómico' style='max-width:100%; height:auto; border-radius:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'></div></div>"
+  }
+},
+{
+  "id": "p12",
+  "type": "text",
+  "title": "Estructura de la Norma: Parte 1 vs Parte 2",
+  "payload": {
+    "html": "<div style='text-align:left; flex:none;'><h2 style='color:var(--primaryColor); margin-bottom: 10px;'>Estructura de la Norma: Parte 1 vs Parte 2</h2><hr style='border: 0; height: 2px; background-color: #F39C12; margin-bottom: 30px;'></div><div style='display:flex; flex-wrap:wrap; gap:40px;'><div style='flex: 1; min-width: 300px; background-color: rgba(243, 156, 18, 0.05); padding: 20px; border-radius: 8px; border-left: 4px solid #F39C12;'><h3 style='color:#2c3e50; margin-bottom: 15px;'><i class='fas fa-weight-hanging' style='color:#F39C12; margin-right:10px;'></i>Parte 1 (Vigente)</h3><p style='margin-bottom:10px;'><strong>Manipulación Manual de Cargas</strong></p><p style='font-size:0.95rem; line-height:1.5;'>Es la norma actual (NOM-036-1-STPS-2018). Se enfoca exclusivamente en la prevención de riesgos derivados del levantamiento, transporte y manejo de cargas superiores a <strong>3 kg</strong>.</p></div><div style='flex: 1; min-width: 300px; background-color: rgba(44, 62, 80, 0.05); padding: 20px; border-radius: 8px; border-left: 4px solid #2c3e50;'><h3 style='color:#2c3e50; margin-bottom: 15px;'><i class='fas fa-sync-alt' style='color:#2c3e50; margin-right:10px;'></i>Parte 2 (Complementaria)</h3><p style='margin-bottom:10px;'><strong>Posturas y Repetitividad</strong></p><p style='font-size:0.95rem; line-height:1.5;'>Aborda los factores de riesgo ergonómico que <strong>no</strong> implican peso considerable, sino el desgaste por alta frecuencia de movimiento o posiciones estáticas forzadas durante la jornada.</p></div></div>"
+  }
+},
+{
+  "id": "p13",
+  "type": "text",
+  "title": "Apéndice 1: Ecuación de Levantamiento",
+  "payload": {
+    "html": "<div style='text-align:left; flex: none;'><h2 style='color:var(--primaryColor); margin-bottom: 10px;'>Apéndice 1 (Levantamiento)</h2><hr style='border: 0; height: 2px; background-color: #F39C12; margin-bottom: 30px;'></div><div style='display:flex; flex-wrap:wrap; gap:40px; align-items:center;'><div ><ul style='list-style:none; padding:0; margin:0;'><li style='display:flex; align-items:flex-start; margin-bottom:20px;'><i class='fas fa-weight-hanging' style='color:#F39C12; font-size:1.2rem; margin-right:15px; margin-top:4px;'></i><div><strong>Peso de la carga:</strong> La masa del objeto en kilogramos.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:20px;'><i class='fas fa-ruler-combined' style='color:#F39C12; font-size:1.2rem; margin-right:15px; margin-top:4px;'></i><div><strong>Distancias (Variables de Geometría):</strong><ul style='margin-top:5px; font-size:0.95em; color:#555;'><li><strong>H (Horizontal):</strong> Distancia de las manos al punto medio de los tobillos.</li><li><strong>V (Vertical):</strong> Altura de las manos respecto al suelo al inicio.</li><li><strong>D (Desplazamiento):</strong> Recorrido vertical de la carga.</li></ul></div></li><li style='display:flex; align-items:flex-start; margin-bottom:20px;'><i class='fas fa-stopwatch' style='color:#F39C12; font-size:1.2rem; margin-right:15px; margin-top:4px;'></i><div><strong>Frecuencia:</strong> Cantidad de levantamientos realizados por minuto y la duración de la tarea.</div></li><li style='display:flex; align-items:flex-start; margin-bottom:20px;'><i class='fas fa-sync' style='color:#F39C12; font-size:1.2rem; margin-right:15px; margin-top:4px;'></i><div><strong>Asimetría:</strong> Ángulo de torsión o giro del tronco al realizar el levantamiento (desviación del plano sagital).</div></li></ul></div><div style='flex: 1 1 300px; text-align:center;'><img src='./cursos_json/ergonomia/img/img4.png' alt='Ilustración de variables de levantamiento NIOSH' style='max-width:100%; height:auto; border-radius:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'><p style='font-size:0.8rem; color:#888; margin-top:10px;'>Figura representativa de las variables NIOSH</p></div></div>"
+  }
+},
+{
+  "id": "p14",
+  "type": "text",
+  "title": "Apéndice 2: Empuje y Arrastre",
+  "payload": {
+    "html": "<div style='text-align:left;'><h2 style='color:var(--primaryColor); margin-bottom: 10px;'>Apéndice 2: Empuje y Arrastre de Cargas</h2><hr style='border: 0; height: 2px; background-color: #F39C12; margin-bottom: 30px;'></div><div style='display:flex; flex-wrap:wrap; gap:40px; align-items:center;'><div><ul style='list-style:none; padding:0; margin:0;'><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-tachometer-alt' style='color:#F39C12; font-size:1.3rem; margin-right:15px; margin-top:4px;'></i><div><strong>Límites Recomendados de Fuerza:</strong><p style='margin-top:5px; font-size:0.95em; color:#555;'>La norma evalúa dos momentos críticos donde no se debe exceder la capacidad fisiológica:</p><ul style='margin-top:5px; font-size:0.9em; color:#444;'><li><strong>Fuerza Inicial:</strong> El esfuerzo pico necesario para poner la carga en movimiento (vencer la inercia).</li><li><strong>Fuerza Sostenida:</strong> El esfuerzo continuo para mantener la carga en desplazamiento.</li></ul></div></li><li style='display:flex; align-items:flex-start; margin-bottom:25px;'><i class='fas fa-exclamation-triangle' style='color:#F39C12; font-size:1.3rem; margin-right:15px; margin-top:4px;'></i><div><strong>Factores que Aumentan el Riesgo:</strong><p style='margin-top:5px; font-size:0.95em; color:#555;'>Elementos del entorno y del equipo que incrementan la fuerza requerida:</p><ul style='margin-top:5px; font-size:0.9em; color:#444;'><li><strong>Condición del equipo:</strong> Ruedas desgastadas, de diámetro pequeño o sin mantenimiento.</li><li><strong>Suelo:</strong> Superficies irregulares, con grietas, alfombras o pendientes (rampas).</li><li><strong>Diseño:</strong> Manubrios o agarres ubicados muy abajo o muy arriba (fuera de la zona de potencia).</li></ul></div></li></ul></div><div style='flex: 1 1 300px; text-align:center;'><img src='./cursos_json/ergonomia/img/img4.png' alt='Ilustración de empuje y arrastre con patín hidráulico o diablito' style='max-width:100%; height:auto; border-radius:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'><p style='font-size:0.8rem; color:#888; margin-top:10px;'>El uso de ayudas mecánicas reduce el esfuerzo, pero requiere técnica correcta.</p></div></div>"
+  }
+},
+{
+  "id": "p15",
+  "type": "fillBlanks",
+  "title": "Actividad: Selecciona el Criterio Correcto",
+  "payload": {
+    "text": "<div style='font-size:1.1rem; line-height:2;'>Lee los siguientes casos y selecciona qué parte de la norma aplica:<br><br>1. Un trabajador <strong>levanta manualmente</strong> una caja de 20 kg: Se evalúa con el {{0}}.<br><br>2. Un trabajador usa un <strong>patín hidráulico</strong> para mover una tarima: Se evalúa con el {{1}}.",
+    "blanks": [
+      "Apéndice 1 (Levantamiento)",
+      "Apéndice 2 (Empuje/Arrastre)"
+    ],
+    "distractors": [
+      "NOM-035",
+      "NOM-030"
+    ]
+  }
+},
+{
+  "id": "p16",
+  "type": "practice",
+  "title": "Evaluación: NOM-036 y Apéndices",
+  "payload": {
+    "bank": [
+      {
+        "question": "¿Cuál es el peso mínimo para que una actividad se considere 'Manipulación Manual de Cargas' según la NOM-036?",
+        "options": [
+          "5 kg o más",
+          "3 kg o más",
+          "10 kg o más"
+        ],
+        "answer": 1
+      },
+      {
+        "question": "Es una obligación del PATRÓN establecida en la norma:",
+        "options": [
+          "Informar inmediatamente sobre condiciones inseguras",
+          "Participar en la capacitación y adiestramiento",
+          "Vigilancia a la salud del personal ocupacionalmente expuesto"
+        ],
+        "answer": 2
+      },
+      {
+        "question": "¿Qué diferencia principal existe entre la Parte 1 y la Parte 2 de la estructura de la norma?",
+        "options": [
+          "La Parte 1 regula el manejo de cargas y la Parte 2 posturas y repetitividad",
+          "La Parte 1 es para oficinas y la Parte 2 para industria",
+          "La Parte 1 regula empuje y la Parte 2 levantamiento"
+        ],
+        "answer": 0
+      },
+      {
+        "question": "En la ecuación de levantamiento (Apéndice 1), ¿a qué se refiere la variable de 'Asimetría'?",
+        "options": [
+          "A la altura de las manos respecto al suelo",
+          "Al ángulo de torsión o giro del tronco al levantar la carga",
+          "A la distancia horizontal entre los tobillos y la carga"
+        ],
+        "answer": 1
+      },
+      {
+        "question": "En el empuje y arrastre (Apéndice 2), ¿qué es la Fuerza Inicial?",
+        "options": [
+          "El esfuerzo continuo para mantener el movimiento",
+          "El peso total de la carga sobre el equipo",
+          "El esfuerzo pico necesario para vencer la inercia y poner la carga en movimiento"
+        ],
+        "answer": 2
+      },
+      {
+        "question": "¿Cuál de los siguientes factores AUMENTA el riesgo durante el empuje o arrastre?",
+        "options": [
+          "Ruedas desgastadas o suelo irregular",
+          "Uso de manubrios a la altura de la cintura",
+          "Suelo nivelado y liso"
+        ],
+        "answer": 0
+      },
+      {
+        "question": "Es una obligación del TRABAJADOR:",
+        "options": [
+          "Realizar el análisis de riesgos ergonómicos",
+          "Informar inmediatamente sobre condiciones inseguras",
+          "Adoptar medidas de ingeniería para la maquinaria"
+        ],
+        "answer": 1
+      }
+    ],
+    "config": {
+      "pool_size": 3
     }
+  }
+},
+{
+  "id": "p17",
+  "type": "text",
+  "title": "¿Qué es EJA vs CW EJA?",
+  "payload": {
+  "html": "<div class='concept-card'><h2 class='concept-title'>EJA vs. CW EJA: Entendiendo la Herramienta</h2><p>Aunque ambos sistemas buscan prevenir lesiones, tienen enfoques y alcances diferentes:</p><div style='display:flex; gap:20px; flex-wrap:wrap; margin-top:20px;'><div style='flex:1; min-width:300px; background:white; padding:20px; border-radius:8px; border-top:5px solid #2c3e50; box-shadow:0 4px 10px rgba(0,0,0,0.05);'><h3 style='color:#2c3e50; margin-top:0;'><i class='fas fa-tools'></i> EJA (General)</h3><p><strong>Ergo Job Analyzer</strong></p><p style='font-size:0.9rem; color:#555;'>Es la herramienta maestra diseñada para evaluar riesgos en <strong>cualquier trabajo</strong> (líneas de producción, almacén, mantenimiento, etc.).</p><ul class='concept-list' style='font-size:0.9rem;'><li class='concept-item'><i class='fas fa-check' style='color:#2c3e50; font-size:0.8rem;'></i> 40 Criterios Biomecánicos</li><li class='concept-item'><i class='fas fa-check' style='color:#2c3e50; font-size:0.8rem;'></i> Mide fuerza, repetición y postura</li><li class='concept-item'><i class='fas fa-check' style='color:#2c3e50; font-size:0.8rem;'></i> Resultado: Nivel de Riesgo (Alto/Medio/Bajo)</li></ul></div><div style='flex:1; min-width:300px; background:white; padding:20px; border-radius:8px; border-top:5px solid #F39C12; box-shadow:0 4px 10px rgba(0,0,0,0.05);'><h3 style='color:#F39C12; margin-top:0;'><i class='fas fa-desktop'></i> CW EJA (Oficina)</h3><p><strong>Computer Workstation EJA</strong></p><p style='font-size:0.9rem; color:#555;'>Es una versión especializada y simplificada, enfocada exclusivamente en <strong>riesgos de oficina</strong>.</p><ul class='concept-list' style='font-size:0.9rem;'><li class='concept-item'><i class='fas fa-check' style='color:#F39C12; font-size:0.8rem;'></i> Lista de verificación Binaria (Cumple/No Cumple) </li><li class='concept-item'><i class='fas fa-check' style='color:#F39C12; font-size:0.8rem;'></i> Enfocado en postura estática y ajuste de equipo </li><li class='concept-item'><i class='fas fa-check' style='color:#F39C12; font-size:0.8rem;'></i> Traduce principios cualitativos a reglas lógicas </li></ul></div></div></div>"
+  }
+},
+{
+  "id": "p18",
+  "type": "text",
+  "title": "Los 40 Criterios de Evaluación EJA",
+  "payload": {
+  "html": "<div class='concept-card'><h2 class='concept-title'>Los 40 Criterios de Evaluación</h2><p>El EJA general se compone de 5 categorías principales que cubren desde la respuesta médica hasta factores ambientales.</p><div style='overflow-x:auto;'><table style='width:100%; border-collapse:collapse; margin-top:20px; font-size:0.9rem;'><thead style='background-color:#005b96; color:white;'><tr><th style='padding:12px; text-align:left;'>#</th><th style='padding:12px; text-align:left;'>Categoría / Elemento</th><th style='padding:12px; text-align:left;'>Enfoque</th></tr></thead><tbody><tr style='background-color:#f8f9fa;'><td style='padding:10px; font-weight:bold;'>1-3</td><td style='padding:10px;'><strong>Indicadores Previos</strong><br>1. Pérdidas/Lesiones<br>2. Respuesta del Empleado<br>3. Misceláneos</td><td style='padding:10px;'>Historial médico, quejas, rotación de personal y modificaciones caseras.</td></tr><tr><td style='padding:10px; font-weight:bold;'>4-6</td><td style='padding:10px;'><strong>Fuerza de Mano</strong><br>4. Agarre de Poder<br>5. Agarre de Pinza<br>6. Presión de Dedos</td><td style='padding:10px;'>Medición de libras (lbs) aplicadas con dinamómetros.</td></tr><tr style='background-color:#f8f9fa;'><td style='padding:10px; font-weight:bold;'>7-10</td><td style='padding:10px;'><strong>Muñeca</strong><br>7-8. Flexión/Extensión<br>9-10. Desviación Radial/Ulnar</td><td style='padding:10px;'>Ángulos posturales de la muñeca medidos con goniómetro.</td></tr><tr><td style='padding:10px; font-weight:bold;'>11-16</td><td style='padding:10px;'><strong>Brazo y Antebrazo</strong><br>11. Repetitividad<br>12. Vibración<br>13-14. Estrés Mecánico<br>15-16. Supinación/Pronación</td><td style='padding:10px;'>Rotaciones del antebrazo y presión por contacto con bordes duros.</td></tr><tr style='background-color:#f8f9fa;'><td style='padding:10px; font-weight:bold;'>17-21</td><td style='padding:10px;'><strong>Hombro y Fuerza Superior</strong><br>17. Jalón hacia abajo<br>18. Empuje/Arrastre (1 mano)<br>19. Abducción/Flexión<br>20-21. Alcances</td><td style='padding:10px;'>Fuerzas de tracción y posturas del hombro.</td></tr><tr><td style='padding:10px; font-weight:bold;'>22-28</td><td style='padding:10px;'><strong>Cuello y Espalda</strong><br>22-25. Movimientos de Cuello<br>26-28.Movimientos de Espalda</td><td style='padding:10px;'>Flexión, extensión, torsión y lateralidad del tronco y cervicales.</td></tr><tr style='background-color:#f8f9fa;'><td style='padding:10px; font-weight:bold;'>29-35</td><td style='padding:10px;'><strong>Tren Inferior y Manejo de Cargas</strong><br>29-32. Piernas y Tobillos<br>33. Levantamiento (Lifting)<br>34. Transporte (Carrying)<br>35.Empuje/Arrastre Inicial</td><td style='padding:10px;'>Posturas de pie, y manejo manual de cargas (NIOSH modificado).</td></tr><tr><td style='padding:10px; font-weight:bold;'>36-40</td><td style='padding:10px;'><strong>Ambientales y Cognitivos</strong><br>36. Ruido<br>37-38. Estrés Térmico (Calor/Frío)<br>39. Iluminación<br>40.Error Humano</td><td style='padding:10px;'>Factores del entorno que afectan el desempeño y la seguridad.</td></tr></tbody></table></div></div>"
+  }
+},
+{
+  "id": "p19",
+  "type": "stepByStep",
+  "title": "Evaluación Detallada: Criterios 17, 18 y 19",
+  "payload": {
+    "intro": "<p>A continuación se detallan los valores críticos para los elementos de fuerza y postura del tren superior solicitados:</p>",
+    "steps": [
+      {
+        "title": "17. Jalón hacia Abajo (Pull Down)",
+        "number": "17",
+        "icon": "<i class='fas fa-arrow-down'></i>",
+        "content": "Fuerza ejercida verticalmente.<br><strong>Un Brazo:</strong> Alto riesgo si > 72 lbs (32 kg).<br><strong>Dos Brazos:</strong> Alto riesgo si > 130 lbs (59 kg).<br>Se mide con dinamómetro enganchado al objeto.",
+        "tip": "Común en activación de palancas aéreas o cadenas de polipastos."
+      },
+      {
+        "title": "18. Empuje/Arrastre a Una Mano",
+        "number": "18",
+        "icon": "<i class='fas fa-hand-rock'></i>",
+        "content": "Fuerza inicial para mover un objeto o palanca con una sola mano.<br><strong>Alto Riesgo (1-10 veces/día):</strong> > 90 lbs.<br><strong>Alto Riesgo (>500 veces/día):</strong> > 20 lbs.<br>Permite usar el peso del cuerpo (isométrico).",
+        "tip": "Los límites son más altos que a dos manos porque permite mejor anclaje del cuerpo."
+      },
+      {
+        "title": "19. Hombro (Abducción/Flexión)",
+        "number": "19",
+        "icon": "<i class='fas fa-child'></i>",
+        "content": "Alejar el brazo del cuerpo (lateral o frontal).<br><strong>Alto Riesgo:</strong> Ángulo > 90°.<br><strong>Riesgo Moderado:</strong> 30° - 90°.<br><strong>Neutral:</strong> 0° - 15°.<br>Medir con goniómetro en el deltoides.",
+        "tip": "Si el brazo está apoyado (ej. recargado en la mesa), el riesgo estático se elimina."
+      }
+    ]
+  }
+},
+{
+  "id": "p20",
+  "type": "text",
+  "title": "EJA 17: Fuerza de Jalón (Pull Down)",
+  "payload": {
+    "html": "<div class='concept-card'><h2 class='concept-title'>17. Jalón hacia Abajo (Pull Down)</h2><p style='margin-bottom:20px;'>Evalúa el riesgo al jalar un objeto verticalmente desde arriba (ej. activar una palanca aérea, bajar una herramienta suspendida).</p><div style='display:flex; gap:20px; flex-wrap:wrap;'><div style='flex:1; background:white; padding:20px; border-radius:8px; border-left:4px solid #F39C12; box-shadow:0 2px 5px rgba(0,0,0,0.05);'><h4 style='color:#F39C12; margin-top:0;'><i class='fas fa-hand-paper'></i> Un Brazo</h4><p style='font-size:0.9rem;'>La fuerza límite es menor porque carga un solo hombro.</p><ul class='concept-list' style='margin-top:10px;'><li class='concept-item'><span class='concept-key'>Alto Riesgo:</span> > 72 lbs (32 kg)</li><li class='concept-item'><span class='concept-key'>Riesgo Mod:</span> 56 - 72 lbs</li></ul></div><div style='flex:1; background:white; padding:20px; border-radius:8px; border-left:4px solid #2c3e50; box-shadow:0 2px 5px rgba(0,0,0,0.05);'><h4 style='color:#2c3e50; margin-top:0;'><i class='fas fa-hands'></i> Ambos Brazos</h4><p style='font-size:0.9rem;'>Permite mayor fuerza, pero requiere coordinación.</p><ul class='concept-list' style='margin-top:10px;'><li class='concept-item'><span class='concept-key'>Alto Riesgo:</span> > 130 lbs (59 kg)</li><li class='concept-item'><span class='concept-key'>Riesgo Mod:</span> 101 - 130 lbs</li></ul></div></div><div style='margin-top:20px; font-size:0.9rem; background:#e8f4f8; padding:15px; border-radius:5px;'><i class='fas fa-info-circle' style='color:#006699;'></i></div></div>"
+  }
+},
+{
+  "id": "p21",
+  "type": "text",
+  "title": "EJA 18: Empuje/Arrastre a Una Mano",
+  "payload": {
+    "html": "<div class='concept-card'><h2 class='concept-title'>18. Empuje/Arrastre (Una Mano)</h2><p>Se refiere a la fuerza inicial necesaria para mover un objeto (vencer la inercia) usando solo una mano. Es común en el uso de palancas, controles rígidos o mover carritos ligeros mientras se sostiene otra cosa.</p><hr style='border:0; border-top:1px solid #ddd; margin:20px 0;'><div style='display:flex; align-items:center; gap:30px;'><div style='flex:1;'><h4 class='concept-subtitle'>Límites de Fuerza (Inicial)</h4><table style='width:100%; border-collapse:collapse; font-size:0.9rem;'><tr style='background:#f39c12; color:white;'><th>Frecuencia Diaria</th><th>Alto Riesgo (> lbs)</th></tr><tr><td style='padding:8px; border-bottom:1px solid #eee;'>1 - 10 veces</td><td style='padding:8px; border-bottom:1px solid #eee; font-weight:bold;'>> 90 lbs</td></tr><tr><td style='padding:8px; border-bottom:1px solid #eee;'>11 - 100 veces</td><td style='padding:8px; border-bottom:1px solid #eee; font-weight:bold;'>> 45 lbs</td></tr><tr><td style='padding:8px; border-bottom:1px solid #eee;'>101 - 500 veces</td><td style='padding:8px; border-bottom:1px solid #eee; font-weight:bold;'>> 30 lbs</td></tr></table></div><div style='flex:1; text-align:center; color:#555; font-style:italic;'><i class='fas fa-exclamation-triangle' style='font-size:3rem; color:#dc3545; margin-bottom:15px;'></i><br>El empuje a una mano permite usar el peso del cuerpo (isométrico), por eso los límites son más altos que en posturas dinámicas, pero aumenta el riesgo de resbalones.</div></div></div>"
+  }
+},
+{
+  "id": "p22",
+  "type": "flipCards",
+  "title": "EJA 19: Hombros (Abducción vs Flexión)",
+  "payload": {
+    "instruction": "<p style='text-align:center'>Analiza los movimientos del hombro. Haz clic para ver los criterios de riesgo:</p>",
+    "cards": [
+      {
+        "front": { "color": "#E67E22", "icon": "<i class='fas fa-child'></i>", "letter": "A", "title": "Abducción" },
+        "back": { "content": "Levantar el brazo hacia un lado (alejándolo del cuerpo).<br><strong>Riesgo Alto:</strong> > 90°<br><strong>Riesgo Mod:</strong> 30° - 90°<br><strong>Neutral:</strong> < 15°", "action": "Verificar espacio lateral" }
+      },
+      {
+        "front": { "color": "#3498DB", "icon": "<i class='fas fa-hand-holding'></i>", "letter": "F", "title": "Flexión" },
+        "back": { "content": "Levantar el brazo hacia el frente.<br><strong>Riesgo Alto:</strong> > 90°<br><strong>Riesgo Mod:</strong> 30° - 90°<br><strong>Causa Común:</strong> Teclado o mouse lejos del borde del escritorio.", "action": "Acercar herramientas" }
+      }
+    ]
+  }
+},
+{
+  "id": "p23",
+  "type": "text",
+  "title": "EJA 20-21: Alcances Incómodos",
+  "payload": {
+    "html": "<div class='concept-card'><h2 class='concept-title'>Alcances: Cruzado y Atrás</h2><p>Estos movimientos comprometen la articulación del hombro y suelen involucrar torsión del tronco.</p><div style='display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;'><div style='background:#fff; border:1px solid #ddd; border-radius:8px; overflow:hidden;'><div style='background:#34495e; color:white; padding:10px; text-align:center; font-weight:bold;'>EJA 20: Alcance Cruzado</div><div style='padding:15px;'><p style='font-size:0.9rem; color:#666; min-height:60px;'>Cruzar la línea media del cuerpo con la mano opuesta (ej. mano derecha busca algo a la izquierda).</p><ul class='concept-list'><li class='concept-item'><span class='concept-key'>Alto Riesgo:</span> > 45°</li><li class='concept-item'><span class='concept-key'>Riesgo Mod:</span> 30° - 45°</li></ul></div></div><div style='background:#fff; border:1px solid #ddd; border-radius:8px; overflow:hidden;'><div style='background:#e74c3c; color:white; padding:10px; text-align:center; font-weight:bold;'>EJA 21: Alcance Atrás</div><div style='padding:15px;'><p style='font-size:0.9rem; color:#666; min-height:60px;'>Extender el brazo por detrás del plano del hombro (ej. buscar algo en un estante trasero sin girar la silla).</p><ul class='concept-list'><li class='concept-item'><span class='concept-key'>Alto Riesgo:</span> > 30°</li><li class='concept-item'><span class='concept-key'>Riesgo Mod:</span> 20° - 30°</li></ul></div></div></div><p style='margin-top:20px; text-align:center;'><strong>Solución en Oficina:</strong> Girar la silla completa en lugar de torcer el cuerpo.</p></div>"
+  }
+},
+{
+  "id": "p24",
+  "type": "flipCards",
+  "title": "EJA 22-23: Postura Vertical del Cuello",
+  "payload": {
+    "instruction": "<p style='text-align:center'>El cuello es crítico en trabajo de oficina. Haz clic para ver los límites:</p>",
+    "cards": [
+      {
+        "front": { "color": "#2ECC71", "icon": "<i class='fas fa-arrow-down'></i>", "letter": "22", "title": "Flexión de Cuello" },
+        "back": { "content": "Bajar la barbilla hacia el pecho.<br><strong>Causa:</strong> Monitor muy bajo o uso de laptop/celular.<br><strong>Alto Riesgo:</strong> > 45°<br><strong>Mod:</strong> 30°-45°", "action": "Elevar monitor" }
+      },
+      {
+        "front": { "color": "#E74C3C", "icon": "<i class='fas fa-arrow-up'></i>", "letter": "23", "title": "Extensión de Cuello" },
+        "back": { "content": "Mirar hacia arriba.<br><strong>Causa:</strong> Monitor muy alto o uso de lentes bifocales.<br><strong>Alto Riesgo:</strong> > 45° (o prolongado > 10°).<br><strong>Mod:</strong> 30°-45°", "action": "Ajustar altura o lentes" }
+      }
+    ]
+  }
+},
+{
+  "id": "p25",
+  "type": "flipCards",
+  "title": "EJA 24-25: Torsión y Lateralidad",
+  "payload": {
+    "instruction": "<p style='text-align:center'>Movimientos que generan asimetría en las cervicales:</p>",
+    "cards": [
+      {
+        "front": { "color": "#9B59B6", "icon": "<i class='fas fa-arrows-alt-h'></i>", "letter": "24", "title": "Flexión Lateral" },
+        "back": { "content": "Inclinar oreja hacia el hombro.<br><strong>Escenario Clásico:</strong> Sujetar el teléfono con el hombro.<br><strong>Alto Riesgo:</strong> > 30°<br><strong>Solución:</strong> Usar diadema/headset.", "action": "Evitar 'telefonitis'" }
+      },
+      {
+        "front": { "color": "#34495E", "icon": "<i class='fas fa-sync-alt'></i>", "letter": "25", "title": "Rotación de Cuello" },
+        "back": { "content": "Girar la cabeza a los lados.<br><strong>Escenario Clásico:</strong> Monitor secundario muy alejado o documentos a un lado.<br><strong>Alto Riesgo:</strong> > 60°<br><strong>Mod:</strong> 45°-60°", "action": "Centrar herramientas" }
+      }
+    ]
+  }
+},
+{
+  "id": "p26",
+  "type": "stepByStep",
+  "title": "Taller: ¿Cómo medir el Cuello?",
+  "payload": {
+    "intro": "<p>Para evaluar correctamente los elementos 22-25, necesitamos precisión. Así se usa el goniómetro:</p>",
+    "steps": [
+      {
+        "title": "Punto de Eje (Flexión/Extensión)",
+        "content": "Coloca el centro del goniómetro en la base de la oreja (lóbulo). El brazo fijo va vertical hacia el techo.",
+        "number": "1",
+        "icon": "<i class='fas fa-bullseye'></i>"
+      },
+      {
+        "title": "Medición (Flexión)",
+        "content": "Alinea el brazo móvil con la base de la nariz o la línea de los ojos. Pide al usuario que adopte su postura habitual de trabajo.",
+        "number": "2",
+        "icon": "<i class='fas fa-ruler-combined'></i>"
+      },
+      {
+        "title": "Punto de Eje (Rotación)",
+        "content": "Coloca el goniómetro sobre la coronilla de la cabeza (vista superior). El brazo fijo apunta a los pies (o al frente del cuerpo).",
+        "number": "3",
+        "icon": "<i class='fas fa-undo'></i>"
+      },
+      {
+        "title": "Tip de 'Oficina'",
+        "content": "Si no tienes goniómetro: Si la oreja está claramente delante del hombro, ya hay >20° de flexión. Si la barbilla toca el pecho, es >45° (Alto Riesgo).",
+        "number": "4",
+        "icon": "<i class='fas fa-lightbulb'></i>",
+        "tip": "Grabar video de perfil ayuda a medir estos ángulos con mayor calma."
+      }
+    ]
+  }
+},
+{
+  "id": "p27",
+  "type": "fillBlanks",
+  "title": "Actividad: Diagnóstico de Estación",
+  "payload": {
+    "text": "<div style='font-size:1.1rem; line-height:2;'>Analiza el siguiente caso:<br>Pedro trabaja con <strong>dos monitores</strong>. El principal está frente a él, pero el secundario está muy a la derecha, obligándolo a girar la cabeza constantemente ({{0}}). Además, usa <strong>lentes bifocales</strong>, por lo que inclina la cabeza hacia atrás para leer ({{1}}). Para contestar llamadas, sostiene el teléfono con el hombro mientras escribe ({{2}}).</div>",
+    "blanks": [
+      "Rotación de Cuello (EJA 25)",
+      "Extensión de Cuello (EJA 23)",
+      "Flexión Lateral (EJA 24)"
+    ],
+    "distractors": [
+      "Flexión de Cuello (EJA 22)",
+      "Abducción de Hombro (EJA 19)"
+    ]
+  }
+},
+{
+  "id": "p28",
+  "type": "practice",
+  "title": "Quiz Rápido: Tren Superior",
+  "payload": {
+    "config": { "pool_size": 4 },
+    "bank": [
+      {
+        "question": "¿Cuál es el ángulo límite para considerar ALTO RIESGO en la flexión del cuello (mirar hacia abajo)?",
+        "options": ["> 20 grados", "> 45 grados", "> 15 grados"],
+        "answer": 1
+      },
+      {
+        "question": "Si un trabajador debe estirar el brazo cruzando su cuerpo hacia el lado opuesto más de 45 grados, ¿qué EJA se evalúa?",
+        "options": ["EJA 20: Alcance Cruzado", "EJA 19: Abducción", "EJA 25: Rotación"],
+        "answer": 0
+      },
+      {
+        "question": "En trabajo de oficina, ¿qué causa comúnmente una 'Extensión de Cuello' (mirar arriba) nociva?",
+        "options": ["Monitor muy bajo", "Monitor muy alto o uso de bifocales", "Teclado muy lejos"],
+        "answer": 1
+      },
+      {
+        "question": "¿Qué fuerza de jalón hacia abajo (un brazo) se considera Alto Riesgo?",
+        "options": ["> 72 lbs", "> 20 lbs", "> 50 lbs"],
+        "answer": 0
+      }
+    ]
+  }
+}
   ]
 }
