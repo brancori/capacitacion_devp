@@ -9,7 +9,6 @@ window.safeStorage = window.safeStorage || {
         setTimeout(earlyRoleCheck, 100);
         return;
     }
-
     try {
         const { data: { session } } = await window.supabase.auth.getSession();
         
