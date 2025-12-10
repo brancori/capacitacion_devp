@@ -55,7 +55,7 @@ const DEFAULTS = {
     // 3. Subdominio
     else window.CURRENT_TENANT = host.split('.')[0];
     
-    console.log(`🎯 Tenant Detectado: ${window.CURRENT_TENANT}`);
+    console.log(`Tenant Detectado: ${window.CURRENT_TENANT}`);
 })();
 
 // ═══════════════════════════════════════════════════════════
@@ -80,7 +80,7 @@ const TenantSystem = {
             };
             config.tenantSlug = window.CURRENT_TENANT;
 
-            console.log(`🎨 Aplicando estilos completos de: ${window.CURRENT_TENANT}`);
+            console.log(`Aplicando estilos completos de: ${window.CURRENT_TENANT}`);
             this.applyVariables(config);
             this.updateDOM(config);
             
@@ -89,7 +89,7 @@ const TenantSystem = {
             window.__loginRedirect = config.successRedirect;
 
         } catch (e) { 
-            console.error('⚠️ Error cargando branding (usando defaults):', e);
+            console.error('Error cargando branding (usando defaults):', e);
             this.applyVariables(DEFAULTS);
             this.updateDOM(DEFAULTS);
             window.APP_CONFIG = DEFAULTS;
@@ -224,8 +224,8 @@ function initSupabaseClient() {
       }
 
       window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
-      console.log(`✅ Cliente Supabase inicializado contra: ${SUPABASE_URL}`);
-      
+      console.log(`Cliente Supabase inicializado contra: ${SUPABASE_URL}`);
+      initSessionMonitor();
       TenantSystem.loadAndApply();
       setupLogoutButton();
     } else {
@@ -254,4 +254,86 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initSupabaseClient);
 } else {
   initSupabaseClient();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 5. MONITOR DE SESIÓN 
+// ═══════════════════════════════════════════════════════════
+function initSessionMonitor() {
+    // Evitar ejecución en el Login
+    if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') return;
+
+    if (!window.supabase || !window.supabase.auth) {
+        console.error("Monitor: Cliente no listo.");
+        return;
+    }
+
+    console.log("Monitor de sesion iniciado.");
+
+    window.supabase.auth.onAuthStateChange(async (event, session) => {
+        // TOKEN REFRESHED
+        if (event === 'TOKEN_REFRESHED' && session) {
+            console.log("Token renovado.");
+            const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+            if (storageKey) {
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(session));
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        // SIGNED OUT
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+            console.warn("Sesion finalizada.");
+            handleSessionExpired();
+        }
+    });
+
+    // Verificación preventiva (5 min)
+    setInterval(async () => {
+        if (document.hidden) return;
+        const { data: { session }, error } = await window.supabase.auth.getSession();
+        if (error || !session) handleSessionExpired();
+    }, 5 * 60 * 1000);
+}
+
+function handleSessionExpired() {
+    if (window.isRedirecting) return;
+    window.isRedirecting = true;
+
+    // Crear Modal
+    const modalId = 'session-expired-modal-overlay';
+    if (document.getElementById(modalId)) return;
+
+    const modalOverlay = document.createElement('div');
+    modalOverlay.id = modalId;
+    modalOverlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0, 0, 0, 0.85); z-index: 99999;
+        display: flex; align-items: center; justify-content: center;
+        font-family: Arial, sans-serif;
+    `;
+
+    modalOverlay.innerHTML = `
+        <div style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <div style="font-size: 40px; margin-bottom: 15px;">⚠️</div>
+            <h2 style="margin: 0 0 10px 0; color: #333;">Sesión Expirada</h2>
+            <p style="color: #666; margin-bottom: 25px; line-height: 1.5;">Tu sesión ha caducado.</p>
+            <button id="btn-expired-accept" style="background-color: #234B95; color: white; border: none; padding: 12px 25px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; width: 100%;">Iniciar Sesión</button>
+        </div>
+    `;
+
+    document.body.appendChild(modalOverlay);
+
+    // Calcular ruta relativa
+    let pathToRoot = './';
+    if (window.location.pathname.includes('/componentes/pages/')) pathToRoot = '../../';
+    else if (window.location.pathname.includes('/componentes/')) pathToRoot = '../';
+    else if (window.location.pathname.includes('/profile/curso/')) pathToRoot = '../../';
+    else if (window.location.pathname.includes('/profile/')) pathToRoot = '../';
+    else if (window.location.pathname.includes('/quiz/')) pathToRoot = '../';
+
+    document.getElementById('btn-expired-accept').addEventListener('click', () => {
+        window.location.href = pathToRoot + 'index.html';
+    });
 }

@@ -24,11 +24,11 @@
       const tenant = data?.find(t => t.slug === tenantSlug);
 
       if (error || !tenant) {
-        console.warn(`⚠️ Tenant "${tenantSlug}" no encontrado, usando default`);
+        console.warn(`Tenant "${tenantSlug}" no encontrado, usando default`);
         return { valid: false, slug: tenantSlug };
       }
 
-      console.log('✅ Tenant validado:', tenant.name);
+      console.log('Tenant validado:', tenant.name);
       return { valid: true, ...tenant };
 
     } catch (err) {
@@ -110,7 +110,7 @@
 
       // CASO 1: USUARIO PENDING (Requiere crear contraseña)
       if (data.action === 'FORCE_RESET') {
-          console.log("⚠️ Usuario Pending: Iniciando flujo de contraseña.");
+          console.log("Usuario Pending: Iniciando flujo de contraseña.");
           btn.disabled = false;
           if (btn.querySelector('span')) btn.querySelector('span').textContent = originalBtnText;
           
@@ -444,7 +444,7 @@
       await validateLoginPage();
       
       // 3. Activar UI
-      console.log('🏁 Login listo.');
+      console.log('Login listo.');
       initializeInteractions(); 
   }
 

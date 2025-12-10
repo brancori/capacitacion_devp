@@ -267,35 +267,64 @@ async function checkAuth(config) {
 // ESTADÍSTICAS POR GRUPO
 // =================================================================
 async function getGroupStats(groupId) {
-    const { data: members } = await window.supabase
+    // 1. Obtener miembros del grupo
+    const { data: members, error: membersError } = await window.supabase
         .from('group_members')
         .select('user_id')
         .eq('group_id', groupId);
 
-    if (!members || members.length === 0) {
+    if (membersError || !members || members.length === 0) {
         return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
     }
 
-    const userIds = members.map(m => m.user_id);
+    const memberIds = members.map(m => m.user_id);
+
+    // 2. Obtener cursos del grupo (NUEVO PASO CRÍTICO)
+    const { data: groupCourses, error: coursesError } = await window.supabase
+        .from('group_courses')
+        .select('course_id')
+        .eq('group_id', groupId);
+
+    if (coursesError || !groupCourses || groupCourses.length === 0) {
+        // Si hay miembros pero el grupo no tiene cursos, las stats son 0
+        return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
+    }
+
+    const courseIds = groupCourses.map(gc => gc.course_id);
+
+    // 3. Consultar asignaciones cruzando Usuarios Y Cursos
     const now = new Date().toISOString();
 
-    const { data: assignments } = await window.supabase
+    const { data: assignments, error: assignmentsError } = await window.supabase
         .from('user_course_assignments')
         .select('status, due_date')
-        .in('user_id', userIds);
+        .in('user_id', memberIds)     // Filtro 1: Usuarios del grupo
+        .in('course_id', courseIds);  // Filtro 2: Cursos del grupo
 
-    if (!assignments) return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
+    if (assignmentsError || !assignments) {
+        console.error('Error calculando stats de grupo:', assignmentsError);
+        return { completed: 0, inProgress: 0, expired: 0, completionRate: 0 };
+    }
 
+    // 4. Calcular métricas
     let completed = 0, inProgress = 0, expired = 0;
 
     assignments.forEach(a => {
-        if (a.status === 'completed') completed++;
-        else if (a.due_date && new Date(a.due_date) < new Date()) expired++;
-        else inProgress++;
+        if (a.status === 'completed') {
+            completed++;
+        } else if (a.due_date && new Date(a.due_date) < new Date()) {
+            expired++;
+        } else {
+            // Asumimos in_progress, pending o not_started como activos
+            inProgress++;
+        }
     });
 
-    const total = assignments.length;
-    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    // Nota: El porcentaje se calcula sobre las asignaciones reales encontradas.
+    // Si el trigger fallo y faltan asignaciones, el denominador sera menor,
+    // pero la tasa de completitud sera consistente con la data existente.
+    const totalFound = assignments.length;
+    const completionRate = totalFound > 0 ? Math.round((completed / totalFound) * 100) : 0;
 
     return { completed, inProgress, expired, completionRate };
 }
@@ -317,72 +346,117 @@ window.openUserDetail = async (userId, userName) => {
     coursesEl.innerHTML = '';
 
     const now = new Date();
+    let assignments = [];
 
-    const { data: assignments } = await window.supabase
-        .from('user_course_assignments')
-        .select('*, articles(title)')
-        .eq('user_id', userId);
+    try {
+        // Lógica de Filtrado: Si estamos dentro de un grupo, filtramos por sus cursos
+        if (currentGroup) {
+            console.log('Cargando detalle filtrado por grupo:', currentGroup.name);
+            
+            // 1. Obtener IDs de cursos del grupo actual
+            const { data: groupCourses, error: gcError } = await window.supabase
+                .from('group_courses')
+                .select('course_id')
+                .eq('group_id', currentGroup.id);
 
-    if (!assignments || assignments.length === 0) {
-        summaryEl.innerHTML = '<p>Este usuario no tiene cursos asignados.</p>';
-        return;
-    }
+            if (gcError) throw gcError;
 
-    let completed = 0, inProgress = 0, expired = 0;
-    const processed = assignments.map(a => {
-        let displayStatus = a.status;
-        if (a.status === 'completed') completed++;
-        else if (a.due_date && new Date(a.due_date) < now) {
-            expired++;
-            displayStatus = 'expired';
-        } else inProgress++;
-        return { ...a, displayStatus };
-    });
+            const courseIds = groupCourses ? groupCourses.map(gc => gc.course_id) : [];
 
-    summaryEl.innerHTML = `
-        <div class="stat-box completed">
-            <div class="stat-value">${completed}</div>
-            <div>Completados</div>
-        </div>
-        <div class="stat-box in-progress">
-            <div class="stat-value">${inProgress}</div>
-            <div>En Progreso</div>
-        </div>
-        <div class="stat-box expired">
-            <div class="stat-value">${expired}</div>
-            <div>Vencidos</div>
-        </div>
-    `;
+            if (courseIds.length === 0) {
+                // El grupo no tiene cursos, por tanto no mostramos asignaciones en este contexto
+                assignments = [];
+            } else {
+                // 2. Traer asignaciones SOLO de esos cursos
+                const { data: data, error: assignError } = await window.supabase
+                    .from('user_course_assignments')
+                    .select('*, articles(title)')
+                    .eq('user_id', userId)
+                    .in('course_id', courseIds); // FILTRO CLAVE
+                
+                if (assignError) throw assignError;
+                assignments = data || [];
+            }
 
-    const statusLabels = {
-        completed: 'Completado',
-        in_progress: 'En Progreso',
-        not_started: 'No Iniciado',
-        expired: 'Vencido'
-    };
+        } else {
+            // Fallback: Si no hay grupo seleccionado, mostrar TODO (Comportamiento original)
+            console.log('Cargando detalle completo (sin filtro de grupo)');
+            const { data: data, error: assignError } = await window.supabase
+                .from('user_course_assignments')
+                .select('*, articles(title)')
+                .eq('user_id', userId);
 
-    coursesEl.innerHTML = `
-        <table class="user-courses-table">
-            <thead>
-                <tr>
-                    <th>Curso</th>
-                    <th>Progreso</th>
-                    <th>Vencimiento</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${processed.map(a => `
+            if (assignError) throw assignError;
+            assignments = data || [];
+        }
+
+        // Renderizado (Lógica original de presentación)
+        if (assignments.length === 0) {
+            summaryEl.innerHTML = '<div class="stat-box completed"><div class="stat-value">0</div><div>Sin cursos en este grupo</div></div>';
+            coursesEl.innerHTML = '<p style="text-align:center; padding:20px; color:#666;">Este usuario no tiene asignaciones correspondientes a este grupo.</p>';
+            return;
+        }
+
+        let completed = 0, inProgress = 0, expired = 0;
+        const processed = assignments.map(a => {
+            let displayStatus = a.status;
+            if (a.status === 'completed') completed++;
+            else if (a.due_date && new Date(a.due_date) < now) {
+                expired++;
+                displayStatus = 'expired';
+            } else inProgress++;
+            return { ...a, displayStatus };
+        });
+
+        summaryEl.innerHTML = `
+            <div class="stat-box completed">
+                <div class="stat-value">${completed}</div>
+                <div>Completados</div>
+            </div>
+            <div class="stat-box in-progress">
+                <div class="stat-value">${inProgress}</div>
+                <div>En Progreso</div>
+            </div>
+            <div class="stat-box expired">
+                <div class="stat-value">${expired}</div>
+                <div>Vencidos</div>
+            </div>
+        `;
+
+        const statusLabels = {
+            completed: 'Completado',
+            in_progress: 'En Progreso',
+            not_started: 'No Iniciado',
+            expired: 'Vencido'
+        };
+
+        coursesEl.innerHTML = `
+            <table class="user-courses-table">
+                <thead>
                     <tr>
-                        <td>${a.articles?.title || 'Sin título'}</td>
-                        <td>${a.progress || 0}%</td>
-                        <td>${a.due_date ? new Date(a.due_date).toLocaleDateString() : '-'}</td>
-                        <td><span class="status-badge ${a.displayStatus}">${statusLabels[a.displayStatus] || a.displayStatus}</span></td>
+                        <th>Curso</th>
+                        <th>Progreso</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
                     </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
+                </thead>
+                <tbody>
+                    ${processed.map(a => `
+                        <tr>
+                            <td>${a.articles?.title || 'Sin título'}</td>
+                            <td>${a.progress || 0}%</td>
+                            <td>${a.due_date ? new Date(a.due_date).toLocaleDateString() : '-'}</td>
+                            <td><span class="status-badge ${a.displayStatus}">${statusLabels[a.displayStatus] || a.displayStatus}</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+    } catch (err) {
+        console.error('Error cargando detalle de usuario:', err);
+        summaryEl.innerHTML = '<p style="color:red">Error al cargar datos.</p>';
+    }
 };
 
 window.closeUserDetailModal = () => {
@@ -423,108 +497,219 @@ let trackingData = [];
 
 async function loadTrackingData() {
     const tbody = document.getElementById('tracking-tbody');
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;"><i class="fas fa-spinner fa-spin"></i> Cargando datos...</td></tr>';
 
-    const { data: users } = await window.supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('tenant_id', currentAdmin.tenant_id)
-        .order('full_name');
+    try {
+        if (!currentAdmin || !currentAdmin.tenant_id) {
+            console.error("Falta tenant_id en admin");
+            return;
+        }
 
-        const { data: memberships } = await window.supabase
-        .from('group_members')
-        .select('user_id, course_groups(name)') // Join con course_groups
-        .not('course_groups', 'is', null);
+        // --- LÓGICA DE CACHÉ PARA USUARIOS ---
+        const CACHE_KEY = `tracking_users_${currentAdmin.tenant_id}`;
+        const CACHE_DURATION = 7 * 60 * 1000; // 7 Minutos en milisegundos
+        
+        let pUsers; // Aquí guardaremos la promesa (ya sea de red o de caché)
+        let usersSource = 'network'; // Bandera para saber si debemos guardar al final
 
-        const userGroupsMap = {};
-    if(memberships) {
-        memberships.forEach(m => {
-            if(!userGroupsMap[m.user_id]) userGroupsMap[m.user_id] = [];
-            if(m.course_groups) userGroupsMap[m.user_id].push(m.course_groups.name);
-        });
-    }
+        // 1. Intentar leer del LocalStorage
+        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        let validCacheFound = false;
 
-    if (!users || users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">No hay usuarios</td></tr>';
-        return;
-    }
-
-    const now = new Date();
-    trackingData = [];
-
-    for (const user of users) {
-        const { data: assignments } = await window.supabase
-            .from('user_course_assignments')
-            .select('*, articles(title)')
-            .eq('user_id', user.id);
-
-        let completed = 0, inProgress = 0, expired = 0;
-        const courses = [];
-
-        (assignments || []).forEach(a => {
-            let status = a.status;
-            if (a.status === 'completed') {
-                completed++;
-            } else if (a.due_date && new Date(a.due_date) < now) {
-                expired++;
-                status = 'expired';
-            } else {
-                inProgress++;
+        if (cachedRaw) {
+            try {
+                const cached = JSON.parse(cachedRaw);
+                const now = Date.now();
+                
+                // Verificar si el cache es válido (menos de 7 minutos)
+                if (now - cached.timestamp < CACHE_DURATION) {
+                    console.log('⚡ [PERFORMANCE] Usando lista de usuarios desde caché local.');
+                    // Envolvemos en promesa para mantener compatibilidad con Promise.all
+                    pUsers = Promise.resolve({ data: cached.data, error: null });
+                    validCacheFound = true;
+                    usersSource = 'cache';
+                }
+            } catch (e) {
+                console.warn('Cache de usuarios corrupto, se forzará recarga.');
+                localStorage.removeItem(CACHE_KEY);
             }
-            courses.push({
-                title: a.articles?.title || 'Sin título',
-                progress: a.progress || 0,
-                due_date: a.due_date,
-                status: status
+        }
+
+        // 2. Si no hay caché válido, preparamos la petición de red (Petición 1)
+        if (!validCacheFound) {
+            console.log('🌐 [PERFORMANCE] Cache expirado o inexistente. Descargando usuarios...');
+            pUsers = window.supabase
+                .from('profiles')
+                .select('id, full_name, email')
+                .eq('tenant_id', currentAdmin.tenant_id)
+                .order('full_name');
+        }
+
+        // 3. PETICIÓN B: Asignaciones (Siempre fresca para ver progreso real)
+        const pAssignments = window.supabase
+            .from('user_course_assignments')
+            .select('user_id, status, progress, due_date, articles(title)')
+            .eq('tenant_id', currentAdmin.tenant_id);
+
+        // 4. PETICIÓN C: Membresías (Siempre fresca para ver cambios de grupos recientes)
+        const pMemberships = window.supabase
+            .from('group_members')
+            .select('user_id, course_groups!inner(name, tenant_id)')
+            .eq('course_groups.tenant_id', currentAdmin.tenant_id);
+
+        // EJECUCIÓN PARALELA
+        const [
+            { data: users, error: errUsers },
+            { data: allAssignments, error: errAssign },
+            { data: allMemberships, error: errMembers }
+        ] = await Promise.all([pUsers, pAssignments, pMemberships]);
+
+        if (errUsers) throw errUsers;
+        if (errAssign) throw errAssign;
+        if (errMembers) throw errMembers;
+
+        // --- GUARDAR EN CACHÉ SI VINO DE LA RED ---
+        if (usersSource === 'network' && users && users.length > 0) {
+            try {
+                const cachePayload = {
+                    timestamp: Date.now(),
+                    data: users
+                };
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
+                console.log('💾 [PERFORMANCE] Usuarios guardados en caché por 7 min.');
+            } catch (e) {
+                console.error('Error guardando en localStorage (posible cuota excedida):', e);
+            }
+        }
+
+        if (!users || users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No hay usuarios registrados</td></tr>';
+            return;
+        }
+
+        // =========================================================
+        // PROCESAMIENTO EN MEMORIA (Igual que antes)
+        // =========================================================
+        
+        // A. Mapa de Asignaciones
+        const assignmentsMap = {};
+        if (allAssignments) {
+            allAssignments.forEach(a => {
+                if (!assignmentsMap[a.user_id]) assignmentsMap[a.user_id] = [];
+                assignmentsMap[a.user_id].push(a);
             });
-        });
+        }
 
-        const total = completed + inProgress + expired;
-        const compliance = total > 0 ? Math.round((completed / total) * 100) : 0;
+        // B. Mapa de Grupos
+        const groupsMap = {};
+        if (allMemberships) {
+            allMemberships.forEach(m => {
+                if (!groupsMap[m.user_id]) groupsMap[m.user_id] = [];
+                if (m.course_groups && m.course_groups.name) {
+                    groupsMap[m.user_id].push(m.course_groups.name);
+                }
+            });
+        }
 
-        trackingData.push({
-            id: user.id,
-            name: user.full_name || 'Sin nombre',
-            email: user.email,
-            groups: userGroupsMap[user.id] || [],
-            completed,
-            inProgress,
-            expired,
-            compliance,
-            courses
+        // C. Construir Data Final
+        const now = new Date();
+        trackingData = users.map(user => {
+            const userAssignments = assignmentsMap[user.id] || [];
+            const userGroups = groupsMap[user.id] || [];
+
+            let completed = 0, inProgress = 0, expired = 0;
+            const coursesFormatted = [];
+
+            userAssignments.forEach(a => {
+                let status = a.status;
+                if (status === 'completed') {
+                    completed++;
+                } else if (a.due_date && new Date(a.due_date) < now) {
+                    expired++;
+                    status = 'expired';
+                } else {
+                    inProgress++;
+                }
+
+                coursesFormatted.push({
+                    title: a.articles?.title || 'Sin título',
+                    progress: a.progress || 0,
+                    due_date: a.due_date,
+                    status: status
+                });
+            });
+
+            const total = completed + inProgress + expired;
+            const compliance = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            return {
+                id: user.id,
+                name: user.full_name || 'Sin nombre',
+                email: user.email,
+                groups: userGroups,
+                completed,
+                inProgress,
+                expired,
+                compliance,
+                courses: coursesFormatted
+            };
         });
+        populateCourseFilter();
+        renderTrackingTable();
+
+    } catch (error) {
+        console.error('🔥 Error en carga masiva:', error);
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:red;">Error cargando datos: ${error.message}</td></tr>`;
     }
-
-    renderTrackingTable();
 }
 
-function renderTrackingTable(filter = 'all', search = '') {
+function renderTrackingTable() {
+    // 1. Obtener valores de los filtros
+    const filterStatus = document.getElementById('filter-status').value;
+    const filterCourse = document.getElementById('filter-course') ? document.getElementById('filter-course').value : 'all';
+    const search = document.getElementById('search-users-tracking').value.toLowerCase();
+    
     const tbody = document.getElementById('tracking-tbody');
     
-    let filtered = trackingData;
+    // 2. Filtrar Usuarios
+    const filteredUsers = trackingData.filter(u => {
+        // A. Filtro Texto
+        const matchesSearch = u.name.toLowerCase().includes(search) || 
+                              u.email.toLowerCase().includes(search);
+        if (!matchesSearch) return false;
 
-    // Filtro de texto
-    if (search) {
-        const s = search.toLowerCase();
-        filtered = filtered.filter(u => 
-            u.name.toLowerCase().includes(s) || 
-            u.email.toLowerCase().includes(s)
-        );
-    }
+        // B. Filtro Curso (Pre-validación)
+        // Si se selecciona un curso, el usuario DEBE tenerlo asignado
+        if (filterCourse !== 'all') {
+            const hasCourse = u.courses.some(c => c.title === filterCourse);
+            if (!hasCourse) return false;
+        }
 
-    // Filtro de estado
-    if (filter !== 'all') {
-        filtered = filtered.filter(u => {
-            if (filter === 'completed') return u.completed > 0;
-            if (filter === 'in_progress') return u.inProgress > 0;
-            if (filter === 'expired') return u.expired > 0;
-            return true;
-        });
-    }
+        // C. Filtro Estado (Contextual)
+        // Si filtramos por estado, debemos verificar si cumple el estado 
+        // EN EL CONTEXTO de los cursos filtrados.
+        if (filterStatus !== 'all') {
+            // Obtenemos los cursos que vamos a considerar (Todos o solo el filtrado)
+            const relevantCourses = filterCourse === 'all' 
+                ? u.courses 
+                : u.courses.filter(c => c.title === filterCourse);
+            
+            // Verificamos si alguno de los cursos relevantes tiene el estado buscado
+            const matchesStatus = relevantCourses.some(c => {
+                if (filterStatus === 'completed') return c.status === 'completed';
+                if (filterStatus === 'in_progress') return c.status !== 'completed' && c.status !== 'expired'; // Asumiendo lógica in_progress
+                if (filterStatus === 'expired') return c.status === 'expired';
+                return true;
+            });
+            
+            if (!matchesStatus) return false;
+        }
 
-    if (filtered.length === 0) {
-        // NOTA: colspan="8" porque agregamos la columna de grupos
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No se encontraron usuarios</td></tr>';
+        return true;
+    });
+
+    if (filteredUsers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No se encontraron resultados</td></tr>';
         return;
     }
 
@@ -535,10 +720,36 @@ function renderTrackingTable(filter = 'all', search = '') {
         expired: 'Vencido'
     };
 
-    tbody.innerHTML = filtered.map((u, idx) => {
-        const barClass = u.compliance <= 50 ? 'red' : u.compliance <= 80 ? 'yellow' : 'green';
+    // 3. Renderizar Filas
+    tbody.innerHTML = filteredUsers.map((u, idx) => {
+        // === LÓGICA DE RE-CÁLCULO ESTRICTO ===
         
-        // Generamos los badges de los grupos
+        // Determinamos qué cursos vamos a visualizar y contar
+        let displayCourses = u.courses;
+        
+        if (filterCourse !== 'all') {
+            // Si hay filtro de curso, SOLO usamos ese curso para los cálculos
+            displayCourses = u.courses.filter(c => c.title === filterCourse);
+        }
+
+        // Recalculamos estadísticas visuales para esta fila (Pills)
+        let localCompleted = 0;
+        let localInProgress = 0;
+        let localExpired = 0;
+
+        displayCourses.forEach(c => {
+            if (c.status === 'completed') localCompleted++;
+            else if (c.status === 'expired') localExpired++;
+            else localInProgress++;
+        });
+
+        const localTotal = localCompleted + localInProgress + localExpired;
+        const localCompliance = localTotal > 0 ? Math.round((localCompleted / localTotal) * 100) : 0;
+        
+        // Color de la barra
+        const barClass = localCompliance <= 50 ? 'red' : localCompliance <= 80 ? 'yellow' : 'green';
+
+        // Badges de grupos (sin cambios)
         const groupsHtml = u.groups && u.groups.length > 0
             ? u.groups.map(g => `<span class="group-badge">${g}</span>`).join('')
             : '<span style="color:#ccc;font-size:0.8rem;">Sin grupo</span>';
@@ -547,25 +758,21 @@ function renderTrackingTable(filter = 'all', search = '') {
         <tr class="user-row-main" onclick="toggleUserCourses(${idx})">
             <td><strong>${u.name}</strong></td>
             <td>${u.email}</td>
+            <td><div class="group-tags">${groupsHtml}</div></td>
             
-            <td>
-                <div class="group-tags">
-                    ${groupsHtml}
-                </div>
-            </td>
-            
-            <td class="text-center"><span class="stat-pill completed">${u.completed}</span></td>
-            <td class="text-center"><span class="stat-pill in-progress">${u.inProgress}</span></td>
-            <td class="text-center"><span class="stat-pill expired">${u.expired}</span></td>
+            <td class="text-center"><span class="stat-pill completed">${localCompleted}</span></td>
+            <td class="text-center"><span class="stat-pill in-progress">${localInProgress}</span></td>
+            <td class="text-center"><span class="stat-pill expired">${localExpired}</span></td>
             <td class="text-center">
-                <div class="compliance-bar"><div class="compliance-bar-fill ${barClass}" style="width:${u.compliance}%"></div></div>
-                ${u.compliance}%
+                <div class="compliance-bar"><div class="compliance-bar-fill ${barClass}" style="width:${localCompliance}%"></div></div>
+                ${localCompliance}%
             </td>
             <td><button class="expand-btn" id="expand-btn-${idx}"><i class="fas fa-chevron-down"></i></button></td>
         </tr>
         
         <tr class="user-courses-row" id="courses-row-${idx}">
-            <td colspan="8"> <div class="courses-detail">
+            <td colspan="8"> 
+                <div class="courses-detail">
                     <table>
                         <thead>
                             <tr>
@@ -576,8 +783,8 @@ function renderTrackingTable(filter = 'all', search = '') {
                             </tr>
                         </thead>
                         <tbody>
-                            ${u.courses.length === 0 ? '<tr><td colspan="4">Sin cursos asignados</td></tr>' : 
-                              u.courses.map(c => `
+                            ${displayCourses.length === 0 ? '<tr><td colspan="4">Sin información</td></tr>' : 
+                              displayCourses.map(c => `
                                 <tr>
                                     <td>${c.title}</td>
                                     <td>${c.progress}%</td>
@@ -682,6 +889,37 @@ window.exportToExcel = () => {
 
     showToast('Éxito', 'Reporte Excel generado correctamente', 'success');
 };
+
+function populateCourseFilter() {
+    const select = document.getElementById('filter-course');
+    if (!select) return;
+
+    // Guardar selección actual para no perderla al recargar datos
+    const currentVal = select.value;
+    
+    // Resetear opciones
+    select.innerHTML = '<option value="all">Todos los cursos</option>';
+
+    // Obtener títulos únicos
+    const allTitles = new Set();
+    trackingData.forEach(user => {
+        if (user.courses && Array.isArray(user.courses)) {
+            user.courses.forEach(c => allTitles.add(c.title));
+        }
+    });
+
+    // Ordenar y crear opciones
+    Array.from(allTitles).sort().forEach(title => {
+        const option = document.createElement('option');
+        option.value = title;
+        option.textContent = title;
+        select.appendChild(option);
+    });
+
+    // Restaurar valor previo si existe
+    select.value = currentVal;
+}
+
 
 async function renderGroups(filter = '') {
         const container = document.getElementById('groups-container');
@@ -1073,7 +1311,7 @@ window.confirmAssignment = async () => {
         const inserts = selectedCoursesToAssign.map(course => ({
             group_id: currentGroup.id,
             course_id: course.id,
-            due_date: finalDueDate // <--- Aquí va la fecha calculada
+            due_date: finalDueDate 
         }));
 
         const { error } = await window.supabase
@@ -1142,34 +1380,6 @@ window.openAssignModal = async () => {
     
     renderCatalog();
     updateSelectedList();
-};
-
-// Modificar confirmAssignment (reemplazar desde línea ~530)
-window.confirmAssignment = async () => {
-    if (selectedCoursesToAssign.length === 0) {
-        return showToast('Alerta', 'Selecciona al menos un curso', 'warning');
-    }
-
-    try {
-        // Insertar en group_courses (el trigger se encarga de asignar a usuarios)
-        const inserts = selectedCoursesToAssign.map(course => ({
-            group_id: currentGroup.id,
-            course_id: course.id
-        }));
-
-        const { error } = await window.supabase
-            .from('group_courses')
-            .insert(inserts);
-
-        if (error) throw error;
-
-        showToast('Éxito', `${selectedCoursesToAssign.length} curso(s) asignado(s) al grupo`, 'success');
-        closeAssignModal();
-        await loadGroupCourses();
-    } catch (err) {
-        console.error('Error:', err);
-        showToast('Error', 'No se pudieron asignar los cursos', 'error');
-    }
 };
 
     function showToast(title, msg, type) {
@@ -1280,13 +1490,25 @@ async function init() {
 }
 
     document.getElementById('search-groups').addEventListener('input', (e) => renderGroups(e.target.value));
+    
     document.getElementById('search-users-tracking')?.addEventListener('input', (e) => {
-    renderTrackingTable(document.getElementById('filter-status').value, e.target.value);
+        // Nota: renderTrackingTable ya no requiere argumentos según tu última versión, 
+        // lee directo del DOM, así que puedes llamarla simple:
+        renderTrackingTable(); 
     });
 
     document.getElementById('filter-status')?.addEventListener('change', (e) => {
-        renderTrackingTable(e.target.value, document.getElementById('search-users-tracking').value);
+        renderTrackingTable();
     });
+
+    // ✅ PEGAR AQUÍ EL NUEVO LISTENER (DENTRO DEL BLOQUE ASYNC)
+    const filterCourseEl = document.getElementById('filter-course');
+    if (filterCourseEl) {
+        filterCourseEl.addEventListener('change', () => {
+            renderTrackingTable();
+        });
+    }
+    
     document.getElementById('search-available')?.addEventListener('input', (e) => renderAvailableUsers(e.target.value));
     document.getElementById('search-catalog').addEventListener('input', (e) => renderCatalog(e.target.value));
 

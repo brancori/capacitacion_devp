@@ -905,11 +905,7 @@ window.submitQuiz = async function() {
 
     const finalScore = Math.round((correctCount / questionDivs.length) * 100);
     
-    // NOTA: "Sin importar la respuesta" -> No evaluamos si passed es true/false para la navegación
-    // Pero sí guardamos el status real en BD.
-    const passed = finalScore >= 80; 
-
-    // 2. Guardar en BD (Silenciosamente)
+    // 2. Guardar en BD
     try {
         const { data: { user } } = await supabase.auth.getUser();
         const courseId = new URLSearchParams(location.search).get("id");
@@ -918,22 +914,25 @@ window.submitQuiz = async function() {
             const updateData = {
                 score: finalScore,
                 quiz_answers: quizDetails,
-                // Si quieres que el progreso suba al 95% al terminar el quiz
-                progress: 95 
+                progress: 95, // Avanzamos casi al final
+                status: 'in_progress'
             };
 
-            await supabase
+            const { error } = await supabase
                 .from('user_course_assignments')
                 .update(updateData)
                 .eq('user_id', user.id)
                 .eq('course_id', courseId);
+
+            if (error) throw error;
         }
     } catch (e) {
         console.error("Error guardando quiz:", e);
+        // Opcional: alertar al usuario si falla el guardado
+        return; 
     }
 
-    // 3. LÓGICA DE NAVEGACIÓN FORZADA
-    // Desactivamos el bloqueo del quiz para poder cambiar de página
+    // 3. LÓGICA DE NAVEGACIÓN Y DESBLOQUEO
     isQuizInProgress = false; 
     document.body.classList.remove('quiz-mode');
 
@@ -941,10 +940,18 @@ window.submitQuiz = async function() {
     const nextPageIndex = currentPageIndex + 1;
     
     if (nextPageIndex < courseData.pages.length) {
+        // CORRECCIÓN CRÍTICA: Desbloquear localmente la siguiente página
+        if (nextPageIndex > maxUnlockedIndex) {
+            maxUnlockedIndex = nextPageIndex;
+        }
+        
+        // Actualizamos visualmente el sidebar para quitar el candado
+        updateNavigationUI(currentPageIndex);
+
         alert("Examen finalizado. Pasando a la Encuesta de Satisfacción.");
-        renderPage(nextPageIndex); // Manda a la encuesta
+        renderPage(nextPageIndex); 
     } else {
-        // Si por error no hay encuesta, mandamos al perfil
+        // Caso borde: Si no hay encuesta, finalizamos aquí
         alert("Curso finalizado.");
         window.location.href = '../profile.html';
     }

@@ -38,7 +38,7 @@ window.safeStorage = window.safeStorage || {
         }
         document.body.classList.add('loaded');
     } catch (error) {
-        console.error('❌ Error validación:', error);
+        console.error('Error validación:', error);
         document.body.classList.add('loaded'); 
     }
 })();
@@ -85,12 +85,12 @@ async function loadRealDashboardData(userId, supabase) {
             displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
         }
         
-        // 🔥 FIX: ROL DESDE BD, NO DESDE STORAGE
+        //  FIX: ROL DESDE BD, NO DESDE STORAGE
         if (userProfile.role) {
             currentRole = userProfile.role;
-            console.log('🔄 [loadRealDashboardData] Rol obtenido de BD:', currentRole);
+            console.log('[loadRealDashboardData] Rol obtenido de BD:', currentRole);
         } else {
-            console.warn('⚠️ [loadRealDashboardData] userProfile sin role, usando storage como fallback');
+            console.warn('[loadRealDashboardData] userProfile sin role, usando storage como fallback');
             currentRole = window.safeStorage.get('role') || 'user';
         }
         
@@ -100,13 +100,13 @@ async function loadRealDashboardData(userId, supabase) {
         
     } else {
         // 🔥 SI NO HAY PERFIL, USAR STORAGE PERO NO SOBRESCRIBIR
-        console.warn('⚠️ [loadRealDashboardData] No se obtuvo perfil de BD');
+        console.warn('[loadRealDashboardData] No se obtuvo perfil de BD');
         displayName = window.safeStorage.get('full_name') || 'Usuario';
         currentRole = window.safeStorage.get('role') || 'user';
     }
 
     // 3. ACTUALIZACIÓN DE UI (BOTÓN ADMIN)
-    console.log('🎨 [loadRealDashboardData] Llamando updateAdminButton con:', currentRole);
+    console.log('[loadRealDashboardData] Llamando updateAdminButton con:', currentRole);
     updateAdminButton(currentRole);
 
     // 4. Renderizado de Perfil
@@ -154,7 +154,7 @@ async function loadRealDashboardData(userId, supabase) {
             return `<div class="${isEarned ? 'badge earned' : 'badge'}"><i class="${badge.icon_class || 'fas fa-medal'}"></i><span>${badge.name}</span></div>`;
           }).join('');
     }
-
+    renderCalendar(assignments);
     renderHistoryTimeline(completados);
 
     // 6. INICIAR REALTIME
@@ -201,7 +201,7 @@ function initRolePolling(userId, supabase) {
                 if (data.role !== currentStoredRole) {
                     window.safeStorage.set('role', data.role);
                     updateAdminButton(data.role);
-                    console.log('🔄 Rol actualizado vía Polling:', data.role);
+                    console.log(' Rol actualizado vía Polling:', data.role);
                 }
             }
         } catch (e) { 
@@ -347,8 +347,8 @@ try {
         .select('role')
         .eq('id', user.id);
     
-    // 🔥 LOG CRÍTICO (temporal para debug)
-    console.log('🔍 [mainInit] Respuesta BD:', { data, error, esArray: Array.isArray(data) });
+    // LOG CRÍTICO (temporal para debug)
+    console.log(' [mainInit] Respuesta BD:', { data, error, esArray: Array.isArray(data) });
     
     if (error) throw error;
     
@@ -356,35 +356,35 @@ try {
     const profileData = Array.isArray(data) ? data[0] : data;
     
     // 🔥 LOG CRÍTICO 2
-    console.log('📦 [mainInit] profileData extraído:', profileData);
+    console.log(' [mainInit] profileData extraído:', profileData);
     
     if (profileData?.role) {
         finalRole = profileData.role;
-        console.log('✅ [mainInit] Rol asignado:', finalRole);
+        console.log(' [mainInit] Rol asignado:', finalRole);
     } else {
-        console.warn('⚠️ [mainInit] No se encontró role en profileData');
+        console.warn(' [mainInit] No se encontró role en profileData');
     }
     
     } catch (e) {
-        console.error('❌ [mainInit] Error crítico leyendo perfil:', e);
+        console.error(' [mainInit] Error crítico leyendo perfil:', e);
     }
 
     // 3. Guardamos el rol REAL confirmado
     window.safeStorage.set('role', finalRole);
-    console.log('💾 [mainInit] Rol guardado en storage:', window.safeStorage.get('role'));
+    console.log('[mainInit] Rol guardado en storage:', window.safeStorage.get('role'));
 
     // 4. Actualizar UI inmediatamente
     updateAdminButton(finalRole);
-    console.log('🎨 [mainInit] updateAdminButton llamado con:', finalRole);
+    console.log(' [mainInit] updateAdminButton llamado con:', finalRole);
 
         // 3. Guardamos el rol REAL confirmado
         window.safeStorage.set('role', finalRole);
         window.safeStorage.set('full_name', user.user_metadata?.full_name || 'Usuario');
 
         // --- DEBUG LOGS CORREGIDOS ---
-        console.group("🔍 DEBUG: Sesión y Roles");
-        console.log("🆔 User ID:", user.id);
-        console.log("🎭 Rol Final Confirmado:", finalRole);
+        console.group(" DEBUG: Sesión y Roles");
+        console.log(" User ID:", user.id);
+        console.log(" Rol Final Confirmado:", finalRole);
         console.groupEnd();     
 
         
@@ -414,9 +414,71 @@ try {
         document.body.classList.add('loaded');
 
     } catch (error) {
-        console.error('❌ Error fatal en mainInit:', error);
+        console.error('Error fatal en mainInit:', error);
         document.body.classList.add('loaded');
     }
+}
+
+function renderCalendar(assignments) {
+    const container = document.querySelector('.calendar-card');
+    if (!container) return;
+
+    // 1. Filtrar: Solo cursos NO completados y que tengan fecha de vencimiento
+    const upcoming = assignments.filter(a => {
+        const isCompleted = a.status === 'completed' || (a.score && Number(a.score) >= 8);
+        return a.due_date && !isCompleted;
+    });
+
+    // 2. Ordenar: Del más cercano al más lejano (Ascendente)
+    upcoming.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+    // 3. Limitar: Tomar los primeros 5
+    const topEvents = upcoming.slice(0, 5);
+
+    // 4. Generar HTML
+    const headerHTML = '<h3><i class="far fa-calendar-alt"></i> Próximos Vencimientos</h3>';
+    
+    if (topEvents.length === 0) {
+        container.innerHTML = headerHTML + '<p style="font-size: 0.8rem; color: #888; text-align: center; margin-top: 1rem;">No tienes vencimientos próximos.</p>';
+        return;
+    }
+
+    const eventsHTML = topEvents.map(item => {
+        // Conversión a Hora Local (Opción A)
+        // El constructor new Date() toma el ISO UTC y lo adapta al navegador del usuario
+        const dateObj = new Date(item.due_date);
+        
+        const day = dateObj.getDate(); 
+        const month = dateObj.toLocaleString('es-ES', { month: 'short' }).toUpperCase().replace('.', '');
+        
+        // Lógica de Urgencia: Si faltan 3 días o menos (o si ya pasó la fecha)
+        const now = new Date();
+        const diffTime = dateObj - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        
+        // Es urgente si vence hoy, en el pasado, o en los próximos 3 días
+        const isUrgent = diffDays <= 3;
+        
+        // Texto de estado
+        let statusText = 'Pendiente';
+        if (diffDays < 0) statusText = 'Vencido';
+        else if (diffDays === 0) statusText = 'Vence hoy';
+        else if (diffDays <= 3) statusText = '¡Vence pronto!';
+
+        return `
+        <div class="calendar-event ${isUrgent ? 'urgent' : ''}">
+            <div class="event-date">
+                <div class="day">${day}</div>
+                <div class="month">${month}</div>
+            </div>
+            <div class="event-details">
+                <h4>${item.articles?.title || 'Curso sin título'}</h4>
+                <p>${statusText}</p>
+            </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = headerHTML + eventsHTML;
 }
 
   // ═══════════════════════════════════════════════════════════
@@ -529,7 +591,7 @@ async function loadNotifications(userId, supabase) {
     const badge = document.querySelector('.notification-badge');
     
     // --- DEBUG INICIO ---
-    console.log('🔔 Solicitando notificaciones a Supabase...');
+    console.log('Solicitando notificaciones a Supabase...');
     // --------------------
 
     const { data: notifs, error } = await supabase
@@ -545,13 +607,13 @@ async function loadNotifications(userId, supabase) {
     }
 
     // --- DEBUG RESULTADOS ---
-    console.group("📬 DEBUG: Resultados de Notificaciones");
+    console.group(" DEBUG: Resultados de Notificaciones");
     console.log(`Cantidad recibida: ${notifs?.length || 0}`);
     if (notifs && notifs.length > 0) {
         console.table(notifs); // ESTO ES CLAVE: Mira la columna 'type' aquí
         console.log("Nota: Si ves notificaciones de tipo 'admin' aquí siendo usuario 'user', la RLS está fallando.");
     } else {
-        console.log("✅ Lista vacía (Correcto si el usuario no tiene permisos)");
+        console.log("Lista vacía (Correcto si el usuario no tiene permisos)");
     }
     console.groupEnd();
     // ------------------------

@@ -1,0 +1,254 @@
+{
+  "questions": [
+    {
+      "answer": 0,
+      "options": [
+        "Adaptar el trabajo a las capacidades de la persona",
+        "Aumentar la velocidad de producción sin importar el riesgo",
+        "Seleccionar solo a los trabajadores más fuertes",
+        "Automatizar todos los procesos manuales"
+      ],
+      "question": "¿Cuál es el objetivo principal de la ergonomía?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "5 kg o más",
+        "3 kg o más",
+        "10 kg o más",
+        "15 kg o más"
+      ],
+      "question": "Según la NOM-036, ¿a partir de qué peso se considera 'Manipulación Manual de Cargas'?"
+    },
+    {
+      "answer": 3,
+      "options": [
+        "Frecuencia",
+        "Fuerza",
+        "Postura",
+        "Duración"
+      ],
+      "question": "¿Qué factor de riesgo se define como 'el tiempo total de exposición al riesgo'?"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Someterse a exámenes médicos",
+        "Informar sobre condiciones inseguras",
+        "Informar y capacitar a los trabajadores (POES)",
+        "Participar en la capacitación"
+      ],
+      "question": "Es una obligación específica del PATRÓN según la normativa:"
+    },
+    {
+      "answer": 0,
+      "options": [
+        "El EJA evalúa cualquier trabajo con 40 criterios; el CW EJA es específico para oficinas",
+        "El EJA es para oficinas y el CW EJA para industria",
+        "El EJA solo mide fuerza y el CW EJA solo mide postura",
+        "El CW EJA tiene 40 criterios y el EJA es una lista binaria"
+      ],
+      "question": "¿Cuál es la diferencia principal entre el EJA (General) y el CW EJA?"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "> 130 lbs",
+        "> 56 lbs",
+        "> 72 lbs",
+        "> 90 lbs"
+      ],
+      "question": "En el EJA 17 (Jalón hacia abajo), ¿cuál es el límite de ALTO RIESGO para un solo brazo?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "Mayor a 15 grados",
+        "Mayor a 45 grados",
+        "Mayor a 30 grados",
+        "Mayor a 60 grados"
+      ],
+      "question": "¿Qué ángulo se considera Alto Riesgo para la Flexión de Cuello (EJA 22)?"
+    },
+    {
+      "answer": 0,
+      "options": [
+        "El ángulo de torsión o giro del tronco al levantar la carga",
+        "La distancia vertical del desplazamiento",
+        "La distancia de las manos a los tobillos",
+        "La frecuencia de levantamientos por minuto"
+      ],
+      "question": "En la ecuación de levantamiento, ¿qué define la variable de 'Asimetría'?"
+    },
+    {
+      "answer": 3,
+      "options": [
+        "Extender el brazo por detrás del hombro",
+        "Levantar el brazo por encima de la cabeza",
+        "Girar la cabeza hacia un lado",
+        "Cruzar la línea media del cuerpo con la mano opuesta"
+      ],
+      "question": "¿Qué evalúa el criterio EJA 20 'Alcance Cruzado'?"
+    },
+    {
+      "answer": 0,
+      "options": [
+        "Levantar el brazo hacia un lado, alejándolo del cuerpo",
+        "Levantar el brazo hacia el frente",
+        "Girar el brazo hacia adentro",
+        "Llevar el brazo hacia atrás"
+      ],
+      "question": "En el EJA 19 (Hombro), ¿qué es la Abducción?"
+    },
+    {
+      "answer": 3,
+      "options": [
+        "> 45 lbs",
+        "> 20 lbs",
+        "> 130 lbs",
+        "> 90 lbs"
+      ],
+      "question": "Para el empuje a una mano (EJA 18), ¿cuál es el límite de fuerza de alto riesgo si se hace pocas veces (1-10 al día)?"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Manubrios a la altura de la cintura",
+        "Ruedas de gran diámetro",
+        "Ruedas desgastadas o suelo irregular",
+        "Suelo nivelado y liso"
+      ],
+      "question": "¿Qué factor aumenta el riesgo en tareas de empuje y arrastre?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "Manejo manual de cargas > 3kg",
+        "Posturas forzadas y movimientos repetitivos",
+        "Seguridad en maquinaria pesada",
+        "Ruido e iluminación"
+      ],
+      "question": "La Parte 2 de la NOM-036 es complementaria y se enfoca en:"
+    },
+    {
+      "answer": 0,
+      "options": [
+        "> 60 grados",
+        "> 45 grados",
+        "> 30 grados",
+        "> 90 grados"
+      ],
+      "question": "¿Cuál es el ángulo de Alto Riesgo para la Rotación de Cuello (EJA 25)?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "Mirar un monitor muy alto",
+        "Sostener el teléfono con el hombro",
+        "Mirar un monitor muy bajo",
+        "Girar la cabeza para ver a un compañero"
+      ],
+      "question": "El EJA 24 evalúa la 'Flexión Lateral' del cuello. ¿Qué escenario común provoca esto?"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "El brazo móvil con el hombro",
+        "El brazo fijo apuntando al suelo",
+        "El brazo móvil con la base de la nariz o línea de los ojos",
+        "El goniómetro sobre la coronilla"
+      ],
+      "question": "¿Qué se debe alinear al medir la Flexión de Cuello con un goniómetro?"
+    },
+    {
+      "answer": 0,
+      "options": [
+        "Procesos mentales, memoria y carga de trabajo mental",
+        "Fuerza muscular y postura",
+        "Estructuras organizacionales y políticas",
+        "Ruido e iluminación únicamente"
+      ],
+      "question": "En ergonomía cognitiva, ¿qué se evalúa principalmente?"
+    },
+    {
+      "answer": 3,
+      "options": [
+        "Fuerza excesiva",
+        "Postura estática",
+        "Duración extrema",
+        "Alta frecuencia (Repetitividad)"
+      ],
+      "question": "Si un trabajador realiza el mismo movimiento de muñeca cada 3 segundos, ¿qué factor predomina?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "Realizar el análisis de riesgo de la planta",
+        "Informar inmediatamente sobre condiciones inseguras",
+        "Comprar su propio equipo de protección",
+        "Modificar la maquinaria por su cuenta"
+      ],
+      "question": "¿Cuál es una obligación del TRABAJADOR respecto a la ergonomía?"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Fuerza con toda la mano cerrada (puño)",
+        "Presión con un solo dedo",
+        "Fuerza ejercida con la punta de los dedos y el pulgar",
+        "Fuerza de la muñeca al girar"
+      ],
+      "question": "¿Qué evalúa el 'Agarre de Pinza' (EJA 5)?"
+    },
+    {
+      "answer": 0,
+      "options": [
+        "29-32",
+        "4-6",
+        "17-21",
+        "36-40"
+      ],
+      "question": "¿Qué rango de criterios EJA cubre las 'Piernas y Tobillos'?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "El esfuerzo continuo para mantener el movimiento",
+        "El esfuerzo pico necesario para vencer la inercia (arranque)",
+        "El peso total del objeto",
+        "La fuerza para detener el objeto"
+      ],
+      "question": "En el Apéndice 2, ¿qué es la 'Fuerza Inicial'?"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "Teclado muy alto",
+        "Monitor muy bajo",
+        "Uso de lentes bifocales o monitor muy alto",
+        "Silla muy alta"
+      ],
+      "question": "Según el EJA 23, ¿cuál es una causa común de Extensión de Cuello nociva en oficinas?"
+    },
+    {
+      "answer": 0,
+      "options": [
+        "Extender el brazo por detrás del plano del hombro",
+        "Cruzar el brazo frente al pecho",
+        "Levantar el brazo lateralmente",
+        "Jalar un objeto hacia abajo"
+      ],
+      "question": "¿Qué representa el criterio EJA 21 'Alcance Atrás'?"
+    },
+    {
+      "answer": 3,
+      "options": [
+        "En la base de la oreja",
+        "En la base del cuello (C7)",
+        "En el hombro",
+        "Sobre la coronilla de la cabeza (vista superior)"
+      ],
+      "question": "Para medir la 'Rotación de Cuello', ¿dónde se coloca el eje del goniómetro?"
+    }
+  ]
+}
