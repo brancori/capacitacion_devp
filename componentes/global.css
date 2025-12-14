@@ -171,8 +171,9 @@ body {
 }
 
 .btn-outline:hover {
-    background: var(--primaryColor);
-    color: white;
+    background: white;
+    border: 2px solid var(--primaryColor);
+    color: var(--primaryColor);
 }
 
 /* Botón de Peligro (ej. eliminar) */

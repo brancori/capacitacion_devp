@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vista de Certificado</title>
+    
+    <link rel="stylesheet" href="../lib/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap');
+
+        :root {
+            --primary: #234B95;
+            --gold: #C5A059;
+            --bg-dark: #141E30;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Lato', sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        #statusMessage {
+            color: white;
+            text-align: center;
+            font-size: 1.2rem;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        /* Contenedor visual en pantalla */
+        .cert-container {
+            background: white;
+            padding: 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin: 20px auto;
+            max-width: 1000px;
+            width: 95%;
+            display: none; /* Se activa vía JS */
+            position: relative;
+            overflow: hidden;
+        }
+
+        @media (min-width: 1024px) {
+            .cert-container {
+                width: 1000px;
+            }
+        }
+
+        /* Botones flotantes */
+        .actions-bar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: none; /* Se muestra vía JS */
+            gap: 10px;
+            z-index: 1000;
+            flex-direction: column;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: wait;
+            transform: none;
+        }
+
+        .btn-download {
+            background: var(--btn-primary-bg, rgba(197, 160, 89, 0.9));
+            color: var(--btn-primary-text, #fff);
+            border: 2px solid var(--btn-primary-border, rgba(197, 160, 89, 0.5));
+        }
+
+        .btn-download:hover {
+            background: var(--btn-primary-hover, rgba(197, 160, 89, 1));
+        }
+
+        .btn-back {
+            background: var(--btn-back-bg, rgba(255, 255, 255, 0.15));
+            border: 2px solid var(--btn-back-border, rgba(255, 255, 255, 0.3));
+            color: var(--btn-back-text, white);
+        }
+
+        .btn-back:hover {
+            background: var(--btn-back-hover, rgba(255, 255, 255, 0.25));
+            border-color: var(--btn-back-border-hover, rgba(255, 255, 255, 0.5));
+        }
+
+        @media (max-width: 768px) {
+            .actions-bar {
+                flex-direction: row;
+                top: auto;
+                bottom: 20px;
+                right: 50%;
+                transform: translateX(50%);
+            }
+            .btn {
+                font-size: 0.85rem;
+                padding: 10px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="statusMessage">
+        <i class="fas fa-circle-notch fa-spin"></i> Verificando autenticidad...
+    </div>
+
+    <div class="cert-container" id="certificateElement">
+        <svg viewBox="0 0 842 595"
+             xmlns="http://www.w3.org/2000/svg"
+             preserveAspectRatio="xMidYMid meet"
+             style="width:100%; height:auto; display:block;">
+
+          <rect x="0" y="0" width="842" height="595" fill="#ffffff"/>
+
+          <g transform="translate(15,15)">
+
+            <defs>
+              <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#C5A059"/>
+                <stop offset="50%" stop-color="#E6D28D"/>
+                <stop offset="100%" stop-color="#C5A059"/>
+              </linearGradient>
+            </defs>
+
+            <rect x="5" y="5" width="802" height="555" rx="10"
+                  fill="none" stroke="url(#goldGradient)" stroke-width="5"/>
+
+            <rect x="20" y="20" width="772" height="525" rx="5"
+                  fill="none" stroke="#234B95" stroke-width="2"/>
+
+            <path d="M 5 105 L 5 5 L 105 5"
+                  fill="none" stroke="#234B95" stroke-width="20" stroke-opacity="0.1"/>
+            <path d="M 807 105 L 807 5 L 707 5"
+                  fill="none" stroke="#234B95" stroke-width="20" stroke-opacity="0.1"/>
+            <path d="M 5 455 L 5 555 L 105 555"
+                  fill="none" stroke="#234B95" stroke-width="20" stroke-opacity="0.1"/>
+            <path d="M 807 455 L 807 555 L 707 555"
+                  fill="none" stroke="#234B95" stroke-width="20" stroke-opacity="0.1"/>
+
+            <image id="cert-tenant-logo"
+                x="45" y="35"
+                width="230" height="90"
+                preserveAspectRatio="xMinYMid meet"
+                href=""
+                style="display:none"/>
+
+            <text x="421" y="165"
+                  font-family="'Cinzel', 'Times New Roman', serif"
+                  font-size="40"
+                  font-weight="bold"
+                  fill="#234B95"
+                  text-anchor="middle">
+              CERTIFICADO
+            </text>
+
+            <text x="421" y="205"
+                  font-family="'Lato', sans-serif"
+                  font-size="16"
+                  letter-spacing="4"
+                  fill="#666"
+                  text-anchor="middle">
+              DE FINALIZACIÓN
+            </text>
+
+            <text x="421" y="255"
+                  font-family="'Lato', sans-serif"
+                  font-size="14"
+                  fill="#444"
+                  text-anchor="middle">
+              Se otorga el presente reconocimiento a:
+            </text>
+
+            <text id="cert-student-name"
+                  x="421" y="305"
+                  font-family="'Cinzel', 'Times New Roman', serif"
+                  font-size="32"
+                  font-weight="bold"
+                  fill="#000"
+                  text-anchor="middle">
+              ESTUDIANTE
+            </text>
+
+            <line x1="221" y1="320" x2="621" y2="320"
+                  stroke="#C5A059" stroke-width="2"/>
+
+            <text x="421" y="355"
+                  font-family="'Lato', sans-serif"
+                  font-size="14"
+                  fill="#444"
+                  text-anchor="middle">
+              Por haber completado y aprobado satisfactoriamente el curso:
+            </text>
+
+            <text id="cert-course-title"
+                  x="421" y="395"
+                  font-family="'Lato', sans-serif"
+                  font-size="24"
+                  font-weight="bold"
+                  fill="#234B95"
+                  text-anchor="middle">
+              Nombre del Curso
+            </text>
+
+            <g transform="translate(135,465)">
+              <text font-family="'Lato', sans-serif" font-size="12" fill="#666">
+                Fecha de Finalización:
+              </text>
+              <text id="cert-date"
+                    y="25"
+                    font-family="'Lato', sans-serif"
+                    font-size="16"
+                    font-weight="bold"
+                    fill="#333">
+                --/--/----
+              </text>
+            </g>
+
+            <g transform="translate(535,465)">
+              <text id="cert-instructor-name"
+                    x="80" y="10"
+                    font-family="'Lato', sans-serif"
+                    font-size="16"
+                    font-weight="bold"
+                    fill="#333"
+                    text-anchor="middle">
+                Director Académico
+              </text>
+              <line x1="0" y1="20" x2="160" y2="20"
+                    stroke="#999" stroke-width="1"/>
+              <text x="80" y="40"
+                    font-family="'Lato', sans-serif"
+                    font-size="12"
+                    fill="#666"
+                    text-anchor="middle">
+                Instructor
+              </text>
+            </g>
+
+            <text id="cert-uuid"
+                  x="421" y="555"
+                  font-family="monospace"
+                  font-size="10"
+                  fill="#999"
+                  text-anchor="middle">
+              ID: XXXXX
+            </text>
+
+          </g>
+        </svg>
+    </div>
+
+    <div class="actions-bar" id="actionsBar">
+        <a href="../profile/profile.html" class="btn btn-back">
+            <i class="fas fa-arrow-left"></i> Volver al Perfil
+        </a>
+        <button class="btn btn-download" id="btnDownload" onclick="downloadPDF()">
+            <i class="fas fa-file-pdf"></i> Descargar PDF
+        </button>
+    </div>
+
+<script src="../lib/supabase.js"></script>
+    <script src="../componentes/supabase-client.js"></script>
+    
+    <script src="../lib/jspdf.umd.min.js"></script>
+
+    <script src="../lib/svg2pdf.umd.min.js"></script>
+
+<script>
+        // --- BLOQUE 1: PARCHE DE COMPATIBILIDAD (EL FIX DEFINITIVO) ---
+        (function() {
+            try {
+                // A. Localizar jsPDF (Soporta UMD y Global)
+                const jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+                
+                if (!jsPDF) {
+                    console.error("❌ Error Crítico: jsPDF no se cargó. Verifica que el archivo '../lib/jspdf.umd.min.js' tenga contenido.");
+                    return;
+                }
+
+                // B. Asegurar acceso global (para svg2pdf si lo busca después)
+                window.jsPDF = jsPDF;
+
+                // C. Verificar e Inyectar .svg() si falta
+                if (typeof jsPDF.API.svg !== 'function') {
+                    console.warn("⚠️ svg2pdf no se auto-instaló. Aplicando inyección manual...");
+                    
+                    if (typeof window.svg2pdf === 'function') {
+                        // Conectamos manualmente la función global al prototipo de jsPDF
+                        jsPDF.API.svg = function(element, options) {
+                            return window.svg2pdf(this, element, options);
+                        };
+                        console.log("✅ Parche aplicado con éxito: doc.svg() ya está disponible.");
+                    } else {
+                        console.error("❌ Error: No encuentro 'window.svg2pdf'. ¿El archivo '../lib/svg2pdf.umd.min.js' se descargó correctamente? (Verifica que no sea un HTML de error 404 guardado como JS).");
+                    }
+                } else {
+                    console.log("✅ Sistema de vectores listo (Carga nativa correcta).");
+                }
+            } catch (e) {
+                console.error("Error en la inicialización de librerías:", e);
+            }
+        })();
+
+        // --- BLOQUE 2: TU LÓGICA DE CERTIFICADO ---
+
+        async function initCertificate() {
+            const statusEl = document.getElementById('statusMessage');
+
+            // 1. Verificación básica de Supabase
+            if (!window.supabase || typeof window.supabase.auth === 'undefined') {
+                setTimeout(initCertificate, 100);
+                return;
+            }
+
+            // 2. Obtener parámetros URL
+            const params = new URLSearchParams(window.location.search);
+            const assignmentId = params.get('assignment_id');
+
+            if (!assignmentId) {
+                statusEl.innerHTML = '<span style="color:#ef476f">Error: Enlace inválido (Falta ID).</span>';
+                return;
+            }
+
+            try {
+                // 3. Verificar Sesión
+                const sessionResponse = await window.supabase.auth.getSession();
+                if (!sessionResponse?.data?.session) {
+                    // Si no hay sesión, redirigir al login
+                    window.location.href = '../index.html';
+                    return;
+                }
+                const session = sessionResponse.data.session;
+
+                // 4. Consultar Datos
+                const { data: assignment, error } = await window.supabase
+                    .from('user_course_assignments')
+                    .select(`
+                        id, completed_at, status, score,
+                        course_id, user_id, tenant_id,
+                        articles:course_id (title, instructor_name)
+                    `)
+                    .eq('id', assignmentId)
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (error || !assignment) {
+                    statusEl.innerHTML = '<span style="color:#ef476f">No se encontró el certificado o no tienes permiso.</span>';
+                    return;
+                }
+
+                // Validar completitud
+                const isCompleted = assignment.completed_at || 
+                                    assignment.status === 'completed' || 
+                                    (assignment.score && Number(assignment.score) >= 8);
+
+                if (!isCompleted) {
+                    statusEl.innerHTML = '<span style="color:#ffd166">Curso no completado. Aún no puedes descargar el certificado.</span>';
+                    return;
+                }
+
+                // 5. Cargar Configuración del Tenant (Logo/Colores)
+                let tenantConfig = {};
+                
+                // Intento 1: DB
+                if (assignment.tenant_id) {
+                    const { data: tData } = await window.supabase
+                        .from('tenants')
+                        .select('metadata')
+                        .eq('id', assignment.tenant_id)
+                        .single();
+                    if (tData?.metadata) tenantConfig = tData.metadata;
+                }
+
+                // Intento 2: JSON Fallback
+                if (!Object.keys(tenantConfig).length) {
+                    try {
+                        const resp = await fetch('../tenants/tenants.json');
+                        const json = await resp.json();
+                        // Intentamos adivinar el tenant o usar default
+                        const slug = window.CURRENT_TENANT || 'default'; 
+                        tenantConfig = json[slug] || json['default'] || {};
+                        
+                        // Fix rutas relativas en JSON
+                        if (tenantConfig.logoUrl && tenantConfig.logoUrl.startsWith('./tenants')) {
+                            tenantConfig.logoUrl = tenantConfig.logoUrl.replace('./tenants', '../tenants');
+                        }
+                    } catch (e) { console.warn('No se pudo cargar tenants.json'); }
+                }
+
+                // 6. Preparar Datos Visuales
+                // Nombre
+                let studentName = "Estudiante";
+                const { data: profile } = await window.supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', session.user.id)
+                    .single();
+                studentName = profile?.full_name || session.user.user_metadata?.full_name || "Estudiante";
+
+                // Inyección al DOM
+                document.getElementById('cert-student-name').textContent = studentName.toUpperCase();
+                
+                const courseTitle = assignment.articles?.title || "Curso";
+                document.getElementById('cert-course-title').textContent = courseTitle;
+
+                const dateObj = new Date(assignment.completed_at || new Date());
+                document.getElementById('cert-date').textContent = dateObj.toLocaleDateString('es-ES', { 
+                    year: 'numeric', month: 'long', day: 'numeric' 
+                });
+
+                document.getElementById('cert-uuid').textContent = `ID: ${assignment.id.split('-')[0].toUpperCase()}`;
+                
+                const instName = assignment.articles?.instructor_name || "Director Académico";
+                document.getElementById('cert-instructor-name').textContent = instName;
+
+                // Logo
+                const logoEl = document.getElementById('cert-tenant-logo');
+                if (tenantConfig.logoUrl) {
+                    logoEl.setAttribute('href', tenantConfig.logoUrl);
+                    logoEl.style.display = 'block';
+                }
+
+                // Aplicar Colores
+                applyTenantColors(tenantConfig);
+
+                // 8. Mostrar Interfaz
+                statusEl.style.display = 'none';
+                document.getElementById('certificateElement').style.display = 'block';
+                document.getElementById('actionsBar').style.display = 'flex';
+
+            } catch (err) {
+                console.error(err);
+                statusEl.innerText = "Ocurrió un error inesperado cargando el certificado.";
+            }
+        }
+
+        // --- FUNCIONES AUXILIARES ---
+
+        function applyTenantColors(config) {
+            if (!config) return;
+            const primary = config.primaryColor || '#234B95';
+            const gold = config.goldColor || '#C5A059';
+
+            const svg = document.querySelector('#certificateElement svg');
+            if (svg) {
+                // Reemplazos directos en SVG
+                svg.querySelectorAll('[stroke="#234B95"]').forEach(el => el.setAttribute('stroke', primary));
+                svg.querySelectorAll('[fill="#234B95"]').forEach(el => el.setAttribute('fill', primary));
+                
+                if (config.goldColor) {
+                    svg.querySelectorAll('[stroke="#C5A059"]').forEach(el => el.setAttribute('stroke', gold));
+                    const grad = document.getElementById('goldGradient');
+                    if(grad) {
+                        grad.children[0].setAttribute('stop-color', gold);
+                        grad.children[2].setAttribute('stop-color', gold);
+                    }
+                }
+            }
+
+            // CSS Variables para botones
+            const root = document.documentElement;
+            const rgba = (hex, a) => {
+                const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+                return `rgba(${r},${g},${b},${a})`;
+            };
+
+            root.style.setProperty('--btn-primary-bg', rgba(primary, 0.9));
+            root.style.setProperty('--btn-primary-border', rgba(primary, 0.5));
+            root.style.setProperty('--btn-primary-hover', rgba(primary, 1));
+            root.style.setProperty('--btn-back-bg', rgba(primary, 0.15));
+            root.style.setProperty('--btn-back-border', rgba(primary, 0.3));
+        }
+
+        // --- FUNCIÓN DE DESCARGA (CON DEBUG DE ERROR) ---
+        async function downloadPDF() {
+            const btn = document.getElementById('btnDownload');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Generando...';
+            btn.disabled = true;
+
+            try {
+                // Usamos el jsPDF global que aseguramos en el parche
+                const jsPDF = window.jsPDF || window.jspdf.jsPDF;
+                
+                // Configurar documento Carta (Landscape)
+                // 1 inch = 25.4mm. Carta = 11in x 8.5in
+                const doc = new window.jsPDF('l', 'mm', 'letter');
+                
+                // Carta Landscape en mm: 279.4 x 215.9
+                const margin = 5; 
+                const pageWidth = 279.4;
+                const pageHeight = 215.9;
+
+                const safeWidth = pageWidth - (margin * 2);
+                const safeHeight = pageHeight - (margin * 2);
+
+                const element = document.querySelector('#certificateElement svg');
+
+                // Verificación de seguridad antes de ejecutar
+                if (typeof doc.svg !== 'function') {
+                    throw new Error("La librería de vectores (svg2pdf) no se cargó correctamente. Revisa la consola (F12) para ver los errores del parche.");
+                }
+
+                // Generar Vectorial
+                await doc.svg(element, {
+                    x: margin,
+                    y: margin,
+                    width: safeWidth,
+                    height: safeHeight,
+                    loadExternalStyleSheets: true
+                });
+
+                // Nombre del Archivo
+                const sName = document.getElementById('cert-student-name').textContent.trim();
+                const cTitle = document.getElementById('cert-course-title').textContent.trim();
+                const cleanStr = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9 ]/g, "");
+                const filename = `${cleanStr(sName)}_${cleanStr(cTitle)}.pdf`.replace(/\s+/g, '_');
+
+                doc.save(filename);
+
+            } catch (err) {
+                console.error("Error PDF Detallado:", err);
+                alert("Error: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initCertificate);
+        } else {
+            initCertificate();
+        }
+    </script>
+</body>
+</html>

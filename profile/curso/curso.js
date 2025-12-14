@@ -294,6 +294,7 @@ window.renderPage = function(index) {
     }
 
     updateNavigationUI(index);
+    triggerSlidingPreload(index);
 };
 function renderFillBlanks(page) {
     const data = page.payload;
@@ -1174,42 +1175,119 @@ window.submitSurvey = async function(e) {
 // Iniciar todo al cargar la página
 document.addEventListener('DOMContentLoaded', initCourse);
 
+// ==========================================
+// 6. SISTEMA DE PRE-CARGA (PERFORMANCE)
+// ==========================================
 
-/* 
-Json, type practice
-{
-  "type": "practice",
-  "title": "Repaso: Normas de Seguridad",
-  "payload": {
-    "config": {
-      "pool_size": 4
-    },
-    "bank": [
-      {
-        "question": "¿Cuál es la altura mínima para considerar trabajo en altura?",
-        "options": ["1.5 metros", "1.8 metros", "2.0 metros"],
-        "answer": 1
-      },
-      {
-        "question": "¿Qué norma regula el EPP?",
-        "options": ["NOM-017", "NOM-035", "NOM-030"],
-        "answer": 0
-      },
-      {
-        "question": "¿Color de seguridad para prohibición?",
-        "options": ["Azul", "Rojo", "Amarillo"],
-        "answer": 1
-      },
-      {
-        "question": "¿Color para advertencia?",
-        "options": ["Verde", "Amarillo", "Rojo"],
-        "answer": 1
-      },
-      {
-        "question": "¿Extintor para fuego tipo A?",
-        "options": ["CO2", "Agua", "Polvo Químico"],
-        "answer": 1
-      }
-    ]
-  }
-} */
+// Registro para evitar peticiones duplicadas en la misma sesión
+const preloadedUrls = new Set();
+const PRELOAD_LOOKAHEAD = 3; // Cuántas diapositivas a futuro cargar
+
+/**
+ * Función principal que orquesta la precarga basada en la posición actual
+ */
+function triggerSlidingPreload(currentIndex) {
+    if (!courseData || !courseData.pages) return;
+
+    // Calculamos el rango de la ventana deslizante
+    const maxIndex = Math.min(courseData.pages.length - 1, currentIndex + PRELOAD_LOOKAHEAD);
+
+    // Iteramos desde la SIGUIENTE página hasta el límite de la ventana
+    for (let i = currentIndex + 1; i <= maxIndex; i++) {
+        const page = courseData.pages[i];
+        if (!page) continue;
+
+        extractAndPreloadFromPage(page);
+    }
+}
+
+/**
+ * Extrae recursos según el tipo de página y ejecuta la carga
+ */
+function extractAndPreloadFromPage(page) {
+    const payload = page.payload;
+    if (!payload) return;
+
+    switch (page.type) {
+        case 'image':
+            // Caso directo: página tipo imagen única
+            if (payload.url) preloadImage(payload.url);
+            break;
+
+        case 'text':
+        case 'interactive':
+        case 'comparison':
+            // Caso complejo: buscar <img> dentro del HTML string
+            if (payload.html) {
+                // Usamos un parser ligero sin renderizar en el DOM visible
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(payload.html, 'text/html');
+                const images = doc.querySelectorAll('img');
+                images.forEach(img => {
+                    const src = img.getAttribute('src');
+                    if (src) preloadImage(src);
+                });
+            }
+            break;
+
+        case 'gallery':
+            // Caso galería: precargar botones/imágenes de la galería
+            if (payload.buttons && Array.isArray(payload.buttons)) {
+                payload.buttons.forEach(btn => {
+                    if (btn.url) preloadImage(btn.url);
+                });
+            }
+            break;
+        
+        case 'video':
+            // Caso video: Precalentar conexión del iframe
+            if (payload.url) preloadLink(payload.url, 'document');
+            break;
+
+        case 'fillBlanks':
+             // Si hubiera imágenes en el texto del fillBlanks
+             if (payload.text) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(payload.text, 'text/html');
+                const images = doc.querySelectorAll('img');
+                images.forEach(img => {
+                    const src = img.getAttribute('src');
+                    if (src) preloadImage(src);
+                });
+             }
+             break;
+    }
+}
+
+/**
+ * Técnica: Image Object para forzar Browser Cache
+ */
+function preloadImage(url) {
+    if (!url || preloadedUrls.has(url)) return;
+
+    // Normalizar URL si es relativa (opcional, el navegador suele manejarlo bien)
+    // Pero el Set necesita strings idénticos.
+    
+    preloadedUrls.add(url);
+
+    const img = new Image();
+    img.src = url;
+    // No necesitamos adjuntarlo al DOM, la simple asignación de src dispara el GET
+    // Opcional: escuchar onload para logs de debug
+    // img.onload = () => console.log(`[PRELOAD] Cached: ${url}`);
+}
+
+/**
+ * Técnica: Link Prefetch para Iframes/Videos
+ */
+function preloadLink(url, asType) {
+    if (!url || preloadedUrls.has(url)) return;
+    
+    preloadedUrls.add(url);
+
+    const link = document.createElement('link');
+    link.rel = 'preload'; // O 'prefetch' si la prioridad es baja
+    link.as = asType; // 'document' para iframes, 'video' para archivos mp4 directos
+    link.href = url;
+    document.head.appendChild(link);
+}
