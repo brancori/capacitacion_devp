@@ -202,9 +202,6 @@ function initSupabaseClient() {
   const tryInit = () => {
     if (typeof window.supabase?.createClient === 'function') {
       
-      // 1. DETECCIÓN ROBUSTA DE LOCALHOST (Agregamos [::1] por si acaso)
-      const IS_LOCAL = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
-
       console.log(`🔧 Modo Detectado: ${IS_LOCAL ? 'LOCAL (Directo a Nube)' : 'PROD (Vía Proxy)'}`);
 
       const clientOptions = {
@@ -218,12 +215,9 @@ function initSupabaseClient() {
             removeItem: (key) => window.safeStorage.remove(key)
           }
         },
-        // Clave pública anónima siempre se envía
         global: { headers: { "apikey": SUPABASE_ANON_KEY } }
       };
 
-      // 2. LÓGICA DE URL DE FUNCIONES
-      // Si NO es local, usamos el proxy. Si ES local, dejamos que Supabase use su URL por defecto (la nube).
       if (!IS_LOCAL) {
          clientOptions.functions = { url: SUPABASE_URL + '/functions/v1' };
       }
