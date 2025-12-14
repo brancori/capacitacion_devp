@@ -174,9 +174,15 @@ const TenantSystem = {
 // ═══════════════════════════════════════════════════════════
 // 4. INICIALIZACIÓN SUPABASE
 // ═══════════════════════════════════════════════════════════
-const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const forceProductionProxy = new URLSearchParams(window.location.search).get('useProxy') === 'true';
+const IS_LOCAL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !forceProductionProxy;
 const REAL_URL = 'https://hvwygpnuunuuylzondxt.supabase.co';
-const SUPABASE_URL = IS_LOCAL ? REAL_URL : (window.location.origin + '/api');
+const PRODUCTION_PROXY = 'https://siresi.aulacorporativa.com/api';
+
+const SUPABASE_URL = forceProductionProxy ? PRODUCTION_PROXY : (IS_LOCAL ? REAL_URL : (window.location.origin + '/api'));
+
+console.log(`Modo conexion: ${IS_LOCAL ? 'LOCAL-DIRECTO' : 'PROXY'} ${forceProductionProxy ? '(Forzado)' : ''}`);
+console.log(`URL Supabase: ${SUPABASE_URL}`);
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3lncG51dW51dXlsem9uZHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDUzMTEsImV4cCI6MjA3NjEyMTMxMX0.FxjCX9epT_6LgWGdzdPhRUTP2vn4CLdixRqpFMRZK70';
 
 window.__memStorage = window.__memStorage || {};
@@ -197,7 +203,6 @@ function initSupabaseClient() {
     if (typeof window.supabase?.createClient === 'function') {
       
       // 1. DETECCIÓN ROBUSTA DE LOCALHOST (Agregamos [::1] por si acaso)
-      const hostname = window.location.hostname;
       const IS_LOCAL = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
 
       console.log(`🔧 Modo Detectado: ${IS_LOCAL ? 'LOCAL (Directo a Nube)' : 'PROD (Vía Proxy)'}`);
