@@ -364,7 +364,7 @@
                 const session = sessionResponse.data.session;
 
                 // 4. Consultar Datos
-                const { data: assignment, error } = await window.supabase
+                const { data: assignmentData, error } = await window.supabase
                     .from('user_course_assignments')
                     .select(`
                         id, completed_at, status, score,
@@ -374,6 +374,9 @@
                     .eq('id', assignmentId)
                     .eq('user_id', session.user.id)
                     .single();
+
+                // Normalizar respuesta: si viene como array, tomar primer elemento
+                const assignment = Array.isArray(assignmentData) ? assignmentData[0] : assignmentData;
 
                 if (error || !assignment) {
                     statusEl.innerHTML = '<span style="color:#ef476f">No se encontró el certificado o no tienes permiso.</span>';
