@@ -398,11 +398,12 @@
                 
                 // Intento 1: DB
                 if (assignment.tenant_id) {
-                    const { data: tData } = await window.supabase
+                    const { data: tDataRaw } = await window.supabase
                         .from('tenants')
                         .select('metadata')
                         .eq('id', assignment.tenant_id)
                         .single();
+                    const tData = Array.isArray(tDataRaw) ? tDataRaw[0] : tDataRaw;
                     if (tData?.metadata) tenantConfig = tData.metadata;
                 }
 
@@ -425,11 +426,12 @@
                 // 6. Preparar Datos Visuales
                 // Nombre
                 let studentName = "Estudiante";
-                const { data: profile } = await window.supabase
+                const { data: profileData } = await window.supabase
                     .from('profiles')
                     .select('full_name')
                     .eq('id', session.user.id)
                     .single();
+                const profile = Array.isArray(profileData) ? profileData[0] : profileData;
                 studentName = profile?.full_name || session.user.user_metadata?.full_name || "Estudiante";
 
                 // Inyección al DOM
