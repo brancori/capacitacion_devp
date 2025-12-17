@@ -2,7 +2,7 @@
 // 0. VARIABLES GLOBALES (PARA QUE TODOS LAS VEAN)
 // ==========================================
 // Estas variables viven fuera de las funciones para que startQuiz y renderPage compartan los datos.
-let supabase; 
+
 let courseData = null;
 let currentPageIndex = 0;
 let isQuizInProgress = false; //  El candado del examen
