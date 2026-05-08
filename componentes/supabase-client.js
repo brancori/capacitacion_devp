@@ -179,7 +179,7 @@ const IS_LOCAL = (window.location.hostname === 'localhost' || window.location.ho
 const REAL_URL = 'https://hvwygpnuunuuylzondxt.supabase.co';
 const PRODUCTION_PROXY = 'https://alumno.aulacorporativa.com/api';
 
-const SUPABASE_URL = forceProductionProxy ? PRODUCTION_PROXY : (IS_LOCAL ? REAL_URL : (window.location.origin + '/api'));
+const SUPABASE_URL = forceProductionProxy ? PRODUCTION_PROXY : REAL_URL;
 
 console.log(`Modo conexion: ${IS_LOCAL ? 'LOCAL-DIRECTO' : 'PROXY'} ${forceProductionProxy ? '(Forzado)' : ''}`);
 console.log(`URL Supabase: ${SUPABASE_URL}`);
