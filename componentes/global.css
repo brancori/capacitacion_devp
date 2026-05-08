@@ -22,9 +22,8 @@
    fallbacks seguros aquí.
 ======================================================================== */
 :root {
-    /* Colores dinámicos del Tenant (inyectados por JS) */
-    /* Fallback para 'default' o si el JS falla */
-    --primaryColor: #004a99; 
+    /* Colores dinámicos del Tenant (inyectados por JS) – fallbacks seguros */
+    --primaryColor: #004a99;
     --secondaryColor: #0056a3;
 
     /* Colores semánticos estándar */
@@ -32,17 +31,260 @@
     --warning: #f59e0b;
     --danger: #dc3545;
 
-    /* Paleta de grises y neutros del sistema */
-    --light-gray: #f4f4f4;/* Para fondos claros, "casi blanco" */
-    --border: #e2e2e2;      /* Bordes de inputs, cards, etc. */
-    --text-secondary: #555; /* Texto secundario, placeholders */
-    --card-bg: #ffffff;     /* Color de fondo estándar para tarjetas */
+    /* Paleta de grises y neutros */
+    --light-gray: #f4f4f4;
+    --border: #e2e2e2;
+    --text-secondary: #555;
+    --card-bg: #ffffff;
 
-    /* Efectos de UI (Refactoring UI p. 180) */
-    --shadow: rgba(0,0,0,0.05);
-    --shadow-hover: rgba(0,0,0,0.1);
+    /* Efectos de UI */
+    --shadow: rgba(0, 0, 0, 0.05);
+    --shadow-hover: rgba(0, 0, 0, 0.1);
+
+    /* Fuente principal del sistema */
     --font-main: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
+
+/* ========================================================================
+   2. ESTILOS BASE (Reset y Tipografía)
+   ======================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: px;               /* Base 16px para usar rem coherentemente */
+    height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-family: var(--font-main);
+    background: var(--bgPage, #ffffff);
+    color: var(--primaryColor);
+    line-height: 1.5;
+    opacity: 0;                    /* Previene FOUC, lo resuelve tenant-manager */
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* ========================================================================
+   3. FUENTE GLOBAL UNIFORME (excluyendo iconos)
+   ======================================================================== */
+body, body * {
+    font-family: var(--font-main);
+}
+
+/* Excepción: iconos de Font Awesome – conservan su fuente propia */
+i.fas, i.far, i.fab, i.fa,
+[class*="fa-"], .fas, .far, .fab, .fa {
+    font-family: 'Font Awesome 6 Free' !important;
+    font-weight: 900;    /* Sólida. Si usas regular, cámbialo a 400 */
+}
+
+/* ========================================================================
+   4. TAMAÑOS DE FUENTE UNIFORMES (jerarquía consistente)
+   ======================================================================== */
+/* Títulos */
+h1, .h1 {
+    font-size: 2rem;      /* 32px */
+    margin: 0.67em 0;
+}
+h2, .h2 {
+    font-size: 1.75rem;   /* 28px */
+}
+h3, .h3 {
+    font-size: 1.5rem;    /* 24px */
+}
+h4, .h4 {
+    font-size: 1.25rem;   /* 20px */
+}
+h5, .h5 {
+    font-size: 1.1rem;    /* ~17.6px */
+}
+h6, .h6 {
+    font-size: 1rem;      /* 16px */
+}
+
+/* Párrafos y texto base */
+p, .text-body, .page-text p, .concept-item, .step-description {
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Textos auxiliares */
+small, .text-small, .caption, .footer-message {
+    font-size: 0.875rem;  /* 14px */
+}
+
+/* Botones y elementos interactivos */
+button, .btn, .quiz-btn, .cs-btn {
+    font-size: 0.95rem;
+}
+
+/* ========================================================================
+   5. ALINEACIONES DENTRO DEL CONTENIDO DEL CURSO
+   ======================================================================== */
+/* Centrar títulos dentro del área dinámica */
+#pageContent h1,
+#pageContent h2,
+#pageContent h3,
+#pageContent h4,
+#pageContent h5,
+#pageContent h6 {
+    text-align: center !important;
+}
+
+/* Justificar párrafos y bloques de texto similares */
+#pageContent p,
+#pageContent .page-text p,
+#pageContent .concept-item,
+#pageContent .step-description,
+#pageContent .sentence-line {
+    text-align: justify;
+    text-justify: inter-word;
+}
+
+/* Componentes interactivos (quiz, práctica, etc.) mantienen alineación original */
+.quiz-question-text,
+.quiz-options,
+.practice-card p,
+.epp-item span,
+.cs-context-text {
+    text-align: left;
+}
+
+/* ========================================================================
+   6. COMPONENTES REUTILIZABLES (Botones, Modales, etc.)
+   ======================================================================== */
+/* Botón primario (base) */
+.btn-primary {
+    background: var(--primaryColor);
+    color: white;
+    border: 2px solid var(--primaryColor);
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+.btn-primary:hover:not(:disabled) {
+    background: var(--secondaryColor);
+    border-color: var(--secondaryColor);
+    transform: translateY(-2px);
+}
+
+/* Botón outline */
+.btn-outline {
+    background: transparent;
+    color: var(--primaryColor);
+    border: 2px solid var(--primaryColor);
+}
+.btn-outline:hover {
+    background: var(--primaryColor);
+    color: white;
+}
+
+/* Botón de peligro */
+.btn-danger {
+    background: var(--danger);
+    color: white;
+    border: 2px solid var(--danger);
+}
+.btn-danger:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+}
+
+/* Modal base */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+.modal.show {
+    display: flex;
+}
+.modal-content {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================================================
+   7. CLASES DE UTILIDAD (Formularios, búsqueda, etc.)
+   ======================================================================== */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.form-group label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+.form-control:focus {
+    outline: none;
+    border-color: var(--primaryColor);
+}
+
+.search-box {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+}
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+}
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+/* ========================================================================
+   8. NUEVO: FORZADO DE FUENTE EN MODALES Y FLOTANTES (si hiciera falta)
+   ======================================================================== */
+#resultModal, .course-modal,
+#qa-floating-btn, .qa-close-btn, #qa-submit-btn {
+    font-family: var(--font-main) !important;
+}
+
+
 
 /* ========================================================================
    2. ESTILOS BASE (Reset y Tipografía)
@@ -58,7 +300,6 @@
 html {
     /* Usar 80% (o 12.8px) como base ayuda a crear una UI más refinada
        y menos "tosca" que el default de 16px. (Refactoring UI) */
-    font-size: 80%; 
     height: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -335,4 +576,42 @@ body {
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-secondary);
+}
+
+/* Resetear solo el div contenedor que viene con estilos inline */
+#pageContent > div {
+    max-width: 100% !important;      /* quita el max-width fijo */
+    width: 100% !important;          /* ocupa todo el ancho disponible */
+    margin: 0 auto !important;       /* centrado */
+    padding: 20px !important;        /* un padding uniforme (ajústalo) */
+}
+
+/* Los títulos y párrafos dentro de ese div toman tus tamaños y colores */
+#pageContent > div h2,
+#pageContent > div h3,
+#pageContent > div h4,
+#pageContent > div h5,
+#pageContent > div h6 {
+    color: var(--primaryColor) !important;
+    text-align: center !important;   /* si quieres centrados */
+    font-family: var(--font-main) !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+#pageContent > div p {
+    font-family: var(--font-main) !important;
+    font-size: 1.4rem !important;
+    line-height: 1.5 !important;
+    text-align: justify !important;
+    color: var(--textForm, #333) !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Los divs con fondo (cajas destacadas) también se normalizan */
+#pageContent > div div[style*="background"] {
+    border-left: 4px solid var(--primaryColor) !important;
+    border-radius: 8px !important;
+    padding: 1rem 1.5rem !important;
+    margin: 1rem 0 !important;
 }

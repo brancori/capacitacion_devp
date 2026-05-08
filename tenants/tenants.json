@@ -153,5 +153,31 @@
   },
   "successRedirect": "profile/profile.html",
   "customCss": null
+},
+"alumno": {
+  "companyName": "Aula Corporativa",
+  "logoText": "AC",
+  "logoUrl": "./tenants/alumno/assets/logo_aula.png",
+  "tagline": "Plataforma de Capacitación Digital",
+  "description": "Accede a tu plataforma de capacitación corporativa. Aprende, crece y alcanza tus objetivos profesionales.",
+  "bgPage": "#F4F7F6",
+  "textPage": "#1C2833",
+  "primaryColor": "#315D83",
+  "secondaryColor": "#214361",
+  "bgBrand": "#FFFFFF",
+  "textBrand": "#214361",
+  "bgForm": "#FFFFFF",
+  "textForm": "#1C2833",
+  "inputTheme": "light",
+  "backgroundImage": "none",
+  "animatedBackground": false,
+  "labels": {
+    "empUser": "Usuario",
+    "empPass": "Contraseña",
+    "conUser": "ID Contratista",
+    "conPass": "Contraseña"
+  },
+  "successRedirect": "profile/profile.html",
+  "customCss": null
 }
 }

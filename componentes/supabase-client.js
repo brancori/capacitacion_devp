@@ -51,7 +51,7 @@ const DEFAULTS = {
     // 1. URL (?tenant=x)
     if (params.has('tenant')) window.CURRENT_TENANT = params.get('tenant');
     // 2. Localhost -> FORZAR SIRESI (Dev Environment)
-    else if (host === 'localhost' || host === '127.0.0.1') window.CURRENT_TENANT = 'siresi';
+    else if (host === 'localhost' || host === '127.0.0.1') window.CURRENT_TENANT = 'alumno';
     // 3. Subdominio
     else window.CURRENT_TENANT = host.split('.')[0];
     
@@ -177,7 +177,7 @@ const TenantSystem = {
 const forceProductionProxy = new URLSearchParams(window.location.search).get('useProxy') === 'true';
 const IS_LOCAL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !forceProductionProxy;
 const REAL_URL = 'https://hvwygpnuunuuylzondxt.supabase.co';
-const PRODUCTION_PROXY = 'https://siresi.aulacorporativa.com/api';
+const PRODUCTION_PROXY = 'https://alumno.aulacorporativa.com/api';
 
 const SUPABASE_URL = forceProductionProxy ? PRODUCTION_PROXY : (IS_LOCAL ? REAL_URL : (window.location.origin + '/api'));
 

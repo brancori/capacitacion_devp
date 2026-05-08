@@ -1225,14 +1225,29 @@ window.addMemberByEmail = async () => {
         if (!currentGroup) return;
         document.getElementById('assign-modal').classList.add('active');
         
-        const { data } = await window.supabase
+        // Cargar catálogo completo
+        const { data: allCoursesData, error } = await window.supabase
             .from('articles')
-            .select('id, title, duration_text')
+            .select('id, title, duration_text, instructor_name')
             .eq('tenant_id', currentAdmin.tenant_id)
             .eq('status', 'published');
-            
-        allCourses = data || [];
+
+        if (error) {
+            console.error('Error cargando catálogo:', error);
+        }
+
+        // Cargar cursos ya asignados al grupo para excluirlos
+        const { data: assignedCourses } = await window.supabase
+            .from('group_courses')
+            .select('course_id')
+            .eq('group_id', currentGroup.id);
+
+        const assignedIds = assignedCourses?.map(c => c.course_id) || [];
+        
+        // Solo mostrar los no asignados aún
+        allCourses = (allCoursesData || []).filter(c => !assignedIds.includes(c.id));
         selectedCoursesToAssign = [];
+        
         renderCatalog();
         updateSelectedList();
     };
@@ -1352,34 +1367,6 @@ window.confirmAssignment = async () => {
         console.error('Error:', err);
         showToast('Error', 'No se pudo eliminar el curso', 'error');
     }
-};
-
-// Modificar openAssignModal (reemplazar desde línea ~477)
-window.openAssignModal = async () => {
-    if (!currentGroup) return;
-    document.getElementById('assign-modal').classList.add('active');
-    
-    // Cargar catálogo completo
-    const { data: allCoursesData } = await window.supabase
-        .from('articles')
-        .select('id, title, duration_text, instructor_name')
-        .eq('tenant_id', currentAdmin.tenant_id)
-        .eq('status', 'published');
-        
-    // Cargar cursos ya asignados al grupo
-    const { data: assignedCourses } = await window.supabase
-        .from('group_courses')
-        .select('course_id')
-        .eq('group_id', currentGroup.id);
-
-    const assignedIds = assignedCourses?.map(c => c.course_id) || [];
-    
-    // Filtrar solo los disponibles
-    allCourses = (allCoursesData || []).filter(c => !assignedIds.includes(c.id));
-    selectedCoursesToAssign = [];
-    
-    renderCatalog();
-    updateSelectedList();
 };
 
     function showToast(title, msg, type) {

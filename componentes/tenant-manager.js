@@ -21,8 +21,8 @@
 
         const host = location.hostname || 'localhost';
 
-        // CAMBIO: Forzar 'siresi' en local
-        if (host === 'localhost' || host === '127.0.0.1') return 'siresi';
+        // CAMBIO: Forzar 'alumno' en local
+        if (host === 'localhost' || host === '127.0.0.1') return 'alumno';
 
         const parts = host.split('.');
         if (parts.length > 2 && parts[0] !== 'www') return parts[0];
